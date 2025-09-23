@@ -19,24 +19,30 @@ export const getAllUser = async (req, res) => {
   }
 };
 
+
 export const createUser = async (req, res) => {
   try {
+    console.log("-> Début de la création d'utilisateur...");
     const { nom, prenom, email } = req.body;
+    console.log("Données reçues :", { nom, prenom, email }); // LOG 1: Vérifier les données reçues
+
+    if (!nom || !prenom || !email) {
+      console.log("ERREUR: Données manquantes.");
+      return res.status(400).json({ erreur: "Nom, prénom et email sont requis." });
+    }
 
     const verificationCode = crypto.randomBytes(16).toString("hex");
-    sendMail(
-      email,
-      "Vérification de votre compte",
-      "Pour valider votre compte, veuillez cliquer sur le lien suivant: " +
-        process.env.FRONT_LINK +
-        "/user/verify/" +
-        email +
-        "/" +
-        verificationCode
-    );
-    const user = await User.create({ nom, prenom, email, verificationCode });
+
+    const newUser = { nom, prenom, email, verificationCode };
+    console.log("Objet utilisateur prêt à être créé :", newUser); // LOG 2: Voir l'objet avant la création
+
+    const user = await User.create(newUser);
+
+    console.log("Utilisateur créé avec succès dans la DB :", user); // LOG 3: Voir le résultat de la création
+
     res.status(200).json({ user });
   } catch (error) {
+    console.error("!!! ERREUR CATCHÉE DANS CREATEUSER !!!:", error); // LOG 4: Capturer toute erreur
     res.status(500).json({ erreur: error.message });
   }
 };
@@ -48,7 +54,9 @@ export const loginUser = async (req, res) => {
     if (!username || !password)
       throw new Error("Les champs ne peuvent pas être vides");
 
-    const user = await User.findOne({ username: username });
+    const user = await User.findOne({
+      $or: [{ username: username }, { email: username }],
+    });
 
     // L'utilisateur n'existe pas
     if (!user) {
@@ -56,19 +64,21 @@ export const loginUser = async (req, res) => {
       return;
     }
 
+    // L'utilisateur existe mais n'a pas encore défini de mot de passe
+    if (!user.password) {
+        return res.status(400).json({ message: "Ce compte n'a pas encore été activé. Veuillez vérifier vos e-mails." });
+    }
+
     const match = await bcrypt.compare(password, user.password);
 
-    // Le mot de passe est invalide
+     // Le mot de passe est invalide
     if (!match) {
-      res.status(400).json({ message: "Le mot de passe est incorrect" });
-      return;
-
-      // Mot de passe valide
-    } else {
-      const userId = user._id;
-      const token = createToken(user);
-      res.status(200).json({ userId, username, token });
-    }
+      return res.status(400).json({ message: "Le mot de passe est incorrect" });
+    } 
+    
+    // mot de passe valide on crée le token et on connecte l'utilisateur
+    const token = createToken(user);
+    res.status(200).json({ userId: user._id, username: user.username || user.email, token });
   } catch (error) {
     res.status(501).json({ error: error.message });
   }
