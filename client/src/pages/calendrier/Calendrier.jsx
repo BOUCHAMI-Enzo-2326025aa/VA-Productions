@@ -118,9 +118,9 @@ const Calendrier = () => {
   useEffect(() => {
     const fetchData = async () => {
       await fetchLocalEvents();
-      /*if (isAuthenticated) {
+      if (isAuthenticated) {
         await fetchGoogleEvents();
-      }*/
+      }
       setIsLoading(false);
     };
 
