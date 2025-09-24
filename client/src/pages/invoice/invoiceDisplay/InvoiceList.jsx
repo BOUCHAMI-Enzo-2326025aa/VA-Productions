@@ -42,6 +42,7 @@ const InvoiceList = ({ invoices, setInvoices }) => {
     }
   };
 
+  
   const handleValidate = (id) => {
     const isConfirmed = window.confirm("Voulez-vous confirmer le paiement de cette commande ?");
     if (!isConfirmed) {
