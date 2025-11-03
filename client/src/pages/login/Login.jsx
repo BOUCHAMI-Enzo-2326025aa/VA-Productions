@@ -12,10 +12,25 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loginSuccessfull, setLoginSuccessfull] = useState(false);
   const [errorMessage, setErrorMessage] = useState();
+  const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Fonction de validation du mot de passe
+  const validatePassword = (password) => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+    return regex.test(password);
+  };
+
   const loginUser = async () => {
+    // Bloque la connexion si mot de passe invalide
+    if (!validatePassword(password)) {
+      setErrorMessage(
+        "Mot de passe trop faible ! Il doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole."
+      );
+      return;
+    }
+
     setErrorMessage();
     setLoading(true);
 
@@ -66,14 +81,29 @@ const Login = () => {
               required
               onChange={(e) => setUsername(e.target.value)}
               className="border-[#3F3F3F] border-[0.75px] border-opacity-15 max-w-[500px] py-[10px] rounded-[5px] px-2"
-            ></input>
+            />
           </label>
 
           <label className="flex flex-col font-medium text-[15px] relative">
             Mot de passe
             <input
               required
-              onChange={(e) => setPassword(e.target.value)}
+              onFocus={() =>
+                setPasswordError(
+                  "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole."
+                )
+              }
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (!validatePassword(e.target.value)) {
+                  setPasswordError(
+                    "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole."
+                  );
+                } else {
+                  setPasswordError("");
+                }
+              }}
+              onBlur={() => setPasswordError("")} // <-- le message disparaît quand on quitte le champ
               type={showPassword ? "text" : "password"}
               className="border-[#3F3F3F] border-[0.75px] border-opacity-15 max-w-[500px] py-[10px] rounded-[5px] px-2 pr-10"
             />
@@ -84,6 +114,9 @@ const Login = () => {
             >
               {showPassword ? <EyeOff size={30} /> : <Eye size={30} />}
             </button>
+            {passwordError && (
+              <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+            )}
           </label>
 
           {/* BUTTONS */}

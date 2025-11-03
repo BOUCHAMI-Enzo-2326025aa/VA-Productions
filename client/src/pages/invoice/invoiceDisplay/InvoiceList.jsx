@@ -42,7 +42,13 @@ const InvoiceList = ({ invoices, setInvoices }) => {
     }
   };
 
+  
   const handleValidate = (id) => {
+    const isConfirmed = window.confirm("Voulez-vous confirmer le paiement de cette commande ?");
+    if (!isConfirmed) {
+      // Si l'utilisateur clique sur "Annuler", on ne fait rien
+      return;
+    }
     axios
       .post(`${import.meta.env.VITE_API_HOST}/api/invoice/validate/${id}`)
       .then((response) => {

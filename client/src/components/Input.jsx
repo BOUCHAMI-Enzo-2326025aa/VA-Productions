@@ -3,15 +3,12 @@ const Input = ({
   inputType = "text",
   value = "",
   mandatory = false,
-  onChange,
+  onChange, 
   style,
 }) => {
   return (
     <div className={style}>
-      <label
-        className="font-inter text-[#3F3F3F] font-medium text-md w-full"
-        onChange={(e) => onChange(e)}
-      >
+      <label className="font-inter text-[#3F3F3F] font-medium text-md w-full">
         <div className="flex">
           <p>{title}</p>
           {mandatory && <p className="text-[#FF6767]">*</p>}
@@ -19,8 +16,9 @@ const Input = ({
         <input
           type={inputType}
           value={value}
+          onChange={onChange} 
           className="text-[#3F3F3F] font-semibold w-full px-2 py-2 rounded-sm mt-1 border-[#E1E1E1] border-[1px]"
-        ></input>
+        />
       </label>
     </div>
   );
