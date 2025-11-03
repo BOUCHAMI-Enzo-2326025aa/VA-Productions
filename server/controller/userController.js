@@ -24,19 +24,25 @@ export const createUser = async (req, res) => {
     const { nom, prenom, email } = req.body;
 
     const verificationCode = crypto.randomBytes(16).toString("hex");
-    sendMail(
-      email,
-      "Vérification de votre compte",
-      "Pour valider votre compte, veuillez cliquer sur le lien suivant: " +
-        process.env.FRONT_LINK +
-        "/user/verify/" +
-        email +
-        "/" +
-        verificationCode
-    );
+    
+    // Temporairement désactivé : envoi d'email de vérification
+    // TODO: Réactiver quand sendMail sera configuré
+    // sendMail(
+    //   email,
+    //   "Vérification de votre compte",
+    //   "Pour valider votre compte, veuillez cliquer sur le lien suivant: " +
+    //     process.env.FRONT_LINK +
+    //     "/user/verify/" +
+    //     email +
+    //     "/" +
+    //     verificationCode
+    // );
+    
     const user = await User.create({ nom, prenom, email, verificationCode });
+    console.log('Utilisateur créé:', user);
     res.status(200).json({ user });
   } catch (error) {
+    console.error('Erreur création utilisateur:', error);
     res.status(500).json({ erreur: error.message });
   }
 };

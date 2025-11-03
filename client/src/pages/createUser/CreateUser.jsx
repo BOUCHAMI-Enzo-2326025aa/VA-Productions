@@ -7,14 +7,30 @@ const CreateUser = ({ closeCreationPage, fetchUser }) => {
   const [email, setEmail] = useState("");
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const createUser = async ({ email, nom, prenom }) => {
-    await axios.post(import.meta.env.VITE_API_HOST + "/api/user/create", {
-      email: email,
-      nom: nom,
-      prenom: prenom,
-    });
-    fetchUser();
+    try {
+      setError("");
+      setLoading(true);
+      console.log('Tentative de création utilisateur:', { email, nom, prenom });
+      
+      const response = await axios.post(import.meta.env.VITE_API_HOST + "/api/user/create", {
+        email: email,
+        nom: nom,
+        prenom: prenom,
+      });
+      
+      console.log('Utilisateur créé avec succès:', response.data);
+      await fetchUser();
+      closeCreationPage();
+    } catch (error) {
+      console.error('Erreur lors de la création:', error);
+      setError(error.response?.data?.erreur || "Erreur lors de la création de l'utilisateur");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,6 +46,12 @@ const CreateUser = ({ closeCreationPage, fetchUser }) => {
         <p className="opacity-70">
           Saisissez toutes les informations relatives au nouvel utilisateur
         </p>
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
+            {error}
+          </div>
+        )}
 
         <div className="flex mt-4 gap-1">
           <svg className="size-6 fill-[#3F3F3F]" viewBox="0 -960 960 960">
@@ -63,11 +85,12 @@ const CreateUser = ({ closeCreationPage, fetchUser }) => {
         />
 
         <Button
-          value="Valider la création"
+          value={loading ? "Création en cours..." : "Valider la création"}
           className="w-full mt-12"
           onClickFunction={() => {
-            createUser({ email, nom, prenom });
-            closeCreationPage();
+            if (!loading) {
+              createUser({ email, nom, prenom });
+            }
           }}
         />
         <Button

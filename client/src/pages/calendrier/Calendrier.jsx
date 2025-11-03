@@ -16,10 +16,10 @@ const Calendrier = () => {
         .init({
           apiKey: import.meta.env.VITE_API_KEY_CALENDAR,
           clientId: import.meta.env.VITE_CLIENT_ID_CALENDAR,
+          scope: import.meta.env.VITE_SCOPES,
           discoveryDocs: [
             "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
           ],
-          scope: import.meta.env.VITE_SCOPES,
         })
         .then(() => {
           const authInstance = gapi.auth2.getAuthInstance();
@@ -31,8 +31,20 @@ const Calendrier = () => {
   }, []);
 
   const handleSignIn = () => {
-    gapi.auth2.getAuthInstance().signIn();
-  };
+  gapi.auth2.getAuthInstance().signIn().then(
+    (googleUser) => {
+      console.log("✅ Connexion réussie !");
+      console.log("Profil Google :", googleUser.getBasicProfile());
+      console.log("Token :", googleUser.getAuthResponse(true));
+
+      setIsAuthenticated(true);
+    },
+    (error) => {
+      console.error("❌ Erreur connexion :", error);
+    }
+  );
+};
+
 
   const handleSignOut = () => {
     gapi.auth2.getAuthInstance().signOut();
@@ -86,14 +98,19 @@ const Calendrier = () => {
         orderBy: "startTime",
       });
 
-      const googleEvents = response.result.items.map((event) => ({
-        id: event.id,
-        title: event.summary,
-        location: event.location || "Non spécifié",
-        description: event.description || "Pas de description",
-        startTime: event.start.dateTime.split("T")[1].slice(0, 5),
-        endTime: event.end.dateTime.split("T")[1].slice(0, 5),
-      }));
+      const googleEvents = response.result.items.map((event) => {
+        const [date, time] = event.start.dateTime.split("T");
+        return {
+          id: event.id,
+          title: event.summary,
+          location: event.location || "Non spécifié",
+          description: event.description || "Pas de description",
+          date: date, // <-- AJOUT
+          startTime: time.slice(0, 5),
+          endTime: event.end.dateTime.split("T")[1].slice(0, 5),
+        };
+      });
+
 
       setEvents((prevEvents) => {
         const updatedEvents = { ...prevEvents };
@@ -213,6 +230,23 @@ const Calendrier = () => {
     }
   };
 
+
+  const importAllEventsToGoogle = async () => {
+    if (!isAuthenticated) {
+      alert("Veuillez vous connecter à Google d'abord !");
+      return;
+    }
+
+    // Parcourt tous les evenements de la base
+    Object.values(events).forEach((eventList) => {
+      eventList.forEach((event) => {
+        addEventToGoogleCalendar(event);
+      });
+    });
+  };
+
+
+
   return (
     <div className="bg-[#E8E9EB] w-full py-6">
       <div>
@@ -238,6 +272,15 @@ const Calendrier = () => {
             className=" bg-red-500 font-medium flex items-center gap-2 px-12 py-3 rounded-md"
           >
             Déconnexion
+          </button>
+        )}
+
+        {isAuthenticated && (
+          <button
+            onClick={importAllEventsToGoogle}
+            className="bg-green-500 font-medium flex items-center gap-2 px-12 py-3 rounded-md"
+          >
+            Importer tous les événements
           </button>
         )}
 
