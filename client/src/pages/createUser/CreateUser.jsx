@@ -7,12 +7,14 @@ const CreateUser = ({ closeCreationPage, fetchUser }) => {
   const [email, setEmail] = useState("");
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
+  const [role, setRole] = useState("commercial");
 
-  const createUser = async ({ email, nom, prenom }) => {
+  const createUser = async ({ email, nom, prenom, role }) => {
     await axios.post(import.meta.env.VITE_API_HOST + "/api/user/create", {
       email: email,
       nom: nom,
       prenom: prenom,
+      role: role,
     });
     fetchUser();
   };
@@ -62,11 +64,25 @@ const CreateUser = ({ closeCreationPage, fetchUser }) => {
           style={"w-full mt-2"}
         />
 
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-[#3F3F3F] mb-2">
+            Rôle <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3F3F3F]"
+          >
+            <option value="commercial">Commercial</option>
+            <option value="admin">Administrateur</option>
+          </select>
+        </div>
+
         <Button
           value="Valider la création"
           className="w-full mt-12"
           onClickFunction={() => {
-            createUser({ email, nom, prenom });
+            createUser({ email, nom, prenom, role });
             closeCreationPage();
           }}
         />

@@ -4,15 +4,18 @@ import {
   getAllUser,
   loginUser,
   verifyUser,
+  updateUserRole,
 } from "../controller/userController.js";
 import { authorize } from "../middleware/auth.js";
 import { Roles } from "../utils/Roles.js";
 
 export const router = express.Router();
 
-router.get("/", authorize(Roles.Commercial), getAllUser);
+router.get("/", authorize(Roles.All), getAllUser);
 
-router.post("/create", authorize(Roles.Commercial), createUser);
+router.post("/create", authorize(Roles.Admin), createUser);
+
+router.put("/:userId/role", authorize(Roles.Admin), updateUserRole);
 
 router.post("/login", loginUser);
 

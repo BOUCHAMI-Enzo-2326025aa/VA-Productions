@@ -21,13 +21,16 @@ export const getAllUser = async (req, res) => {
 
 export const createUser = async (req, res) => {
   try {
-    const { nom, prenom, email } = req.body;
+    const { nom, prenom, email, role } = req.body;
 
     if (!nom || !prenom || !email) {
       return res
         .status(400)
         .json({ erreur: "Nom, prénom et email sont requis." });
     }
+
+    // Valider le rôle (par défaut: commercial)
+    const userRole = role && (role === "admin" || role === "commercial") ? role : "commercial";
 
     const verificationCode = crypto.randomBytes(16).toString("hex");
 
@@ -52,7 +55,7 @@ export const createUser = async (req, res) => {
       emailText
     );
 
-    const user = await User.create({ nom, prenom, email, verificationCode });
+    const user = await User.create({ nom, prenom, email, role: userRole, verificationCode });
 
     res.status(200).json({ user });
   } catch (error) {
@@ -99,7 +102,7 @@ export const loginUser = async (req, res) => {
     const token = createToken(user);
     res
       .status(200)
-      .json({ userId: user._id, username: user.username || user.email, token });
+      .json({ userId: user._id, username: user.username || user.email, role: user.role, token });
   } catch (error)
  {
     res.status(501).json({ error: error.message });
@@ -132,5 +135,33 @@ export const verifyUser = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(501).json({ error: error.message });
+  }
+};
+
+export const updateUserRole = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    // Valider le rôle
+    if (!role || (role !== "admin" && role !== "commercial")) {
+      return res.status(400).json({ erreur: "Rôle invalide. Utilisez 'admin' ou 'commercial'." });
+    }
+
+    // Mettre à jour le rôle de l'utilisateur
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { role },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ erreur: "Utilisateur non trouvé" });
+    }
+
+    res.status(200).json({ message: "Rôle mis à jour avec succès", user: updatedUser });
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour du rôle:", error);
+    res.status(500).json({ erreur: error.message });
   }
 };
