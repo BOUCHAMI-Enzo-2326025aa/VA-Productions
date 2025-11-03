@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import InvoiceButton from "../../component/InvoiceButton";
 import InvoiceInput from "../../component/InvoiceInput";
 import CreationSectionTitle from "../../CreationSectionTitle";
@@ -9,6 +10,29 @@ const ClientInformationsStep = ({
   handleChange,
   changeTVA,
 }) => {
+  // affichage local (en %) pour rendre le champ vraiment modifiable
+  const [displayTva, setDisplayTva] = useState(() =>
+    invoice.TVA_PERCENTAGE === "" || invoice.TVA_PERCENTAGE == null
+      ? 20
+      : Number(invoice.TVA_PERCENTAGE) * 100
+  );
+
+  // initialise la TVA stockée côté parent à 20% si elle est absente
+  useEffect(() => {
+    if (invoice.TVA_PERCENTAGE === "" || invoice.TVA_PERCENTAGE == null) {
+      changeTVA(0.2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // si la valeur côté parent change, on met à jour l'affichage
+  useEffect(() => {
+    const pct =
+      invoice.TVA_PERCENTAGE === "" || invoice.TVA_PERCENTAGE == null
+        ? 20
+        : Number(invoice.TVA_PERCENTAGE) * 100;
+    setDisplayTva(pct);
+  }, [invoice.TVA_PERCENTAGE]);
   const selectContact = (e) => {
     const contact = contactList.find(
       (contact) => contact._id === e.target.value
@@ -105,12 +129,22 @@ const ClientInformationsStep = ({
             <label htmlFor="tvaCheckbox" className="ml-2 text-[#3F3F3F]">
               TVA
             </label>
-            <input
-              type="number"
-              className="rounded-sm border-[#E1E1E1] border-[3px] h-8 w-[60px] text-[#3F3F3F] text-center font-bold"
-              value={invoice.TVA_PERCENTAGE}
-              onChange={(e) => changeTVA(e.target.value)}
-            />
+            <div className="flex items-center">
+              <input
+                type="number"
+                min="0"
+                className="rounded-sm border-[#E1E1E1] border-[3px] h-8 w-[60px] text-[#3F3F3F] text-center font-bold"
+                // affichage local modifiable en pourcentage 
+                value={displayTva}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setDisplayTva(raw);
+                  // stocke la TVA en fraction (ex: 20 -> 0.2)
+                  changeTVA(Number((raw / 100).toFixed(4)));
+                }}
+              />
+              <span className="ml-2 text-sm text-[#3F3F3F]">%</span>
+            </div>
           </div>
         </div>
 
