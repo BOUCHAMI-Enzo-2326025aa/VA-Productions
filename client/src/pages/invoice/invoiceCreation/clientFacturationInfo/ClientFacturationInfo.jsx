@@ -52,7 +52,7 @@ const ClientFacturationInfo = ({
         <InvoiceInput
           title={"Adresse 2"}
           value={invoice.client.address2}
-          mandatory={true}
+          mandatory={false}
           onChange={(e) => handleChange("address2", e.target.value)}
         />
       </div>
