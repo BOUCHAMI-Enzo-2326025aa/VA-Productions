@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { useState } from "react";
 import OrderItem from "./OrderItem";
 import "./order.css";
-import PdfViewer from "./PdfViewer";
 import ChangeStatusButton from "./ChangeStatusButton";
 import ActionButton from "./ActionButton";
 import InvoiceButton from "../invoice/component/InvoiceButton";
@@ -13,7 +12,6 @@ import OrderDeleteModal from "./OrderDeleteModal";
 const Order = () => {
   const [orders, setOrders] = useState([]);
   const [ordersToShow, setOrdersToShow] = useState([]);
-  const [pdfBlob, setPdfBlob] = useState(null);
   const [statusToShow, setStatusToShow] = useState("pending");
   const [selectedOrder, setSelectedOrder] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,14 +57,38 @@ const Order = () => {
     }
   };
 
-  const fetchCommandPdf = async (id) => {
-    await axios
-      .get(import.meta.env.VITE_API_HOST + "/api/order/pdf/" + id, {
-        responseType: "blob",
-      })
-      .then((response) => {
-        setPdfBlob(response.data);
-      });
+  const fetchCommandPdf = async (id, orderNumber) => {
+    try {
+      const response = await axios.get(
+        import.meta.env.VITE_API_HOST + "/api/order/pdf/" + id,
+        { responseType: "blob" }
+      );
+
+  // récupération du nom de fichier depuis l'en-tête Content-Disposition
+      const contentDisposition =
+        response.headers["content-disposition"] ||
+        response.headers["Content-Disposition"];
+    // privilégie orderNumber pour le nom de fichier
+    let filename = orderNumber ? `commande-${orderNumber}.pdf` : `commande-${id}.pdf`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?"?([^";]*)"?/i);
+        if (match && match[1]) {
+          filename = decodeURIComponent(match[1]);
+        }
+      }
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Erreur lors du téléchargement du PDF:", error);
+    }
   };
 
   const validateOrder = async () => {
@@ -139,10 +161,6 @@ const Order = () => {
             />
           ))}
         </div>
-
-        {pdfBlob != null && (
-          <PdfViewer className={"w-[50%] h-[70vh]"} blob={pdfBlob} />
-        )}
       </div>
     </div>
   );
