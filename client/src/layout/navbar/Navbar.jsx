@@ -8,8 +8,11 @@ import manageUserSvg from "../../assets/manage-user-icon.svg";
 import userGuideSvg from "../../assets/user-guide-icon.svg";
 import statsSvg from "../../assets/stats-icon.svg";
 import oderSvg from "../../assets/order-icon.svg";
+import useAuth from "../../hooks/useAuth";
 
 const Navbar = ({ isOpen, closeNavbar }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   return (
     <div
       className={
@@ -58,23 +61,27 @@ const Navbar = ({ isOpen, closeNavbar }) => {
           />
         </div>
 
-        <p className="mt-16 text-sm text-white font-medium opacity-70">
-          ADMINISTRATION
-        </p>
-        <div className="mt-4 flex gap-2 flex-col">
-          <PageLink
-            link={"/admin/user/create"}
-            text={"Gestion Utilisateur"}
-            icon={manageUserSvg}
-          />
-        </div>
-        <div className="flex gap-2 flex-col">
-          <PageLink
-            link={"/admin/stats"}
-            text={"Statistiques"}
-            icon={statsSvg}
-          />
-        </div>
+        {isAdmin && (
+          <>
+            <p className="mt-16 text-sm text-white font-medium opacity-70">
+              ADMINISTRATION
+            </p>
+            <div className="mt-4 flex gap-2 flex-col">
+              <PageLink
+                link={"/admin/user/create"}
+                text={"Gestion Utilisateur"}
+                icon={manageUserSvg}
+              />
+            </div>
+            <div className="flex gap-2 flex-col">
+              <PageLink
+                link={"/admin/stats"}
+                text={"Statistiques"}
+                icon={statsSvg}
+              />
+            </div>
+          </>
+        )}
 
         <PageLink
           link={"/guide"}

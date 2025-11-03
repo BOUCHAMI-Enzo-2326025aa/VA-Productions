@@ -7,6 +7,7 @@ import Layout from "./layout/Layout";
 import Login from "./pages/login/Login";
 import CreateUser from "./pages/createUser/ManageUser";
 import ProtectedRoute from "./auth/ProtectedRoute";
+import AdminRoute from "./auth/AdminRoute";
 import axios from "axios";
 import NotLoggedRoute from "./auth/NotLoggedRoute";
 import InvoiceCreation from "./pages/invoice/invoiceCreation/InvoiceCreation";
@@ -107,31 +108,31 @@ function App() {
           <Route
             path="/admin/user/create"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Layout pathName={"Administration"}>
                   <CreateUser />
                 </Layout>
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/user"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Layout pathName={"Administration"}>
                   <UserList />
                 </Layout>
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/stats"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Layout pathName={"Statistiques"}>
                   <Stats />
                 </Layout>
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route
