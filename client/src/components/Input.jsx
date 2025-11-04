@@ -5,6 +5,7 @@ const Input = ({
   mandatory = false,
   onChange, 
   style,
+  
 }) => {
   return (
     <div className={style}>
