@@ -50,10 +50,30 @@ function App() {
     });
   }
 
-  return (
+  
+    return (
     <MantineProvider>
       <BrowserRouter>
         <Routes>
+          // Routes publiques (pas de connexion)
+          <Route
+            path="/connexion"
+            element={
+              <NotLoggedRoute>
+                <Login />
+              </NotLoggedRoute>
+            }
+          />
+          <Route
+            path="/user/verify/:email/:code"
+            element={
+              <NotLoggedRoute>
+                <UserVerify />
+              </NotLoggedRoute>
+            }
+          />
+
+          // Routes prortégées (connexion requise)
           <Route
             path="/dashboard"
             element={
@@ -67,92 +87,95 @@ function App() {
           <Route
             path="/calendrier"
             element={
-              <Layout pathName={"Calendrier"}>
-                <Calendrier />
-              </Layout>
+              <ProtectedRoute>
+                <Layout pathName={"Calendrier"}>
+                  <Calendrier />
+                </Layout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/contacts"
             element={
-              <Layout pathName={"Contacts"}>
-                <Contact />
-              </Layout>
+              <ProtectedRoute>
+                <Layout pathName={"Contacts"}>
+                  <Contact />
+                </Layout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/admin/user/create"
             element={
-              <Layout pathName={"Administration"}>
-                <CreateUser />
-              </Layout>
+              <ProtectedRoute>
+                <Layout pathName={"Administration"}>
+                  <CreateUser />
+                </Layout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/admin/user"
             element={
-              <Layout pathName={"Administration"}>
-                <UserList />
-              </Layout>
+              <ProtectedRoute>
+                <Layout pathName={"Administration"}>
+                  <UserList />
+                </Layout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/admin/stats"
             element={
-              <Layout pathName={"Statistiques"}>
-                <Stats />
-              </Layout>
+              <ProtectedRoute>
+                <Layout pathName={"Statistiques"}>
+                  <Stats />
+                </Layout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/invoice/create"
             element={
-              <Layout pathName={"Factures"}>
-                <InvoiceCreation />
-              </Layout>
+              <ProtectedRoute>
+                <Layout pathName={"Factures"}>
+                  <InvoiceCreation />
+                </Layout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/invoice"
             element={
-              <Layout pathName={"Factures"}>
-                <InvoiceDisplay />
-              </Layout>
+              <ProtectedRoute>
+                <Layout pathName={"Factures"}>
+                  <InvoiceDisplay />
+                </Layout>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/order"
             element={
-              <Layout pathName={"Bons de Commande"}>
-                <Order />
-              </Layout>
+              <ProtectedRoute>
+                <Layout pathName={"Bons de Commande"}>
+                  <Order />
+                </Layout>
+              </ProtectedRoute>
             }
           />
-          <Route
-            path="/connexion"
-            element={
-              <NotLoggedRoute>
-                <Login />
-              </NotLoggedRoute>
-            }
-          />
-
           <Route
             path="/guide"
             element={
-              <Layout pathName={"Guide"}>
-                <Guide />
-              </Layout>
+              <ProtectedRoute>
+                <Layout pathName={"Guide"}>
+                  <Guide />
+                </Layout>
+              </ProtectedRoute>
             }
           />
-          <Route
-            path="/user/verify/:email/:code"
-            element={
-              <NotLoggedRoute>
-                <UserVerify />
-              </NotLoggedRoute>
-            }
-          />
+          
+          // Route par défaut
           <Route
             path="*"
             element={
