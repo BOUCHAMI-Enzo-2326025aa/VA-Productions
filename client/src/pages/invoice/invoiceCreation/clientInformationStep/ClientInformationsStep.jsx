@@ -45,6 +45,37 @@ const ClientInformationsStep = ({
     handleChange("phone", contact.phoneNumber || "");
   };
 
+  // validation des champs obligatoires avant de passer à l'étape suivante
+  const [errors, setErrors] = useState([]);
+
+  const validateFields = () => {
+    const missing = [];
+    if (!invoice.client.compagnyName || invoice.client.compagnyName.trim() === "")
+      missing.push("Entreprise");
+    if (!invoice.client.name || invoice.client.name.trim() === "") missing.push("Nom");
+    if (!invoice.client.surname || invoice.client.surname.trim() === "")
+      missing.push("Prénom");
+    if (!invoice.client.email || invoice.client.email.trim() === "")
+      missing.push("Adresse mail");
+    else {
+      // vérification simple du format d'email
+      const re = /\S+@\S+\.\S+/;
+      if (!re.test(invoice.client.email)) missing.push("Adresse mail (format invalide)");
+    }
+
+    return missing;
+  };
+
+  const handleNext = () => {
+    const missing = validateFields();
+    if (missing.length > 0) {
+      setErrors(missing);
+      return;
+    }
+    setErrors([]);
+    nextStepFunction();
+  };
+
   return (
     <div className="bg-white w-full h-full py-8 px-9 rounded-md page-appear-animation">
       <CreationSectionTitle
@@ -148,11 +179,22 @@ const ClientInformationsStep = ({
           </div>
         </div>
 
+        {errors.length > 0 && (
+          <div className="mb-4 p-3 border border-red-200 bg-red-50 text-red-700 rounded">
+            <p className="font-semibold">Veuillez corriger les champs suivants :</p>
+            <ul className="list-disc ml-5 mt-2">
+              {errors.map((err) => (
+                <li key={err}>{err}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="w-full justify-end flex mt-5">
           <InvoiceButton
             value={"Suivant"}
             className={"ml-auto"}
-            onClickFunction={nextStepFunction}
+            onClickFunction={handleNext}
           />
         </div>
       </div>
