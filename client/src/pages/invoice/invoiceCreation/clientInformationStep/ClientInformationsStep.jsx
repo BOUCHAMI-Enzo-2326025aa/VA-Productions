@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import InvoiceButton from "../../component/InvoiceButton";
 import InvoiceInput from "../../component/InvoiceInput";
 import CreationSectionTitle from "../../CreationSectionTitle";
@@ -9,6 +10,29 @@ const ClientInformationsStep = ({
   handleChange,
   changeTVA,
 }) => {
+  // affichage local (en %) pour rendre le champ vraiment modifiable
+  const [displayTva, setDisplayTva] = useState(() =>
+    invoice.TVA_PERCENTAGE === "" || invoice.TVA_PERCENTAGE == null
+      ? 20
+      : Number(invoice.TVA_PERCENTAGE) * 100
+  );
+
+  // initialise la TVA stockée côté parent à 20% si elle est absente
+  useEffect(() => {
+    if (invoice.TVA_PERCENTAGE === "" || invoice.TVA_PERCENTAGE == null) {
+      changeTVA(0.2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // si la valeur côté parent change, on met à jour l'affichage
+  useEffect(() => {
+    const pct =
+      invoice.TVA_PERCENTAGE === "" || invoice.TVA_PERCENTAGE == null
+        ? 20
+        : Number(invoice.TVA_PERCENTAGE) * 100;
+    setDisplayTva(pct);
+  }, [invoice.TVA_PERCENTAGE]);
   const selectContact = (e) => {
     const contact = contactList.find(
       (contact) => contact._id === e.target.value
@@ -19,6 +43,37 @@ const ClientInformationsStep = ({
     handleChange("surname", contact.surname || "");
     handleChange("email", contact.email || "");
     handleChange("phone", contact.phoneNumber || "");
+  };
+
+  // validation des champs obligatoires avant de passer à l'étape suivante
+  const [errors, setErrors] = useState([]);
+
+  const validateFields = () => {
+    const missing = [];
+    if (!invoice.client.compagnyName || invoice.client.compagnyName.trim() === "")
+      missing.push("Entreprise");
+    if (!invoice.client.name || invoice.client.name.trim() === "") missing.push("Nom");
+    if (!invoice.client.surname || invoice.client.surname.trim() === "")
+      missing.push("Prénom");
+    if (!invoice.client.email || invoice.client.email.trim() === "")
+      missing.push("Adresse mail");
+    else {
+      // vérification simple du format d'email
+      const re = /\S+@\S+\.\S+/;
+      if (!re.test(invoice.client.email)) missing.push("Adresse mail (format invalide)");
+    }
+
+    return missing;
+  };
+
+  const handleNext = () => {
+    const missing = validateFields();
+    if (missing.length > 0) {
+      setErrors(missing);
+      return;
+    }
+    setErrors([]);
+    nextStepFunction();
   };
 
   return (
@@ -105,20 +160,41 @@ const ClientInformationsStep = ({
             <label htmlFor="tvaCheckbox" className="ml-2 text-[#3F3F3F]">
               TVA
             </label>
-            <input
-              type="number"
-              className="rounded-sm border-[#E1E1E1] border-[3px] h-8 w-[60px] text-[#3F3F3F] text-center font-bold"
-              value={invoice.TVA_PERCENTAGE}
-              onChange={(e) => changeTVA(e.target.value)}
-            />
+            <div className="flex items-center">
+              <input
+                type="number"
+                min="0"
+                className="rounded-sm border-[#E1E1E1] border-[3px] h-8 w-[60px] text-[#3F3F3F] text-center font-bold"
+                // affichage local modifiable en pourcentage 
+                value={displayTva}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setDisplayTva(raw);
+                  // stocke la TVA en fraction (ex: 20 -> 0.2)
+                  changeTVA(Number((raw / 100).toFixed(4)));
+                }}
+              />
+              <span className="ml-2 text-sm text-[#3F3F3F]">%</span>
+            </div>
           </div>
         </div>
+
+        {errors.length > 0 && (
+          <div className="mb-4 p-3 border border-red-200 bg-red-50 text-red-700 rounded">
+            <p className="font-semibold">Veuillez corriger les champs suivants :</p>
+            <ul className="list-disc ml-5 mt-2">
+              {errors.map((err) => (
+                <li key={err}>{err}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="w-full justify-end flex mt-5">
           <InvoiceButton
             value={"Suivant"}
             className={"ml-auto"}
-            onClickFunction={nextStepFunction}
+            onClickFunction={handleNext}
           />
         </div>
       </div>
