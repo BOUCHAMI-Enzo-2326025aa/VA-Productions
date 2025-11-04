@@ -20,7 +20,7 @@ const Support = ({
     >
       <img
         className={
-          "size-44 object-cover rounded " +
+          "w-32 h-32 sm:w-40 sm:h-40 lg:size-44 object-cover rounded " +
           (selectedSupport && selectedSupport.name != name
             ? " opacity-30 transition-all "
             : " !opacity-100 transition-all scale-[1.01] ")
@@ -29,7 +29,7 @@ const Support = ({
       />
       <p
         className={
-          "w-full text-center text-[#3F3F3F] font-semibold " +
+          "w-full text-center text-[#3F3F3F] font-semibold text-sm sm:text-base " +
           (selectedSupport && selectedSupport.name === name
             ? " opacity-100 "
             : " opacity-30 ")
