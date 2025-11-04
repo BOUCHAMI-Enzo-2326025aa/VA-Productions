@@ -1,3 +1,4 @@
+import { useState } from "react";
 import CreationSectionTitle from "../../CreationSectionTitle";
 import InvoiceInput from "../../component/InvoiceInput";
 import InvoiceButton from "../../component/InvoiceButton";
@@ -8,6 +9,29 @@ const ClientFacturationInfo = ({
   handleChange,
   invoice,
 }) => {
+  // validation locale
+  const [errors, setErrors] = useState([]);
+
+  const validateFields = () => {
+    const missing = [];
+    if (!invoice.client.city || invoice.client.city.trim() === "") missing.push("Ville");
+    if (!invoice.client.postalCode || invoice.client.postalCode.trim() === "")
+      missing.push("Code postal");
+    if (!invoice.client.address1 || invoice.client.address1.trim() === "")
+      missing.push("Adresse 1");
+    return missing;
+  };
+
+  const handleNext = () => {
+    const missing = validateFields();
+    if (missing.length > 0) {
+      setErrors(missing);
+      return;
+    }
+    setErrors([]);
+    nextPageFunction();
+  };
+
   return (
     <div className="bg-white w-full h-full py-8 px-9 rounded-md page-appear-animation">
       <CreationSectionTitle
@@ -63,13 +87,25 @@ const ClientFacturationInfo = ({
       </div>
 
       {/* Bouton de validation */}
+      {/* erreurs de validation */}
+      {errors.length > 0 && (
+        <div className="mb-4 p-3 border border-red-200 bg-red-50 text-red-700 rounded">
+          <p className="font-semibold">Veuillez corriger les champs suivants :</p>
+          <ul className="list-disc ml-5 mt-2">
+            {errors.map((err) => (
+              <li key={err}>{err}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="flex gap-2 mt-[92px] w-full justify-between">
         <InvoiceButton
           primary={false}
           value={"Précedent"}
           onClickFunction={previousPageFunction}
         />
-        <InvoiceButton value={"Suivant"} onClickFunction={nextPageFunction} />
+        <InvoiceButton value={"Suivant"} onClickFunction={handleNext} />
       </div>
     </div>
   );
