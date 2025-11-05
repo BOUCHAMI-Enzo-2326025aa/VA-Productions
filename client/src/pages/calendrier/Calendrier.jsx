@@ -27,16 +27,24 @@ const Calendrier = () => {
 
   // Fonction utilitaire pour extraire la date au format YYYY-MM-DD
   const extractDate = (dateTimeString) => {
-    if (!dateTimeString) return "";
+    if (!dateTimeString) return null;
+    
     // Si c'est un format ISO (2026-01-17T14:13), on extrait la date
     if (dateTimeString.includes('T')) {
       return dateTimeString.split('T')[0];
     }
+    
     // Si c'est déjà au format YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateTimeString)) {
       return dateTimeString;
     }
-    return dateTimeString;
+    
+    // Si c'est juste une heure (HH:mm), pas de date disponible
+    if (/^\d{2}:\d{2}$/.test(dateTimeString)) {
+      return null;
+    }
+    
+    return null;
   };
 
   useEffect(() => {
@@ -100,13 +108,35 @@ const Calendrier = () => {
         const data = await response.json();
 
         const eventsByDate = data.reduce((acc, event) => {
-          const { date } = event;
+          // Vérifier que startTime existe
+          if (!event.startTime) {
+            console.warn("⚠️ Événement sans startTime ignoré:", event);
+            return acc;
+          }
+
+          // Extraire la date depuis startTime (format ISO: "2026-01-17T14:13")
+          const date = extractDate(event.startTime);
+          
+          // Ignorer les événements sans date valide (anciens événements avec juste l'heure)
+          if (!date) {
+            console.warn("⚠️ Événement avec date invalide ignoré (format ancien):", event);
+            return acc;
+          }
+
+          // Initialiser le tableau pour cette date si nécessaire
           if (!acc[date]) {
             acc[date] = [];
           }
-          if (new Date(event.startTime) >= new Date()) {
+
+          // Vérifier que la date est future ou aujourd'hui
+          const eventDateTime = new Date(event.startTime);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Réinitialiser à minuit pour comparer juste la date
+          
+          if (!isNaN(eventDateTime.getTime()) && eventDateTime >= today) {
             acc[date].push(event);
           }
+          
           return acc;
         }, {});
 
@@ -128,20 +158,23 @@ const Calendrier = () => {
     fetchData();
   }, []);
 
-  const handleCreateEvent = (newEvent) => {
-    const { date } = newEvent;
+  const handleCreateEvent = (savedEvent) => {
+    // L'événement est déjà sauvegardé en BD par le composant Button
+    // On le met juste à jour dans le state local
+    const eventDate = extractDate(savedEvent.startTime);
 
     setEvents((prevEvents) => {
       const updatedEvents = { ...prevEvents };
-      if (!updatedEvents[date]) {
-        updatedEvents[date] = [];
+      if (!updatedEvents[eventDate]) {
+        updatedEvents[eventDate] = [];
       }
-      updatedEvents[date].push(newEvent);
+      updatedEvents[eventDate].push(savedEvent);
       return updatedEvents;
     });
 
+    // Si connecté à Google Calendar, synchroniser aussi
     if (isAuthenticated) {
-      addEventToGoogleCalendar(newEvent);
+      addEventToGoogleCalendar(savedEvent);
     }
   };
 

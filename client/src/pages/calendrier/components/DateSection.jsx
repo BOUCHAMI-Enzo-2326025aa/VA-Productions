@@ -21,32 +21,27 @@ const groupEventsByDate = (events) => {
   }, {});
 };
 
-const DateSection = ({ events, onDeleteEvent }) => {
+const DateSection = ({ date, events, onDeleteEvent }) => {
   if (!events || !Array.isArray(events) || events.length === 0) {
-    return <p>Aucun événement disponible</p>;
+    return null; // Ne rien afficher si pas d'événements
   }
-
-  // Regrouper les événements par date
-  const groupedEvents = groupEventsByDate(events);
 
   return (
     <div className="date-section mb-8">
-      {Object.keys(groupedEvents).map((date) => (
-        <div key={date}>
-          <h2 className="text-lg font-semibold mb-4">
-            {convertToDateTimeLocal(date)}
-          </h2>
-          {groupedEvents[date].map((event) => (
-            <Event
-              key={event._id}
-              date={date}
-              id={event._id}
-              {...event}
-              onDeleteEvent={() => onDeleteEvent(event._id)}
-            />
-          ))}
-        </div>
-      ))}
+      <div>
+        <h2 className="text-lg font-semibold mb-4">
+          {convertToDateTimeLocal(date)}
+        </h2>
+        {events.map((event) => (
+          <Event
+            key={event._id}
+            date={date}
+            id={event._id}
+            {...event}
+            onDeleteEvent={() => onDeleteEvent(event._id, date)}
+          />
+        ))}
+      </div>
     </div>
   );
 };
