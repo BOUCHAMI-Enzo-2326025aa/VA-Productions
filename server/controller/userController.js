@@ -141,11 +141,31 @@ export const verifyUser = async (req, res) => {
 export const updateUserRole = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { role } = req.body;
+    const { role, adminPassword } = req.body;
 
     // Valider le rôle
     if (!role || (role !== "admin" && role !== "commercial")) {
       return res.status(400).json({ erreur: "Rôle invalide. Utilisez 'admin' ou 'commercial'." });
+    }
+
+    // Vérifier que le mot de passe admin est fourni
+    if (!adminPassword) {
+      return res.status(400).json({ erreur: "Mot de passe administrateur requis." });
+    }
+
+    // Récupérer l'utilisateur admin depuis le token (middleware authorize l'a déjà validé)
+    const token = req.headers["authorization"] || req.headers["Authorization"];
+    const decodedToken = jsonwebtoken.verify(token, process.env.SECRET);
+    const adminUser = await User.findById(decodedToken.user._id);
+
+    if (!adminUser) {
+      return res.status(401).json({ erreur: "Utilisateur administrateur non trouvé." });
+    }
+
+    // Vérifier le mot de passe de l'admin
+    const passwordMatch = await bcrypt.compare(adminPassword, adminUser.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ erreur: "Mot de passe administrateur incorrect." });
     }
 
     // Mettre à jour le rôle de l'utilisateur
