@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { gapi } from "gapi-script";
+import axios from "axios";
 import DateSection from "./components/DateSection";
 import Button from "./components/Button";
 import google_calendar_icon from "../../assets/google-calendar-icon.png";
@@ -9,90 +9,85 @@ const Calendrier = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEventsLoading, setIsEventsLoading] = useState(false);
+  const [googleTokens, setGoogleTokens] = useState(null);
 
-  useEffect(() => {
-    const initClient = () => {
-      console.log("🔧 Initialisation Google API...");
-      console.log("Client ID:", import.meta.env.VITE_CLIENT_ID_CALENDAR);
-      console.log("API Key:", import.meta.env.VITE_API_KEY_CALENDAR);
-      console.log("Scopes:", import.meta.env.VITE_SCOPES);
-
-      gapi.client
-        .init({
-          apiKey: import.meta.env.VITE_API_KEY_CALENDAR,
-          clientId: import.meta.env.VITE_CLIENT_ID_CALENDAR,
-          scope: import.meta.env.VITE_SCOPES,
-          discoveryDocs: [
-            "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
-          ],
-        })
-        .then(() => {
-          console.log("✅ Google API initialisée avec succès");
-          const authInstance = gapi.auth2.getAuthInstance();
-          const isSignedIn = authInstance.isSignedIn.get();
-          console.log("État de connexion initial:", isSignedIn);
-          
-          setIsAuthenticated(isSignedIn);
-          
-          // Écouter les changements d'état de connexion
-          authInstance.isSignedIn.listen((signedIn) => {
-            console.log("🔄 Changement d'état de connexion:", signedIn);
-            setIsAuthenticated(signedIn);
-          });
-        })
-        .catch((error) => {
-          console.error("❌ Erreur initialisation Google API:", error);
-        });
-    };
-    gapi.load("client:auth2", initClient);
-  }, []);
-
-  const handleSignIn = () => {
-    console.log("🔐 Tentative de connexion Google...");
-    const authInstance = gapi.auth2.getAuthInstance();
-    
-    authInstance.signIn({ prompt: 'consent' })
-      .then((googleUser) => {
-        console.log("✅ Connexion réussie !");
-        console.log("Profil Google:", googleUser.getBasicProfile().getName());
-        console.log("Email:", googleUser.getBasicProfile().getEmail());
-        console.log("Token:", googleUser.getAuthResponse().access_token);
-        
-        // Le listener devrait mettre à jour l'état automatiquement
-        // Mais on force aussi manuellement pour être sûr
-        setIsAuthenticated(true);
-      })
-      .catch((error) => {
-        console.error("❌ Erreur connexion:", error);
-        
-        // Gestion spécifique des erreurs CORS
-        if (error.error === 'idpiframe_initialization_failed' || 
-            error.error === 'popup_blocked_by_browser' ||
-            error.error === 'access_denied') {
-          alert(`⚠️ ERREUR DE CONFIGURATION GOOGLE CLOUD\n\n` +
-                `Le problème vient de la configuration OAuth.\n\n` +
-                `Il faut ajouter http://localhost:5173 dans:\n` +
-                `- Authorized JavaScript origins\n` +
-                `- Authorized redirect URIs\n\n` +
-                `Sur Google Cloud Console → APIs & Services → Credentials\n\n` +
-                `Erreur technique: ${error.error}`);
-        } else {
-          alert("Erreur lors de la connexion à Google. Vérifiez la console (F12).");
-        }
-      });
+  // Fonction utilitaire pour extraire l'heure au format HH:mm
+  const extractTime = (dateTimeString) => {
+    if (!dateTimeString) return "";
+    // Si c'est déjà au format HH:mm, on retourne tel quel
+    if (/^\d{2}:\d{2}$/.test(dateTimeString)) {
+      return dateTimeString;
+    }
+    // Si c'est un format ISO (2026-01-17T14:13), on extrait l'heure
+    if (dateTimeString.includes('T')) {
+      return dateTimeString.split('T')[1].substring(0, 5);
+    }
+    return dateTimeString;
   };
 
+  // Fonction utilitaire pour extraire la date au format YYYY-MM-DD
+  const extractDate = (dateTimeString) => {
+    if (!dateTimeString) return "";
+    // Si c'est un format ISO (2026-01-17T14:13), on extrait la date
+    if (dateTimeString.includes('T')) {
+      return dateTimeString.split('T')[0];
+    }
+    // Si c'est déjà au format YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateTimeString)) {
+      return dateTimeString;
+    }
+    return dateTimeString;
+  };
+
+  useEffect(() => {
+    const storedTokens = localStorage.getItem('googleTokens');
+    if (storedTokens) {
+      setGoogleTokens(JSON.parse(storedTokens));
+      setIsAuthenticated(true);
+    }
+
+    const handleMessage = (event) => {
+      if (event.data.type === 'google-auth-success') {
+        const tokens = event.data.tokens;
+        localStorage.setItem('googleTokens', JSON.stringify(tokens));
+        setGoogleTokens(tokens);
+        setIsAuthenticated(true);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  const handleSignIn = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_HOST}/api/google/auth-url`);
+      const authUrl = response.data.authUrl;
+      
+      const width = 500;
+      const height = 600;
+      const left = (window.screen.width - width) / 2;
+      const top = (window.screen.height - height) / 2;
+      
+      window.open(
+        authUrl,
+        'Google Authentication',
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+      
+    } catch (error) {
+      console.error("Erreur lors de la connexion Google:", error);
+      alert("Erreur lors de la connexion à Google Calendar.");
+    }
+  };
 
   const handleSignOut = () => {
-    console.log("🔓 Déconnexion Google...");
-    gapi.auth2.getAuthInstance().signOut()
-      .then(() => {
-        console.log("✅ Déconnexion réussie");
-        setIsAuthenticated(false);
-      })
-      .catch((error) => {
-        console.error("❌ Erreur déconnexion:", error);
-      });
+    localStorage.removeItem('googleTokens');
+    setGoogleTokens(null);
+    setIsAuthenticated(false);
   };
 
   const fetchLocalEvents = async () => {
@@ -115,63 +110,10 @@ const Calendrier = () => {
           return acc;
         }, {});
 
-        console.log(eventsByDate);
         setEvents(eventsByDate);
-      } else {
-        console.error("Erreur lors de la récupération des événements locaux");
       }
     } catch (error) {
-      console.error(
-        "Erreur lors de la récupération des événements locaux :",
-        error
-      );
-    } finally {
-      setIsEventsLoading(false);
-    }
-  };
-
-  const fetchGoogleEvents = async () => {
-    if (!isAuthenticated) return;
-
-    try {
-      setIsEventsLoading(true);
-      const response = await gapi.client.calendar.events.list({
-        calendarId: import.meta.env.VITE_CALENDAR_ID,
-        timeMin: new Date().toISOString(),
-        showDeleted: false,
-        singleEvents: true,
-        orderBy: "startTime",
-      });
-
-      const googleEvents = response.result.items.map((event) => {
-        const [date, time] = event.start.dateTime.split("T");
-        return {
-          id: event.id,
-          title: event.summary,
-          location: event.location || "Non spécifié",
-          description: event.description || "Pas de description",
-          date: date, // <-- AJOUT
-          startTime: time.slice(0, 5),
-          endTime: event.end.dateTime.split("T")[1].slice(0, 5),
-        };
-      });
-
-
-      setEvents((prevEvents) => {
-        const updatedEvents = { ...prevEvents };
-        googleEvents.forEach((event) => {
-          if (!updatedEvents[event.date]) {
-            updatedEvents[event.date] = [];
-          }
-          updatedEvents[event.date].push(event);
-        });
-        return updatedEvents;
-      });
-    } catch (error) {
-      console.error(
-        "Erreur lors de la récupération des événements Google :",
-        error
-      );
+      console.error("Erreur lors de la récupération des événements:", error);
     } finally {
       setIsEventsLoading(false);
     }
@@ -180,14 +122,11 @@ const Calendrier = () => {
   useEffect(() => {
     const fetchData = async () => {
       await fetchLocalEvents();
-      if (isAuthenticated) {
-        await fetchGoogleEvents();
-      }
       setIsLoading(false);
     };
 
     fetchData();
-  }, [isAuthenticated]);
+  }, []);
 
   const handleCreateEvent = (newEvent) => {
     const { date } = newEvent;
@@ -206,9 +145,9 @@ const Calendrier = () => {
     }
   };
 
-  const addEventToGoogleCalendar = (event) => {
-    if (!isAuthenticated) {
-      alert("Veuillez vous connecter à Google pour synchroniser !");
+  const addEventToGoogleCalendar = async (event) => {
+    if (!isAuthenticated || !googleTokens) {
+      alert("Veuillez vous connecter à Google Calendar d'abord !");
       return;
     }
 
@@ -220,39 +159,29 @@ const Calendrier = () => {
       return;
     }
 
-    // Combiner la date avec l'heure pour créer des DateTime valides
-    const startDateTime = `${event.date}T${event.startTime}:00`;
-    const endDateTime = `${event.date}T${event.endTime}:00`;
+    try {
+      const eventDate = extractDate(event.startTime);
+      
+      await axios.post(
+        `${import.meta.env.VITE_API_HOST}/api/google/add-event`,
+        {
+          tokens: googleTokens,
+          event: {
+            title: event.company,
+            description: event.description || "",
+            date: eventDate,
+            startTime: extractTime(event.startTime),
+            endTime: extractTime(event.endTime),
+          }
+        }
+      );
 
-    const calendarEvent = {
-      summary: event.company,
-      location: event.location || "",
-      description: event.description || "",
-      start: {
-        dateTime: new Date(startDateTime).toISOString(),
-        timeZone: "Europe/Paris",
-      },
-      end: {
-        dateTime: new Date(endDateTime).toISOString(),
-        timeZone: "Europe/Paris",
-      },
-    };
-
-    console.log("📅 Création événement Google Calendar:", calendarEvent);
-
-    gapi.client.calendar.events
-      .insert({
-        calendarId: "primary",
-        resource: calendarEvent,
-      })
-      .then((response) => {
-        console.log("✅ Événement ajouté avec succès à Google Calendar :", response);
-        alert("Événement synchronisé avec Google Calendar !");
-      })
-      .catch((error) => {
-        console.error("❌ Erreur lors de l'ajout de l'événement :", error);
-        alert("Erreur lors de la synchronisation avec Google Calendar. Vérifiez les permissions.");
-      });
+      alert("Événement synchronisé avec Google Calendar !");
+      
+    } catch (error) {
+      console.error("Erreur lors de l'ajout de l'événement:", error);
+      alert("Erreur lors de la synchronisation.");
+    }
   };
 
   const deleteEvent = async (eventId, eventDate) => {
@@ -286,17 +215,50 @@ const Calendrier = () => {
 
 
   const importAllEventsToGoogle = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !googleTokens) {
       alert("Veuillez vous connecter à Google d'abord !");
       return;
     }
 
-    // Parcourt tous les evenements de la base
-    Object.values(events).forEach((eventList) => {
-      eventList.forEach((event) => {
-        addEventToGoogleCalendar(event);
+    try {
+      const allEvents = [];
+      Object.values(events).forEach((eventList) => {
+        eventList.forEach((event) => {
+          const eventDate = extractDate(event.startTime);
+
+          allEvents.push({
+            title: event.company,
+            description: event.description || "",
+            date: eventDate,
+            startTime: extractTime(event.startTime),
+            endTime: extractTime(event.endTime),
+          });
+        });
       });
-    });
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_HOST}/api/google/import-events`,
+        {
+          tokens: googleTokens,
+          events: allEvents
+        }
+      );
+      
+      const imported = response.data.summary?.imported || response.data.results.filter(r => r.success && !r.skipped).length;
+      const skipped = response.data.summary?.skipped || response.data.results.filter(r => r.skipped).length;
+      const failed = response.data.summary?.failed || response.data.results.filter(r => !r.success).length;
+      
+      let message = `Import terminé !\n\n`;
+      if (imported > 0) message += `✅ ${imported} événement(s) importé(s)\n`;
+      if (skipped > 0) message += `⏭️ ${skipped} événement(s) ignoré(s) (déjà existants)\n`;
+      if (failed > 0) message += `❌ ${failed} échec(s)`;
+      
+      alert(message);
+      
+    } catch (error) {
+      console.error("Erreur lors de l'import:", error);
+      alert("Erreur lors de l'import des événements.");
+    }
   };
 
 
@@ -310,25 +272,6 @@ const Calendrier = () => {
         <p className="font-inter text-[#3F3F3F] text-[20px] font-[500] opacity-70">
           Retrouvez les prochains rendez-vous et appels
         </p>
-      </div>
-
-      {/* Indicateur de debug */}
-      <div className="w-full mb-4 p-4 bg-yellow-100 border-2 border-yellow-500 rounded">
-        <p className="font-bold">🐛 DEBUG - État d'authentification:</p>
-        <p>isAuthenticated: <span className={isAuthenticated ? "text-green-600 font-bold" : "text-red-600 font-bold"}>{isAuthenticated ? "✅ TRUE (connecté)" : "❌ FALSE (déconnecté)"}</span></p>
-        <p className="text-sm text-gray-600 mt-2">Si ce statut ne change pas après connexion Google, vérifiez la console (F12)</p>
-      </div>
-
-      {/* Message d'aide CORS */}
-      <div className="w-full mb-4 p-4 bg-red-100 border-2 border-red-500 rounded">
-        <p className="font-bold text-red-700">⚠️ Erreur CORS détectée ? Configuration Google Cloud requise :</p>
-        <ol className="text-sm mt-2 ml-4 list-decimal">
-          <li>Va sur <a href="https://console.cloud.google.com/" target="_blank" className="text-blue-600 underline">Google Cloud Console</a></li>
-          <li>APIs & Services → Credentials → Clique sur ton OAuth 2.0 Client ID</li>
-          <li>Ajoute <code className="bg-gray-200 px-1">http://localhost:5173</code> dans "Authorized JavaScript origins"</li>
-          <li>Ajoute <code className="bg-gray-200 px-1">http://localhost:5173</code> dans "Authorized redirect URIs"</li>
-          <li>Sauvegarde et attends 5 minutes</li>
-        </ol>
       </div>
 
       <div className="w-full flex justify-end mb-6 items-center gap-1">

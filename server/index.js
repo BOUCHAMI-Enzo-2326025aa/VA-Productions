@@ -8,6 +8,7 @@ import { router as invoiceRouter } from "./routes/invoiceRoute.js";
 import { router as contactRouter } from "./routes/contactRoute.js";
 import { router as orderRouter } from "./routes/orderRoute.js";
 import eventRoutes from "./routes/eventRoutes.js";
+import googleCalendarRouter from "./routes/googleCalendarRoute.js";
 //import nodemailer from "nodemailer";
 
 const app = express();
@@ -47,6 +48,7 @@ app.use("/api/contact", contactRouter);
 app.use("/api", eventRoutes);
 app.use("/api/invoice", invoiceRouter);
 app.use("/api/order", orderRouter);
+app.use("/api/google", googleCalendarRouter);
 
 
 app.listen(process.env.PORT, () => {
