@@ -12,6 +12,11 @@ const Calendrier = () => {
 
   useEffect(() => {
     const initClient = () => {
+      console.log("🔧 Initialisation Google API...");
+      console.log("Client ID:", import.meta.env.VITE_CLIENT_ID_CALENDAR);
+      console.log("API Key:", import.meta.env.VITE_API_KEY_CALENDAR);
+      console.log("Scopes:", import.meta.env.VITE_SCOPES);
+
       gapi.client
         .init({
           apiKey: import.meta.env.VITE_API_KEY_CALENDAR,
@@ -22,32 +27,72 @@ const Calendrier = () => {
           ],
         })
         .then(() => {
+          console.log("✅ Google API initialisée avec succès");
           const authInstance = gapi.auth2.getAuthInstance();
-          setIsAuthenticated(authInstance.isSignedIn.get());
-          authInstance.isSignedIn.listen(setIsAuthenticated);
+          const isSignedIn = authInstance.isSignedIn.get();
+          console.log("État de connexion initial:", isSignedIn);
+          
+          setIsAuthenticated(isSignedIn);
+          
+          // Écouter les changements d'état de connexion
+          authInstance.isSignedIn.listen((signedIn) => {
+            console.log("🔄 Changement d'état de connexion:", signedIn);
+            setIsAuthenticated(signedIn);
+          });
+        })
+        .catch((error) => {
+          console.error("❌ Erreur initialisation Google API:", error);
         });
     };
     gapi.load("client:auth2", initClient);
   }, []);
 
   const handleSignIn = () => {
-  gapi.auth2.getAuthInstance().signIn().then(
-    (googleUser) => {
-      console.log("✅ Connexion réussie !");
-      console.log("Profil Google :", googleUser.getBasicProfile());
-      console.log("Token :", googleUser.getAuthResponse(true));
-
-      setIsAuthenticated(true);
-    },
-    (error) => {
-      console.error("❌ Erreur connexion :", error);
-    }
-  );
-};
+    console.log("🔐 Tentative de connexion Google...");
+    const authInstance = gapi.auth2.getAuthInstance();
+    
+    authInstance.signIn({ prompt: 'consent' })
+      .then((googleUser) => {
+        console.log("✅ Connexion réussie !");
+        console.log("Profil Google:", googleUser.getBasicProfile().getName());
+        console.log("Email:", googleUser.getBasicProfile().getEmail());
+        console.log("Token:", googleUser.getAuthResponse().access_token);
+        
+        // Le listener devrait mettre à jour l'état automatiquement
+        // Mais on force aussi manuellement pour être sûr
+        setIsAuthenticated(true);
+      })
+      .catch((error) => {
+        console.error("❌ Erreur connexion:", error);
+        
+        // Gestion spécifique des erreurs CORS
+        if (error.error === 'idpiframe_initialization_failed' || 
+            error.error === 'popup_blocked_by_browser' ||
+            error.error === 'access_denied') {
+          alert(`⚠️ ERREUR DE CONFIGURATION GOOGLE CLOUD\n\n` +
+                `Le problème vient de la configuration OAuth.\n\n` +
+                `Il faut ajouter http://localhost:5173 dans:\n` +
+                `- Authorized JavaScript origins\n` +
+                `- Authorized redirect URIs\n\n` +
+                `Sur Google Cloud Console → APIs & Services → Credentials\n\n` +
+                `Erreur technique: ${error.error}`);
+        } else {
+          alert("Erreur lors de la connexion à Google. Vérifiez la console (F12).");
+        }
+      });
+  };
 
 
   const handleSignOut = () => {
-    gapi.auth2.getAuthInstance().signOut();
+    console.log("🔓 Déconnexion Google...");
+    gapi.auth2.getAuthInstance().signOut()
+      .then(() => {
+        console.log("✅ Déconnexion réussie");
+        setIsAuthenticated(false);
+      })
+      .catch((error) => {
+        console.error("❌ Erreur déconnexion:", error);
+      });
   };
 
   const fetchLocalEvents = async () => {
@@ -167,26 +212,33 @@ const Calendrier = () => {
       return;
     }
 
-    if (!event.company || !event.startTime || !event.endTime) {
+    if (!event.company || !event.date || !event.startTime || !event.endTime) {
       console.error(
-        "Champs obligatoires manquants : company, startTime ou endTime"
+        "Champs obligatoires manquants : company, date, startTime ou endTime"
       );
+      console.log("Event reçu:", event);
       return;
     }
+
+    // Combiner la date avec l'heure pour créer des DateTime valides
+    const startDateTime = `${event.date}T${event.startTime}:00`;
+    const endDateTime = `${event.date}T${event.endTime}:00`;
 
     const calendarEvent = {
       summary: event.company,
       location: event.location || "",
       description: event.description || "",
       start: {
-        dateTime: new Date(event.startTime).toISOString(),
+        dateTime: new Date(startDateTime).toISOString(),
         timeZone: "Europe/Paris",
       },
       end: {
-        dateTime: new Date(event.endTime).toISOString(),
+        dateTime: new Date(endDateTime).toISOString(),
         timeZone: "Europe/Paris",
       },
     };
+
+    console.log("📅 Création événement Google Calendar:", calendarEvent);
 
     gapi.client.calendar.events
       .insert({
@@ -194,10 +246,12 @@ const Calendrier = () => {
         resource: calendarEvent,
       })
       .then((response) => {
-        console.log("Événement ajouté avec succès :", response);
+        console.log("✅ Événement ajouté avec succès à Google Calendar :", response);
+        alert("Événement synchronisé avec Google Calendar !");
       })
       .catch((error) => {
-        console.error("Erreur lors de l'ajout de l'événement :", error);
+        console.error("❌ Erreur lors de l'ajout de l'événement :", error);
+        alert("Erreur lors de la synchronisation avec Google Calendar. Vérifiez les permissions.");
       });
   };
 
@@ -256,6 +310,25 @@ const Calendrier = () => {
         <p className="font-inter text-[#3F3F3F] text-[20px] font-[500] opacity-70">
           Retrouvez les prochains rendez-vous et appels
         </p>
+      </div>
+
+      {/* Indicateur de debug */}
+      <div className="w-full mb-4 p-4 bg-yellow-100 border-2 border-yellow-500 rounded">
+        <p className="font-bold">🐛 DEBUG - État d'authentification:</p>
+        <p>isAuthenticated: <span className={isAuthenticated ? "text-green-600 font-bold" : "text-red-600 font-bold"}>{isAuthenticated ? "✅ TRUE (connecté)" : "❌ FALSE (déconnecté)"}</span></p>
+        <p className="text-sm text-gray-600 mt-2">Si ce statut ne change pas après connexion Google, vérifiez la console (F12)</p>
+      </div>
+
+      {/* Message d'aide CORS */}
+      <div className="w-full mb-4 p-4 bg-red-100 border-2 border-red-500 rounded">
+        <p className="font-bold text-red-700">⚠️ Erreur CORS détectée ? Configuration Google Cloud requise :</p>
+        <ol className="text-sm mt-2 ml-4 list-decimal">
+          <li>Va sur <a href="https://console.cloud.google.com/" target="_blank" className="text-blue-600 underline">Google Cloud Console</a></li>
+          <li>APIs & Services → Credentials → Clique sur ton OAuth 2.0 Client ID</li>
+          <li>Ajoute <code className="bg-gray-200 px-1">http://localhost:5173</code> dans "Authorized JavaScript origins"</li>
+          <li>Ajoute <code className="bg-gray-200 px-1">http://localhost:5173</code> dans "Authorized redirect URIs"</li>
+          <li>Sauvegarde et attends 5 minutes</li>
+        </ol>
       </div>
 
       <div className="w-full flex justify-end mb-6 items-center gap-1">
