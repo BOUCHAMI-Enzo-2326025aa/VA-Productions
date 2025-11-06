@@ -7,7 +7,7 @@ import RoleSelection from "./RoleSelection";
 import useAuth from "../../hooks/useAuth";
 
 const ManageUser = () => {
-  const { user } = useAuth();
+  const { isAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -15,15 +15,12 @@ const ManageUser = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 10;
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-  const isAdmin = user?.role === "admin";
 
   const fetchUsers = async () => {
     try {
       const res = await axios.get(import.meta.env.VITE_API_HOST + "/api/user/");
-
       const allUsers = res.data.userList;
       setUsers(allUsers);
-
       setFilteredUsers(allUsers);
     } catch (error) {
       console.error("Erreur lors de la récupération des utilisateurs :", error);
@@ -33,19 +30,13 @@ const ManageUser = () => {
   const handleSearch = (event) => {
     const term = event.target.value.toLowerCase();
     setSearchTerm(term);
-
     const filtered = users.filter((user) => {
       const nom = user.nom ? user.nom.toLowerCase() : "";
       const prenom = user.prenom ? user.prenom.toLowerCase() : "";
       const email = user.email ? user.email.toLowerCase() : "";
-
-      return (
-        nom.includes(term) || prenom.includes(term) || email.includes(term)
-      );
+      return nom.includes(term) || prenom.includes(term) || email.includes(term);
     });
-
     setFilteredUsers(filtered);
-
     setCurrentPage(1);
   };
 
@@ -61,8 +52,14 @@ const ManageUser = () => {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [isAdmin]); 
+
+  if (!isAdmin) {
+    return <div>Accès refusé. Vous devez être administrateur pour voir cette page.</div>;
+  }
 
   return (
     <div className="flex flex-col mt-16 min-h-screen text-[#3F3F3F] w-full ">
@@ -116,12 +113,10 @@ const ManageUser = () => {
         </thead>
         <tbody>
           {filteredUsers.length > 0 ? (
-            paginate(filteredUsers).map((user, index) => (
-              <tr className="" key={index}>
+            paginate(filteredUsers).map((user) => (
+              <tr className="" key={user._id}>
                 <td className="font-semibold">
-                  {user.nom &&
-                    user.prenom &&
-                    user.nom.toUpperCase() + " " + user.prenom}
+                  {user.nom && user.prenom && `${user.nom.toUpperCase()} ${user.prenom}`}
                 </td>
                 <td>{user.email}</td>
                 <td>

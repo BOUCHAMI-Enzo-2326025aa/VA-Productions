@@ -1,15 +1,21 @@
-import React from 'react'
+import React, { useEffect } from 'react';
 import useAuth from '../hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-const NotLoggedRoute = ({children}) => {
-    const { user } = useAuth();
+const NotLoggedRoute = ({ children }) => {
+    const { token } = useAuth();
+    const navigate = useNavigate();
 
-    if(user) {
-        return <Navigate to={"/dashboard"} replace />;
+    useEffect(() => {
+        if (token) {
+            navigate("/dashboard", { replace: true });
+        }
+    }, [token, navigate]); 
+
+    if (token) {
+        return null; 
     }
+    return <>{children}</>;
+};
 
-    return <>{children}</>
-}
-
-export default NotLoggedRoute
+export default NotLoggedRoute;

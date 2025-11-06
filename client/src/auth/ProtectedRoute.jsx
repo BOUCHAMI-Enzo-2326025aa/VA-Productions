@@ -1,17 +1,22 @@
-import React from "react";
-import useAuth from "../hooks/useAuth";
-import { Navigate, Outlet, Route } from "react-router-dom";
-import axios from "axios";
+import React, { useEffect } from 'react';
+import useAuth from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
-const ProtectedRoute = ({ path, children }) => {
-  const { user } = useAuth();
+const ProtectedRoute = ({ children }) => {
+    const { token } = useAuth();
+    const navigate = useNavigate();
 
-  if (!user || !user.token) {
-    return <Navigate to={"/connexion"} replace />;
-  }
+    useEffect(() => {
+        if (!token) {
+            navigate("/connexion", { replace: true });
+        }
+    }, [token, navigate]);
 
+    if (token) {
+        return <>{children}</>;
+    }
 
-  return <>{children}</>;
+    return null;
 };
 
 export default ProtectedRoute;

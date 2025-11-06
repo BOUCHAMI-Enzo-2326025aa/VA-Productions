@@ -11,8 +11,8 @@ import oderSvg from "../../assets/order-icon.svg";
 import useAuth from "../../hooks/useAuth";
 
 const Navbar = ({ isOpen, closeNavbar }) => {
-  const { user } = useAuth();
-  const isAdmin = user?.user?.role === "admin";
+  const { isAdmin } = useAuth();
+
   return (
     <div
       className={
@@ -26,7 +26,7 @@ const Navbar = ({ isOpen, closeNavbar }) => {
             <img
               className="w-full max-w-[230px] mt-5 h-auto invert opacity-80"
               src={logo}
-            ></img>
+            />
           </a>
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -61,14 +61,14 @@ const Navbar = ({ isOpen, closeNavbar }) => {
           />
         </div>
 
-         {isAdmin && (
+        {isAdmin && (
           <>
             <p className="mt-16 text-sm text-white font-medium opacity-70">
               ADMINISTRATION
             </p>
             <div className="mt-4 flex gap-2 flex-col">
               <PageLink
-                link={"/admin/user/create"}
+                link={"/admin/user"} 
                 text={"Gestion Utilisateur"}
                 icon={manageUserSvg}
               />
@@ -89,14 +89,14 @@ const Navbar = ({ isOpen, closeNavbar }) => {
         />
 
         <button
-        onClick={() => {
-          localStorage.removeItem('user');
-          window.location.href = '/connexion';
-        }}
-        className="absolute left-0 bottom-5 w-[90%] mx-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition"
-      >
-        Déconnexion
-      </button>
+          onClick={() => {
+            localStorage.removeItem("user");
+            window.location.href = "/connexion";
+          }}
+          className="absolute left-0 bottom-5 w-[90%] mx-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition"
+        >
+          Déconnexion
+        </button>
       </div>
     </div>
   );

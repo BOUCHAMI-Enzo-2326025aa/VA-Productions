@@ -1,21 +1,25 @@
-import React from "react";
-import useAuth from "../hooks/useAuth";
-import { Navigate } from "react-router-dom";
+import React, { useEffect } from 'react';
+import useAuth from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const AdminRoute = ({ children }) => {
-  const { user } = useAuth();
+    const { token, isAdmin } = useAuth();
+    const navigate = useNavigate();
 
-  // Vérifier si l'utilisateur est connecté
-  if (!user || !user.token) {
-    return <Navigate to={"/connexion"} replace />;
-  }
+    useEffect(() => {
+        if (!token) {
+            navigate("/connexion", { replace: true });
+        } 
+        else if (!isAdmin) {
+            navigate("/dashboard", { replace: true });
+        }
+    }, [token, isAdmin, navigate]);
 
-  // Vérifier si l'utilisateur a le rôle admin
-  if (user.role !== "admin") {
-    return <Navigate to={"/dashboard"} replace />;
-  }
+    if (token && isAdmin) {
+        return <>{children}</>;
+    }
 
-  return <>{children}</>;
+    return null;
 };
 
 export default AdminRoute;

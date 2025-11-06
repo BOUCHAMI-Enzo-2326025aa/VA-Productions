@@ -21,4 +21,3 @@ router.post("/login", loginUser);
 
 router.post("/verify", verifyUser);
 
-export { router };

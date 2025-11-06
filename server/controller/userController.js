@@ -4,6 +4,11 @@ import jsonwebtoken from "jsonwebtoken";
 import { sendMail } from "../utils/sendMail.js";
 import crypto from "crypto";
 
+const isPasswordStrong = (password) => {
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+  return regex.test(password);
+};
+
 const createToken = (user) => {
   return jsonwebtoken.sign({ user }, process.env.SECRET, {
     expiresIn: "1000d",
@@ -69,9 +74,7 @@ export const loginUser = async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res
-        .status(400)
-        .json({ message: "Les champs ne peuvent pas être vides" });
+      return res.status(400).json({ message: "Les champs ne peuvent pas être vides" });
     }
 
     const user = await User.findOne({
@@ -85,10 +88,7 @@ export const loginUser = async (req, res) => {
 
     // L'utilisateur existe mais n'a pas encore défini de mot de passe
     if (!user.password) {
-      return res.status(400).json({
-        message:
-          "Ce compte n'a pas encore été activé. Veuillez vérifier vos e-mails.",
-      });
+      return res.status(400).json({ message: "Ce compte n'a pas encore été activé." });
     }
 
     const match = await bcrypt.compare(password, user.password);
@@ -100,9 +100,9 @@ export const loginUser = async (req, res) => {
 
     // mot de passe valide on crée le token et on connecte l'utilisateur
     const token = createToken(user);
-        res.status(200).json({ user: user, token: token });
-  } catch (error)
- {
+    res.status(200).json({ user: user, token: token });
+
+  } catch (error) {
     res.status(501).json({ error: error.message });
   }
 };
@@ -110,6 +110,12 @@ export const loginUser = async (req, res) => {
 export const verifyUser = async (req, res) => {
   try {
     const { password, confirmationCode, email } = req.body;
+
+     if (!isPasswordStrong(password)) {
+      return res.status(400).json({ 
+        message: "Mot de passe trop faible. Il doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole." 
+      });
+    }
 
     // Cherche si un utilisateur correspond bien au code et à l'email
     const userExists = await User.findOne({ verificationCode: confirmationCode, email });
@@ -123,7 +129,6 @@ export const verifyUser = async (req, res) => {
 
       // Récupère l'utilisateur mis à jour pour créer un token valide
       const updatedUser = await User.findOne({ email });
-      
       const token = createToken(updatedUser);
 
       res.status(200).json({ userId: updatedUser._id, user: updatedUser, token });
