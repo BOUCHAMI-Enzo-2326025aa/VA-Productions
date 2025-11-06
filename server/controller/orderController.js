@@ -145,10 +145,22 @@ export const getOrderPdf = async (req, res) => {
       }
     }
 
-    // Serve existing file
-    res.setHeader("Content-Type", "application/pdf");
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
+    // Serve existing file as an attachment so the browser downloads it
+    try {
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${encodeURIComponent(expectedName)}"`
+      );
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (e) {
+      console.error("Erreur lors de l'envoi du fichier existant :", e);
+      res.status(500).json({ error: "Erreur lors de l'envoi du PDF" });
+    }
   } catch (error) {
     console.error("Erreur lors de l'envoi du PDF :", error);
     res.status(500).json({ error: "Erreur interne du serveur" });
@@ -156,10 +168,30 @@ export const getOrderPdf = async (req, res) => {
 };
 
 const saveSignature = (signature, imageName) => {
-  const base64Data = signature.replace(/^data:image\/png;base64,/, "");
-  writeFile(`invoices/${imageName}.png`, base64Data, "base64", function (err) {
-    console.log(err);
-  });
+  try {
+    if (!signature) {
+      console.log("Aucune signature fournie pour la commande — skip saveSignature");
+      return;
+    }
+
+    const invoicesDir = path.resolve(process.cwd(), "invoices");
+    if (!fs.existsSync(invoicesDir)) {
+      fs.mkdirSync(invoicesDir, { recursive: true });
+      console.log("Dossier invoices créé :", invoicesDir);
+    }
+
+    const base64Data = signature.replace(/^data:image\/png;base64,/, "");
+    const filePath = path.join(invoicesDir, `${imageName}.png`);
+    fs.writeFile(filePath, base64Data, "base64", function (err) {
+      if (err) {
+        console.error("Erreur en sauvegardant la signature :", err);
+      } else {
+        console.log("Signature sauvegardée :", filePath);
+      }
+    });
+  } catch (e) {
+    console.error("saveSignature exception :", e);
+  }
 };
 
 export const validateOrder = async (req, res) => {
