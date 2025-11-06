@@ -102,7 +102,7 @@ export const getOrderPdf = async (req, res) => {
         console.log("Could not stat file:", e);
       }
     }
-    // Regenerate PDF if missing or older than the order date
+  // Régénère le PDF si le fichier est manquant ou plus ancien que la date de la commande
     let shouldRegenerate = false;
     if (!exists) shouldRegenerate = true;
     else {
@@ -119,7 +119,7 @@ export const getOrderPdf = async (req, res) => {
 
     if (shouldRegenerate) {
       console.log("Regenerating PDF for order", order._id);
-      // build client object expected by createOrderPdf
+  // construit l'objet client attendu par createOrderPdf
       const clientForPdf = {
         compagnyName: order.compagnyName,
         address1: order.firstAddress,
@@ -135,7 +135,7 @@ export const getOrderPdf = async (req, res) => {
         signature: order.signature,
       };
 
-      // createOrderPdf will write the file and call res.download itself
+  // écrira le fichier et gérera l'envoi de la réponse
       try {
         await createOrderPdf(clientForPdf, res, order.orderNumber, order.tva, order.signature);
         return;
@@ -145,11 +145,12 @@ export const getOrderPdf = async (req, res) => {
       }
     }
 
-    // Serve existing file as an attachment so the browser downloads it
+  // Envoie le fichier existant en inline pour permettre la prévisualisation dans le navigateur
     try {
+  // Utilise la disposition 'inline' pour que le PDF soit prévisualisé dans le navigateur plutôt que téléchargé
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${encodeURIComponent(expectedName)}"`
+        `inline; filename="${encodeURIComponent(expectedName)}"`
       );
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Cache-Control", "no-store");

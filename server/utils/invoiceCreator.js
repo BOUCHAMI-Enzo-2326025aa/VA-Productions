@@ -135,7 +135,7 @@ function generateInvoiceTable(doc, facture, tva) {
     for (i = 0; i < facture?.supportList.length; i++) {
       const item = facture?.supportList[i] || {};
       const position = invoiceTableTop + (i + 1) * 30;
-      // quantity can be supportNumber (from orders) or quantity if provided
+    // la quantité peut provenir de supportNumber (depuis les commandes) ou de quantity si fournie
       const qty = Number(item.supportNumber ?? item.quantity ?? 1);
       const unitPrice = Number(item.price ?? 0);
       const lineTotal = unitPrice * qty;

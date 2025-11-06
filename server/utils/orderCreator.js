@@ -36,9 +36,10 @@ function createOrderPdf(client, res, number, tva, randomImageName) {
     res.removeHeader("Cache-Control");
 
     // Définir manuellement les en-têtes avant d'envoyer le fichier
+    // Utiliser 'inline' pour permettre l'affichage dans le navigateur (preview)
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${encodeURIComponent(fileName)}"`
+      `inline; filename="${encodeURIComponent(fileName)}"`
     );
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Cache-Control", "no-store");
