@@ -86,21 +86,67 @@ export const getOrderPdf = async (req, res) => {
   try {
     const { id } = req.params;
     const order = await Order.findById(id);
-    console.log(
-      `./orders/${order.compagnyName.toUpperCase()}-${order.orderNumber}.pdf`
-    );
+    const expectedName = `${order.orderNumber}_${order.compagnyName.toUpperCase()}.pdf`;
+    console.log("getOrderPdf called for order id:", id, "expecting file:", expectedName);
     const filePath = path.resolve(
       process.cwd(),
       `./orders/${order.orderNumber}_${order.compagnyName.toUpperCase()}.pdf`
     );
-
-    if (!fs.existsSync(filePath)) {
-      console.log("Erreur lors de l'envoi du pdf : le fichier n'existe pas !");
-      return res.status(404).json({ error: "Fichier introuvable" });
+    const exists = fs.existsSync(filePath);
+    console.log("PDF filePath:", filePath, "exists:", exists);
+    if (exists) {
+      try {
+        const stats = fs.statSync(filePath);
+        console.log("PDF file mtime:", stats.mtime);
+      } catch (e) {
+        console.log("Could not stat file:", e);
+      }
+    }
+    // Regenerate PDF if missing or older than the order date
+    let shouldRegenerate = false;
+    if (!exists) shouldRegenerate = true;
+    else {
+      try {
+        const stats = fs.statSync(filePath);
+        if (order.date && stats.mtime < new Date(order.date)) {
+          shouldRegenerate = true;
+        }
+      } catch (e) {
+        console.log("Could not stat file for regeneration check:", e);
+        shouldRegenerate = true;
+      }
     }
 
-    res.setHeader("Content-Type", "application/pdf");
+    if (shouldRegenerate) {
+      console.log("Regenerating PDF for order", order._id);
+      // build client object expected by createOrderPdf
+      const clientForPdf = {
+        compagnyName: order.compagnyName,
+        address1: order.firstAddress,
+        address2: order.secondAddress,
+        postalCode: order.postalCode,
+        city: order.city,
+        support: (order.items || []).map((it) => ({
+          name: it.name,
+          supportName: it.supportName,
+          supportNumber: it.supportNumber,
+          price: it.price,
+        })),
+        signature: order.signature,
+      };
 
+      // createOrderPdf will write the file and call res.download itself
+      try {
+        await createOrderPdf(clientForPdf, res, order.orderNumber, order.tva, order.signature);
+        return;
+      } catch (e) {
+        console.error("Erreur lors de la régénération du PDF :", e);
+        return res.status(500).json({ error: "Erreur lors de la régénération du PDF" });
+      }
+    }
+
+    // Serve existing file
+    res.setHeader("Content-Type", "application/pdf");
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
   } catch (error) {
