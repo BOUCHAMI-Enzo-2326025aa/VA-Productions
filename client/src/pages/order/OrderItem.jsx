@@ -44,7 +44,7 @@ const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder }) => {
         className="text-blue-400 mt-5 text-sm font-semibold cursor-pointer"
         onClick={() => fetchCommandPdf(order._id, order.orderNumber)}
       >
-        Télécharger la commande
+        Voir le bon de commande
       </p>
     </div>
   );

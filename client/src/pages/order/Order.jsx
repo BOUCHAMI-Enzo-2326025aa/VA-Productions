@@ -77,15 +77,12 @@ const Order = () => {
         }
       }
 
-      const blob = new Blob([response.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+  const blob = new Blob([response.data], { type: "application/pdf" });
+  const url = window.URL.createObjectURL(blob);
+  // Ouvrir le PDF dans un nouvel onglet pour prévisualisation 
+  window.open(url, "_blank");
+  // Révoquer l'URL après un court délai pour laisser le navigateur charger le PDF
+  setTimeout(() => window.URL.revokeObjectURL(url), 10000);
     } catch (error) {
       console.error("Erreur lors du téléchargement du PDF:", error);
     }

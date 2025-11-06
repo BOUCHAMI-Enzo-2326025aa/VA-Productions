@@ -1,9 +1,128 @@
-const RoleSelection = ({ name }) => {
+import { useState } from "react";
+import axios from "axios";
+
+const RoleSelection = ({ userId, initialRole, isAdmin }) => {
+  const [role, setRole] = useState(initialRole || "commercial");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [pendingRole, setPendingRole] = useState(null);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleRoleChangeRequest = (newRole) => {
+    if (!isAdmin || newRole === role) return;
+    
+    // Ouvrir le modal de confirmation
+    setPendingRole(newRole);
+    setShowPasswordModal(true);
+    setPassword("");
+    setError("");
+  };
+
+  const handleConfirmRoleChange = async () => {
+    if (!password) {
+      setError("Veuillez entrer votre mot de passe");
+      return;
+    }
+
+    setIsUpdating(true);
+    setError("");
+    
+    try {
+      await axios.put(
+        import.meta.env.VITE_API_HOST + `/api/user/${userId}/role`,
+        { role: pendingRole, adminPassword: password },
+        {
+          headers: {
+            Authorization: JSON.parse(localStorage.getItem("user"))?.token,
+          },
+        }
+      );
+      
+      setRole(pendingRole);
+      setShowPasswordModal(false);
+      setPendingRole(null);
+      setPassword("");
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du rôle:", error);
+      setError(error.response?.data?.erreur || "Erreur lors de la mise à jour du rôle. Vérifiez votre mot de passe.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCancelRoleChange = () => {
+    setShowPasswordModal(false);
+    setPendingRole(null);
+    setPassword("");
+    setError("");
+  };
+
   return (
-    <select className="bg-[#DBDEE1] font-semibold px-5 rounded py-2 role-selection">
-      <option value="user">Commercial</option>
-      <option value="admin">Admin</option>
-    </select>
+    <>
+      <select
+        className="bg-[#DBDEE1] font-semibold px-5 rounded py-2 role-selection"
+        value={role}
+        onChange={(e) => handleRoleChangeRequest(e.target.value)}
+        disabled={!isAdmin || isUpdating}
+      >
+        <option value="commercial">Commercial</option>
+        <option value="admin">Administrateur</option>
+      </select>
+
+      {/* Modal de confirmation avec mot de passe */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-[#3F3F3F] mb-4">
+              Confirmation du changement de rôle
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Pour modifier le rôle de cet utilisateur, veuillez entrer votre mot de passe administrateur.
+            </p>
+            
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded mb-4 text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-[#3F3F3F] mb-2">
+                Mot de passe administrateur
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleConfirmRoleChange()}
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3F3F3F]"
+                placeholder="Entrez votre mot de passe"
+                autoFocus
+                disabled={isUpdating}
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={handleCancelRoleChange}
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition"
+                disabled={isUpdating}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmRoleChange}
+                className="px-4 py-2 bg-[#3F3F3F] text-white rounded hover:bg-[#2F2F2F] transition disabled:opacity-50"
+                disabled={isUpdating || !password}
+              >
+                {isUpdating ? "Confirmation..." : "Confirmer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

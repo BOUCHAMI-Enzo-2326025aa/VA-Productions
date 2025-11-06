@@ -52,6 +52,12 @@ const Button = ({ onCreate }) => {
   // Fonction pour enregistrer les données
   const handleSave = async (e) => {
     e.preventDefault();
+    
+    // Validation avant l'envoi
+    if (!validateFormData()) {
+      return;
+    }
+    
     setIsSaving(true);
 
     const newEvent = {
@@ -61,6 +67,8 @@ const Button = ({ onCreate }) => {
       location: formData.location,
       description: formData.description,
     };
+
+    console.log("🚀 Envoi événement:", newEvent);
 
     try {
       const response = await fetch(
@@ -74,8 +82,11 @@ const Button = ({ onCreate }) => {
         }
       );
 
+      console.log("📡 Réponse HTTP:", response.status, response.statusText);
+
       if (response.ok) {
         const savedEvent = await response.json();
+        console.log("✅ Événement sauvegardé:", savedEvent);
         onCreate(savedEvent);
         setNotification({
           message: "Événement enregistré avec succès !",
@@ -83,12 +94,15 @@ const Button = ({ onCreate }) => {
         });
         handleClose();
       } else {
+        const errorData = await response.json();
+        console.error("❌ Erreur serveur:", response.status, errorData);
         setNotification({
-          message: "Erreur lors de l'enregistrement de l'événement.",
+          message: `Erreur ${response.status}: ${errorData.message || 'Impossible de sauvegarder'}`,
           type: "error",
         });
       }
     } catch (error) {
+      console.error("Erreur requête:", error);
       setNotification({
         message: "Une erreur s'est produite lors de la requête.",
         type: "error",

@@ -3,6 +3,12 @@ import path from "path";
 import PDFDocument from "pdfkit";
 
 function createOrderPdf(client, res, number, tva, randomImageName) {
+  console.log("createOrderPdf called - number:", number, "tva:", tva, "randomImageName:", randomImageName);
+  try {
+    console.log("client.support:", JSON.stringify(client?.support));
+  } catch (e) {
+    console.log("Could not stringify client.support", e);
+  }
   const invoicesDir = "./orders";
   if (!fs.existsSync(invoicesDir)) {
     fs.mkdirSync(invoicesDir);
@@ -30,9 +36,10 @@ function createOrderPdf(client, res, number, tva, randomImageName) {
     res.removeHeader("Cache-Control");
 
     // Définir manuellement les en-têtes avant d'envoyer le fichier
+    // Utiliser 'inline' pour permettre l'affichage dans le navigateur (preview)
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${encodeURIComponent(fileName)}"`
+      `inline; filename="${encodeURIComponent(fileName)}"`
     );
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Cache-Control", "no-store");
@@ -116,8 +123,8 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
     generateTableRow(
       doc,
       invoiceTableTop,
-      "",
-      "Description",
+      "Encart",
+      "Support",
       "Qté",
       "",
       "Montant"
@@ -132,8 +139,8 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
         doc,
         position,
         client?.support[i]?.name,
-        "",
-        "1",
+        client?.support[i]?.supportName,
+        client?.support[i]?.supportNumber,
         formatPrice(client?.support[i]?.price),
         formatPrice(client?.support[i]?.price) + " €"
       );
@@ -208,10 +215,19 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
       .text("MERCI DE VOTRE CONFIANCE !", 50, totalPosition + 100, {
         align: "center",
       })
-      .text("Signature", 100, totalPosition + 140)
-      .image("invoices/" + randomImageName + ".png", 50, totalPosition + 150, {
-        width: 150,
-      });
+      .text("Signature", 100, totalPosition + 140);
+
+    // N'affiche la signature que si le fichier image existe — évite l'erreur ENOENT lors de la régénération
+    try {
+      const imgPath = path.join(process.cwd(), "invoices", `${randomImageName}.png`);
+      if (fs.existsSync(imgPath)) {
+        doc.image(imgPath, 50, totalPosition + 150, { width: 150 });
+      } else {
+        console.log("Signature image introuvable, saut de l'inclusion de l'image:", imgPath);
+      }
+    } catch (e) {
+      console.log("Erreur lors de la vérification/inclusion de la signature :", e);
+    }
   } else {
     doc
       .font("Helvetica")
@@ -232,10 +248,18 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
       .text("MERCI DE VOTRE CONFIANCE ! ", 50, 400, {
         align: "center",
       })
-      .text("Signature", 100, 140)
-      .image("invoices/" + randomImageName + ".png", 50, 450, {
-        width: 150,
-      });
+      .text("Signature", 100, 140);
+
+    try {
+      const imgPath = path.join(process.cwd(), "invoices", `${randomImageName}.png`);
+      if (fs.existsSync(imgPath)) {
+        doc.image(imgPath, 50, 450, { width: 150 });
+      } else {
+        console.log("Signature image introuvable (section vide), saut de l'inclusion de l'image:", imgPath);
+      }
+    } catch (e) {
+      console.log("Erreur lors de la vérification/inclusion de la signature (section vide):", e);
+    }
   }
 }
 

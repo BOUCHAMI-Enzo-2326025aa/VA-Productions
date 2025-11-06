@@ -4,8 +4,10 @@ import "./manageUsers.css";
 import CreateUser from "./CreateUser";
 import { formatDateSlash } from "../../utils/formatDate";
 import RoleSelection from "./RoleSelection";
+import useAuth from "../../hooks/useAuth";
 
 const ManageUser = () => {
+  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -13,6 +15,7 @@ const ManageUser = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 10;
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const isAdmin = user?.role === "admin";
 
   const fetchUsers = async () => {
     try {
@@ -72,12 +75,14 @@ const ManageUser = () => {
 
       <div className="flex w-full justify-between">
         <p className="text-2xl font-bold">Membres</p>
-        <button
-          className="text-white bg-[#3F3F3F] px-16 rounded py-3 text-sm"
-          onClick={() => setIsCreateUserOpen(true)}
-        >
-          Ajouter
-        </button>
+        {isAdmin && (
+          <button
+            className="text-white bg-[#3F3F3F] px-16 rounded py-3 text-sm"
+            onClick={() => setIsCreateUserOpen(true)}
+          >
+            Ajouter
+          </button>
+        )}
       </div>
 
       <div>
@@ -120,7 +125,11 @@ const ManageUser = () => {
                 </td>
                 <td>{user.email}</td>
                 <td>
-                  <RoleSelection name={user.nom} />
+                  <RoleSelection 
+                    userId={user._id} 
+                    initialRole={user.role} 
+                    isAdmin={isAdmin}
+                  />
                 </td>
                 <td>{formatDateSlash(user.creationDate)}</td>
               </tr>

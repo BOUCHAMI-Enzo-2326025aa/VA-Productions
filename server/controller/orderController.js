@@ -86,23 +86,82 @@ export const getOrderPdf = async (req, res) => {
   try {
     const { id } = req.params;
     const order = await Order.findById(id);
-    console.log(
-      `./orders/${order.compagnyName.toUpperCase()}-${order.orderNumber}.pdf`
-    );
+    const expectedName = `${order.orderNumber}_${order.compagnyName.toUpperCase()}.pdf`;
+    console.log("getOrderPdf called for order id:", id, "expecting file:", expectedName);
     const filePath = path.resolve(
       process.cwd(),
       `./orders/${order.orderNumber}_${order.compagnyName.toUpperCase()}.pdf`
     );
-
-    if (!fs.existsSync(filePath)) {
-      console.log("Erreur lors de l'envoi du pdf : le fichier n'existe pas !");
-      return res.status(404).json({ error: "Fichier introuvable" });
+    const exists = fs.existsSync(filePath);
+    console.log("PDF filePath:", filePath, "exists:", exists);
+    if (exists) {
+      try {
+        const stats = fs.statSync(filePath);
+        console.log("PDF file mtime:", stats.mtime);
+      } catch (e) {
+        console.log("Could not stat file:", e);
+      }
+    }
+  // Régénère le PDF si le fichier est manquant ou plus ancien que la date de la commande
+    let shouldRegenerate = false;
+    if (!exists) shouldRegenerate = true;
+    else {
+      try {
+        const stats = fs.statSync(filePath);
+        if (order.date && stats.mtime < new Date(order.date)) {
+          shouldRegenerate = true;
+        }
+      } catch (e) {
+        console.log("Could not stat file for regeneration check:", e);
+        shouldRegenerate = true;
+      }
     }
 
-    res.setHeader("Content-Type", "application/pdf");
+    if (shouldRegenerate) {
+      console.log("Regenerating PDF for order", order._id);
+  // construit l'objet client attendu par createOrderPdf
+      const clientForPdf = {
+        compagnyName: order.compagnyName,
+        address1: order.firstAddress,
+        address2: order.secondAddress,
+        postalCode: order.postalCode,
+        city: order.city,
+        support: (order.items || []).map((it) => ({
+          name: it.name,
+          supportName: it.supportName,
+          supportNumber: it.supportNumber,
+          price: it.price,
+        })),
+        signature: order.signature,
+      };
 
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
+  // écrira le fichier et gérera l'envoi de la réponse
+      try {
+        await createOrderPdf(clientForPdf, res, order.orderNumber, order.tva, order.signature);
+        return;
+      } catch (e) {
+        console.error("Erreur lors de la régénération du PDF :", e);
+        return res.status(500).json({ error: "Erreur lors de la régénération du PDF" });
+      }
+    }
+
+  // Envoie le fichier existant en inline pour permettre la prévisualisation dans le navigateur
+    try {
+  // Utilise la disposition 'inline' pour que le PDF soit prévisualisé dans le navigateur plutôt que téléchargé
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${encodeURIComponent(expectedName)}"`
+      );
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (e) {
+      console.error("Erreur lors de l'envoi du fichier existant :", e);
+      res.status(500).json({ error: "Erreur lors de l'envoi du PDF" });
+    }
   } catch (error) {
     console.error("Erreur lors de l'envoi du PDF :", error);
     res.status(500).json({ error: "Erreur interne du serveur" });
@@ -110,10 +169,30 @@ export const getOrderPdf = async (req, res) => {
 };
 
 const saveSignature = (signature, imageName) => {
-  const base64Data = signature.replace(/^data:image\/png;base64,/, "");
-  writeFile(`invoices/${imageName}.png`, base64Data, "base64", function (err) {
-    console.log(err);
-  });
+  try {
+    if (!signature) {
+      console.log("Aucune signature fournie pour la commande — skip saveSignature");
+      return;
+    }
+
+    const invoicesDir = path.resolve(process.cwd(), "invoices");
+    if (!fs.existsSync(invoicesDir)) {
+      fs.mkdirSync(invoicesDir, { recursive: true });
+      console.log("Dossier invoices créé :", invoicesDir);
+    }
+
+    const base64Data = signature.replace(/^data:image\/png;base64,/, "");
+    const filePath = path.join(invoicesDir, `${imageName}.png`);
+    fs.writeFile(filePath, base64Data, "base64", function (err) {
+      if (err) {
+        console.error("Erreur en sauvegardant la signature :", err);
+      } else {
+        console.log("Signature sauvegardée :", filePath);
+      }
+    });
+  } catch (e) {
+    console.error("saveSignature exception :", e);
+  }
 };
 
 export const validateOrder = async (req, res) => {

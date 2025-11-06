@@ -121,9 +121,9 @@ const Login = () => {
 
           {/* BUTTONS */}
           <div className="flex flex-col w-full gap-2">
-            <a className="text-right opacity-50 hover:opacity-100 transition-all cursor-pointer">
+            {/* <a className="text-right opacity-50 hover:opacity-100 transition-all cursor-pointer">
               Première connexion
-            </a>
+            </a> */}
             <button
               className="bg-button w-full py-[14px] active:scale-95 rounded-[5px] text-white flex justify-center items-center"
               onClick={loginUser}
