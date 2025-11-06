@@ -12,7 +12,7 @@ import useAuth from "../../hooks/useAuth";
 
 const Navbar = ({ isOpen, closeNavbar }) => {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.user?.role === "admin";
   return (
     <div
       className={
@@ -61,7 +61,7 @@ const Navbar = ({ isOpen, closeNavbar }) => {
           />
         </div>
 
-        {isAdmin && (
+         {isAdmin && (
           <>
             <p className="mt-16 text-sm text-white font-medium opacity-70">
               ADMINISTRATION
@@ -72,8 +72,6 @@ const Navbar = ({ isOpen, closeNavbar }) => {
                 text={"Gestion Utilisateur"}
                 icon={manageUserSvg}
               />
-            </div>
-            <div className="flex gap-2 flex-col">
               <PageLink
                 link={"/admin/stats"}
                 text={"Statistiques"}

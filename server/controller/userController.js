@@ -100,9 +100,7 @@ export const loginUser = async (req, res) => {
 
     // mot de passe valide on crée le token et on connecte l'utilisateur
     const token = createToken(user);
-    res
-      .status(200)
-      .json({ userId: user._id, username: user.username || user.email, role: user.role, token });
+        res.status(200).json({ user: user, token: token });
   } catch (error)
  {
     res.status(501).json({ error: error.message });
