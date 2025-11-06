@@ -119,29 +119,35 @@ function generateInvoiceTable(doc, facture, tva) {
     const invoiceTableTop = 300;
 
     doc.font("Helvetica-Bold");
+    // Colonne: Encart / Support / Qté / Prix Unitaire / Montant
     generateTableRow(
       doc,
       invoiceTableTop,
-      "",
-      "Description",
+      "Encart",
+      "Support",
       "Qté",
-      "",
+      "PU",
       "Montant"
     );
     generateHr(doc, invoiceTableTop + 20);
     doc.font("Helvetica");
 
     for (i = 0; i < facture?.supportList.length; i++) {
-      const item = facture?.supportList[i];
+      const item = facture?.supportList[i] || {};
       const position = invoiceTableTop + (i + 1) * 30;
+    // la quantité peut provenir de supportNumber (depuis les commandes) ou de quantity si fournie
+      const qty = Number(item.supportNumber ?? item.quantity ?? 1);
+      const unitPrice = Number(item.price ?? 0);
+      const lineTotal = unitPrice * qty;
+
       generateTableRow(
         doc,
         position,
-        facture?.supportList[i]?.name,
-        "",
-        "1",
-        formatPrice(facture?.supportList[i]?.price),
-        formatPrice(facture?.supportList[i]?.price) + " €"
+        item.name || "",
+        item.supportName || "",
+        qty.toString(),
+        formatPrice(unitPrice) + " €",
+        formatPrice(lineTotal) + " €"
       );
 
       generateHr(doc, position + 20);
@@ -150,7 +156,10 @@ function generateInvoiceTable(doc, facture, tva) {
     const subtotalPosition = invoiceTableTop + (i + 1) * 30;
     let subTotal = 0;
     for (i = 0; i < facture?.supportList.length; i++) {
-      subTotal = subTotal + parseFloat(facture?.supportList[i]?.price || 0);
+      const it = facture.supportList[i] || {};
+      const qty = Number(it.supportNumber ?? it.quantity ?? 1);
+      const unit = Number(it.price ?? 0);
+      subTotal += qty * unit;
     }
     const total = subTotal + subTotal * tva;
     generateTableRow(
