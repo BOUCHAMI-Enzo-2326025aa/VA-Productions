@@ -246,6 +246,49 @@ const Calendrier = () => {
     }
   };
 
+  const handleEditEvent = (updatedEvent) => {
+    // Mettre à jour l'événement dans le state local
+    setEvents((prevEvents) => {
+      const newEvents = { ...prevEvents };
+      
+      // Trouver l'ancienne date et la nouvelle date
+      const oldDate = extractDate(
+        Object.values(newEvents)
+          .flat()
+          .find((e) => e._id === updatedEvent._id)?.startTime
+      );
+      const newDate = extractDate(updatedEvent.startTime);
+
+      // Si la date a changé, on doit déplacer l'événement
+      if (oldDate && oldDate !== newDate) {
+        // Supprimer de l'ancienne date
+        if (newEvents[oldDate]) {
+          newEvents[oldDate] = newEvents[oldDate].filter(
+            (e) => e._id !== updatedEvent._id
+          );
+          if (newEvents[oldDate].length === 0) {
+            delete newEvents[oldDate];
+          }
+        }
+
+        // Ajouter à la nouvelle date
+        if (!newEvents[newDate]) {
+          newEvents[newDate] = [];
+        }
+        newEvents[newDate].push(updatedEvent);
+      } else {
+        // Même date, juste mettre à jour l'événement
+        const dateKey = newDate || oldDate;
+        if (newEvents[dateKey]) {
+          newEvents[dateKey] = newEvents[dateKey].map((e) =>
+            e._id === updatedEvent._id ? updatedEvent : e
+          );
+        }
+      }
+
+      return newEvents;
+    });
+  };
 
   const importAllEventsToGoogle = async () => {
     if (!isAuthenticated || !googleTokens) {
@@ -350,6 +393,7 @@ const Calendrier = () => {
             date={date}
             events={events[date]}
             onDeleteEvent={deleteEvent}
+            onEditEvent={handleEditEvent}
           />
         ))
       )}
