@@ -176,7 +176,19 @@ function App() {
             }
           />
           
-          // Route par défaut
+          {/* Route racine "/" */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Layout pathName={"Dashboard"}>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Route par défaut (catch-all) */}
           <Route
             path="*"
             element={
