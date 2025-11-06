@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { gapi } from "gapi-script";
+import axios from "axios";
 import DateSection from "./components/DateSection";
 import Button from "./components/Button";
 import google_calendar_icon from "../../assets/google-calendar-icon.png";
@@ -9,45 +9,93 @@ const Calendrier = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEventsLoading, setIsEventsLoading] = useState(false);
+  const [googleTokens, setGoogleTokens] = useState(null);
+
+  // Fonction utilitaire pour extraire l'heure au format HH:mm
+  const extractTime = (dateTimeString) => {
+    if (!dateTimeString) return "";
+    // Si c'est déjà au format HH:mm, on retourne tel quel
+    if (/^\d{2}:\d{2}$/.test(dateTimeString)) {
+      return dateTimeString;
+    }
+    // Si c'est un format ISO (2026-01-17T14:13), on extrait l'heure
+    if (dateTimeString.includes('T')) {
+      return dateTimeString.split('T')[1].substring(0, 5);
+    }
+    return dateTimeString;
+  };
+
+  // Fonction utilitaire pour extraire la date au format YYYY-MM-DD
+  const extractDate = (dateTimeString) => {
+    if (!dateTimeString) return null;
+    
+    // Si c'est un format ISO (2026-01-17T14:13), on extrait la date
+    if (dateTimeString.includes('T')) {
+      return dateTimeString.split('T')[0];
+    }
+    
+    // Si c'est déjà au format YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateTimeString)) {
+      return dateTimeString;
+    }
+    
+    // Si c'est juste une heure (HH:mm), pas de date disponible
+    if (/^\d{2}:\d{2}$/.test(dateTimeString)) {
+      return null;
+    }
+    
+    return null;
+  };
 
   useEffect(() => {
-    const initClient = () => {
-      gapi.client
-        .init({
-          apiKey: import.meta.env.VITE_API_KEY_CALENDAR,
-          clientId: import.meta.env.VITE_CLIENT_ID_CALENDAR,
-          scope: import.meta.env.VITE_SCOPES,
-          discoveryDocs: [
-            "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
-          ],
-        })
-        .then(() => {
-          const authInstance = gapi.auth2.getAuthInstance();
-          setIsAuthenticated(authInstance.isSignedIn.get());
-          authInstance.isSignedIn.listen(setIsAuthenticated);
-        });
+    const storedTokens = localStorage.getItem('googleTokens');
+    if (storedTokens) {
+      setGoogleTokens(JSON.parse(storedTokens));
+      setIsAuthenticated(true);
+    }
+
+    const handleMessage = (event) => {
+      if (event.data.type === 'google-auth-success') {
+        const tokens = event.data.tokens;
+        localStorage.setItem('googleTokens', JSON.stringify(tokens));
+        setGoogleTokens(tokens);
+        setIsAuthenticated(true);
+      }
     };
-    gapi.load("client:auth2", initClient);
+
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
   }, []);
 
-  const handleSignIn = () => {
-  gapi.auth2.getAuthInstance().signIn().then(
-    (googleUser) => {
-      console.log("✅ Connexion réussie !");
-      console.log("Profil Google :", googleUser.getBasicProfile());
-      console.log("Token :", googleUser.getAuthResponse(true));
-
-      setIsAuthenticated(true);
-    },
-    (error) => {
-      console.error("❌ Erreur connexion :", error);
+  const handleSignIn = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_HOST}/api/google/auth-url`);
+      const authUrl = response.data.authUrl;
+      
+      const width = 500;
+      const height = 600;
+      const left = (window.screen.width - width) / 2;
+      const top = (window.screen.height - height) / 2;
+      
+      window.open(
+        authUrl,
+        'Google Authentication',
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+      
+    } catch (error) {
+      console.error("Erreur lors de la connexion Google:", error);
+      alert("Erreur lors de la connexion à Google Calendar.");
     }
-  );
-};
-
+  };
 
   const handleSignOut = () => {
-    gapi.auth2.getAuthInstance().signOut();
+    localStorage.removeItem('googleTokens');
+    setGoogleTokens(null);
+    setIsAuthenticated(false);
   };
 
   const fetchLocalEvents = async () => {
@@ -60,73 +108,42 @@ const Calendrier = () => {
         const data = await response.json();
 
         const eventsByDate = data.reduce((acc, event) => {
-          const { date } = event;
+          // Vérifier que startTime existe
+          if (!event.startTime) {
+            console.warn("⚠️ Événement sans startTime ignoré:", event);
+            return acc;
+          }
+
+          // Extraire la date depuis startTime (format ISO: "2026-01-17T14:13")
+          const date = extractDate(event.startTime);
+          
+          // Ignorer les événements sans date valide (anciens événements avec juste l'heure)
+          if (!date) {
+            console.warn("⚠️ Événement avec date invalide ignoré (format ancien):", event);
+            return acc;
+          }
+
+          // Initialiser le tableau pour cette date si nécessaire
           if (!acc[date]) {
             acc[date] = [];
           }
-          if (new Date(event.startTime) >= new Date()) {
+
+          // Vérifier que la date est future ou aujourd'hui
+          const eventDateTime = new Date(event.startTime);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Réinitialiser à minuit pour comparer juste la date
+          
+          if (!isNaN(eventDateTime.getTime()) && eventDateTime >= today) {
             acc[date].push(event);
           }
+          
           return acc;
         }, {});
 
-        console.log(eventsByDate);
         setEvents(eventsByDate);
-      } else {
-        console.error("Erreur lors de la récupération des événements locaux");
       }
     } catch (error) {
-      console.error(
-        "Erreur lors de la récupération des événements locaux :",
-        error
-      );
-    } finally {
-      setIsEventsLoading(false);
-    }
-  };
-
-  const fetchGoogleEvents = async () => {
-    if (!isAuthenticated) return;
-
-    try {
-      setIsEventsLoading(true);
-      const response = await gapi.client.calendar.events.list({
-        calendarId: import.meta.env.VITE_CALENDAR_ID,
-        timeMin: new Date().toISOString(),
-        showDeleted: false,
-        singleEvents: true,
-        orderBy: "startTime",
-      });
-
-      const googleEvents = response.result.items.map((event) => {
-        const [date, time] = event.start.dateTime.split("T");
-        return {
-          id: event.id,
-          title: event.summary,
-          location: event.location || "Non spécifié",
-          description: event.description || "Pas de description",
-          date: date, // <-- AJOUT
-          startTime: time.slice(0, 5),
-          endTime: event.end.dateTime.split("T")[1].slice(0, 5),
-        };
-      });
-
-
-      setEvents((prevEvents) => {
-        const updatedEvents = { ...prevEvents };
-        googleEvents.forEach((event) => {
-          if (!updatedEvents[event.date]) {
-            updatedEvents[event.date] = [];
-          }
-          updatedEvents[event.date].push(event);
-        });
-        return updatedEvents;
-      });
-    } catch (error) {
-      console.error(
-        "Erreur lors de la récupération des événements Google :",
-        error
-      );
+      console.error("Erreur lors de la récupération des événements:", error);
     } finally {
       setIsEventsLoading(false);
     }
@@ -135,70 +152,69 @@ const Calendrier = () => {
   useEffect(() => {
     const fetchData = async () => {
       await fetchLocalEvents();
-      if (isAuthenticated) {
-        await fetchGoogleEvents();
-      }
       setIsLoading(false);
     };
 
     fetchData();
-  }, [isAuthenticated]);
+  }, []);
 
-  const handleCreateEvent = (newEvent) => {
-    const { date } = newEvent;
+  const handleCreateEvent = (savedEvent) => {
+    // L'événement est déjà sauvegardé en BD par le composant Button
+    // On le met juste à jour dans le state local
+    const eventDate = extractDate(savedEvent.startTime);
 
     setEvents((prevEvents) => {
       const updatedEvents = { ...prevEvents };
-      if (!updatedEvents[date]) {
-        updatedEvents[date] = [];
+      if (!updatedEvents[eventDate]) {
+        updatedEvents[eventDate] = [];
       }
-      updatedEvents[date].push(newEvent);
+      updatedEvents[eventDate].push(savedEvent);
       return updatedEvents;
     });
 
+    // Si connecté à Google Calendar, synchroniser aussi
     if (isAuthenticated) {
-      addEventToGoogleCalendar(newEvent);
+      addEventToGoogleCalendar(savedEvent);
     }
   };
 
-  const addEventToGoogleCalendar = (event) => {
-    if (!isAuthenticated) {
-      alert("Veuillez vous connecter à Google pour synchroniser !");
+  const addEventToGoogleCalendar = async (event) => {
+    if (!isAuthenticated || !googleTokens) {
+      alert("Veuillez vous connecter à Google Calendar d'abord !");
       return;
     }
 
-    if (!event.company || !event.startTime || !event.endTime) {
+    if (!event.company || !event.date || !event.startTime || !event.endTime) {
       console.error(
-        "Champs obligatoires manquants : company, startTime ou endTime"
+        "Champs obligatoires manquants : company, date, startTime ou endTime"
       );
+      console.log("Event reçu:", event);
       return;
     }
 
-    const calendarEvent = {
-      summary: event.company,
-      location: event.location || "",
-      description: event.description || "",
-      start: {
-        dateTime: new Date(event.startTime).toISOString(),
-        timeZone: "Europe/Paris",
-      },
-      end: {
-        dateTime: new Date(event.endTime).toISOString(),
-        timeZone: "Europe/Paris",
-      },
-    };
+    try {
+      const eventDate = extractDate(event.startTime);
+      
+      await axios.post(
+        `${import.meta.env.VITE_API_HOST}/api/google/add-event`,
+        {
+          tokens: googleTokens,
+          event: {
+            title: event.company,
+            description: event.description || "",
+            date: eventDate,
+            startTime: extractTime(event.startTime),
+            endTime: extractTime(event.endTime),
+          }
+        }
+      );
 
-    gapi.client.calendar.events
-      .insert({
-        calendarId: "primary",
-        resource: calendarEvent,
-      })
-      .then((response) => {
-        console.log("Événement ajouté avec succès :", response);
-      })
-      .catch((error) => {
-        console.error("Erreur lors de l'ajout de l'événement :", error);
-      });
+      alert("Événement synchronisé avec Google Calendar !");
+      
+    } catch (error) {
+      console.error("Erreur lors de l'ajout de l'événement:", error);
+      alert("Erreur lors de la synchronisation.");
+    }
   };
 
   const deleteEvent = async (eventId, eventDate) => {
@@ -232,17 +248,50 @@ const Calendrier = () => {
 
 
   const importAllEventsToGoogle = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !googleTokens) {
       alert("Veuillez vous connecter à Google d'abord !");
       return;
     }
 
-    // Parcourt tous les evenements de la base
-    Object.values(events).forEach((eventList) => {
-      eventList.forEach((event) => {
-        addEventToGoogleCalendar(event);
+    try {
+      const allEvents = [];
+      Object.values(events).forEach((eventList) => {
+        eventList.forEach((event) => {
+          const eventDate = extractDate(event.startTime);
+
+          allEvents.push({
+            title: event.company,
+            description: event.description || "",
+            date: eventDate,
+            startTime: extractTime(event.startTime),
+            endTime: extractTime(event.endTime),
+          });
+        });
       });
-    });
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_HOST}/api/google/import-events`,
+        {
+          tokens: googleTokens,
+          events: allEvents
+        }
+      );
+      
+      const imported = response.data.summary?.imported || response.data.results.filter(r => r.success && !r.skipped).length;
+      const skipped = response.data.summary?.skipped || response.data.results.filter(r => r.skipped).length;
+      const failed = response.data.summary?.failed || response.data.results.filter(r => !r.success).length;
+      
+      let message = `Import terminé !\n\n`;
+      if (imported > 0) message += `✅ ${imported} événement(s) importé(s)\n`;
+      if (skipped > 0) message += `⏭️ ${skipped} événement(s) ignoré(s) (déjà existants)\n`;
+      if (failed > 0) message += `❌ ${failed} échec(s)`;
+      
+      alert(message);
+      
+    } catch (error) {
+      console.error("Erreur lors de l'import:", error);
+      alert("Erreur lors de l'import des événements.");
+    }
   };
 
 

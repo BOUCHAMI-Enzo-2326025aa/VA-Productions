@@ -7,6 +7,7 @@ export const createEvent = async (req, res) => {
     await newEvent.save();
     res.status(201).json(newEvent);
   } catch (error) {
+    console.error("Erreur lors de la sauvegarde:", error.message);
     res.status(400).json({ message: error.message });
   }
 };
