@@ -5,13 +5,13 @@ import Calendrier from "./pages/calendrier/Calendrier";
 import Contact from "./pages/contacts/Contact";
 import Layout from "./layout/Layout";
 import Login from "./pages/login/Login";
+import ManageUser from "./pages/createUser/ManageUser";
 import CreateUser from "./pages/createUser/ManageUser";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import AdminRoute from "./auth/AdminRoute";
 import axios from "axios";
 import NotLoggedRoute from "./auth/NotLoggedRoute";
 import InvoiceCreation from "./pages/invoice/invoiceCreation/InvoiceCreation";
-import UserList from "./pages/user/UserList";
 import InvoiceDisplay from "./pages/invoice/invoiceDisplay/InvoiceDisplay";
 import UserVerify from "./pages/user/verify/UserVerify";
 import { MantineProvider } from "@mantine/core";
@@ -23,16 +23,26 @@ import Stats from "./pages/stats/Stats";
 function App() {
   const [userLoaded, setUserLoaded] = useState(false);
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user) {
-      axios.defaults.withCredentials = true;
-      axios.defaults.headers.common["Authorization"] = user.token;
+    try {
+      const userString = localStorage.getItem("user");
+
+      if (userString) {
+        const user = JSON.parse(userString);
+        
+        if (user && user.token) {
+          axios.defaults.withCredentials = true;
+          axios.defaults.headers.common["Authorization"] = user.token;
+        }
+      }
+    } catch (error) {
+      console.error("Erreur en lisant le localStorage, nettoyage en cours...", error);
+      localStorage.removeItem("user");
     }
-    setUserLoaded(true);
+        setUserLoaded(true);
   }, []);
 
   if (!userLoaded) {
-    return <div>Loading...</div>; // TODO CHANGE BACKGROUND
+    return <div>Loading...</div>;
   }
 
   if ("serviceWorker" in navigator) {
@@ -74,7 +84,7 @@ function App() {
             }
           />
 
-          // Routes prortégées (connexion requise)
+          // Routes protégées (connexion requise)
           <Route
             path="/dashboard"
             element={
@@ -108,21 +118,21 @@ function App() {
           <Route
             path="/admin/user/create"
             element={
-              <AdminRoute>
+              <ProtectedRoute>
                 <Layout pathName={"Administration"}>
-                  <CreateUser />
+                  <ManageUser />
                 </Layout>
-              </AdminRoute>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/admin/user"
             element={
-              <AdminRoute>
+              <ProtectedRoute>
                 <Layout pathName={"Administration"}>
-                  <UserList />
+                  <ManageUser />
                 </Layout>
-              </AdminRoute>
+              </ProtectedRoute>
             }
           />
           <Route

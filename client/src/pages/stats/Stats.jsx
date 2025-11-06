@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import YearlySupportStats from "./YearlySupportStats";
 import "./stats.css";
+import useAuth from "../../hooks/useAuth"; 
 
 const Stats = () => {
+  const { isAdmin } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const colorList = ["#ef4444", "#2563eb", "#22c55e", "#7c3aed"];
 
@@ -21,8 +23,14 @@ const Stats = () => {
   };
 
   useEffect(() => {
+     if (isAdmin) {
     fetchInvoices();
-  }, []);
+    }
+  }, [isAdmin]);
+
+  if (!isAdmin) {
+    return <div>Accès refusé. Vous devez être administrateur pour voir cette page.</div>;
+  }
 
   return (
     <div className="mb-10">
