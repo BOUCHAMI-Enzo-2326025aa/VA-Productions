@@ -3,6 +3,12 @@ import path from "path";
 import PDFDocument from "pdfkit";
 
 function createOrderPdf(client, res, number, tva, randomImageName) {
+  console.log("createOrderPdf called - number:", number, "tva:", tva, "randomImageName:", randomImageName);
+  try {
+    console.log("client.support:", JSON.stringify(client?.support));
+  } catch (e) {
+    console.log("Could not stringify client.support", e);
+  }
   const invoicesDir = "./orders";
   if (!fs.existsSync(invoicesDir)) {
     fs.mkdirSync(invoicesDir);
@@ -116,8 +122,8 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
     generateTableRow(
       doc,
       invoiceTableTop,
-      "",
-      "Description",
+      "Encart",
+      "Support",
       "Qté",
       "",
       "Montant"
@@ -132,8 +138,8 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
         doc,
         position,
         client?.support[i]?.name,
-        "",
-        "1",
+        client?.support[i]?.supportName,
+        client?.support[i]?.supportNumber,
         formatPrice(client?.support[i]?.price),
         formatPrice(client?.support[i]?.price) + " €"
       );
