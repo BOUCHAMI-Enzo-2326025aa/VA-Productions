@@ -102,7 +102,7 @@ export const getOrderPdf = async (req, res) => {
         console.log("Could not stat file:", e);
       }
     }
-    // Regenerate PDF if missing or older than the order date
+  // Régénère le PDF si le fichier est manquant ou plus ancien que la date de la commande
     let shouldRegenerate = false;
     if (!exists) shouldRegenerate = true;
     else {
@@ -119,7 +119,7 @@ export const getOrderPdf = async (req, res) => {
 
     if (shouldRegenerate) {
       console.log("Regenerating PDF for order", order._id);
-      // build client object expected by createOrderPdf
+  // construit l'objet client attendu par createOrderPdf
       const clientForPdf = {
         compagnyName: order.compagnyName,
         address1: order.firstAddress,
@@ -135,7 +135,7 @@ export const getOrderPdf = async (req, res) => {
         signature: order.signature,
       };
 
-      // createOrderPdf will write the file and call res.download itself
+  // écrira le fichier et gérera l'envoi de la réponse
       try {
         await createOrderPdf(clientForPdf, res, order.orderNumber, order.tva, order.signature);
         return;
@@ -145,10 +145,23 @@ export const getOrderPdf = async (req, res) => {
       }
     }
 
-    // Serve existing file
-    res.setHeader("Content-Type", "application/pdf");
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
+  // Envoie le fichier existant en inline pour permettre la prévisualisation dans le navigateur
+    try {
+  // Utilise la disposition 'inline' pour que le PDF soit prévisualisé dans le navigateur plutôt que téléchargé
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${encodeURIComponent(expectedName)}"`
+      );
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (e) {
+      console.error("Erreur lors de l'envoi du fichier existant :", e);
+      res.status(500).json({ error: "Erreur lors de l'envoi du PDF" });
+    }
   } catch (error) {
     console.error("Erreur lors de l'envoi du PDF :", error);
     res.status(500).json({ error: "Erreur interne du serveur" });
@@ -156,10 +169,30 @@ export const getOrderPdf = async (req, res) => {
 };
 
 const saveSignature = (signature, imageName) => {
-  const base64Data = signature.replace(/^data:image\/png;base64,/, "");
-  writeFile(`invoices/${imageName}.png`, base64Data, "base64", function (err) {
-    console.log(err);
-  });
+  try {
+    if (!signature) {
+      console.log("Aucune signature fournie pour la commande — skip saveSignature");
+      return;
+    }
+
+    const invoicesDir = path.resolve(process.cwd(), "invoices");
+    if (!fs.existsSync(invoicesDir)) {
+      fs.mkdirSync(invoicesDir, { recursive: true });
+      console.log("Dossier invoices créé :", invoicesDir);
+    }
+
+    const base64Data = signature.replace(/^data:image\/png;base64,/, "");
+    const filePath = path.join(invoicesDir, `${imageName}.png`);
+    fs.writeFile(filePath, base64Data, "base64", function (err) {
+      if (err) {
+        console.error("Erreur en sauvegardant la signature :", err);
+      } else {
+        console.log("Signature sauvegardée :", filePath);
+      }
+    });
+  } catch (e) {
+    console.error("saveSignature exception :", e);
+  }
 };
 
 export const validateOrder = async (req, res) => {
