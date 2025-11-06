@@ -21,7 +21,7 @@ const groupEventsByDate = (events) => {
   }, {});
 };
 
-const DateSection = ({ date, events, onDeleteEvent }) => {
+const DateSection = ({ date, events, onDeleteEvent, onEditEvent }) => {
   if (!events || !Array.isArray(events) || events.length === 0) {
     return null; // Ne rien afficher si pas d'événements
   }
@@ -39,6 +39,7 @@ const DateSection = ({ date, events, onDeleteEvent }) => {
             id={event._id}
             {...event}
             onDeleteEvent={() => onDeleteEvent(event._id, date)}
+            onEditEvent={onEditEvent}
           />
         ))}
       </div>
