@@ -170,8 +170,10 @@ const ClientInformationsStep = ({
                 onChange={(e) => {
                   const raw = e.target.value;
                   setDisplayTva(raw);
-                  // stocke la TVA en fraction (ex: 20 -> 0.2)
-                  changeTVA(Number((raw / 100).toFixed(4)));
+                  // stocke la TVA en fraction (ex: 20 -> 0.2), arrondie au centième près
+                  const fraction = raw / 100;
+                  const rounded = Math.round(fraction * 100) / 100;
+                  changeTVA(rounded);
                 }}
               />
               <span className="ml-2 text-sm text-[#3F3F3F]">%</span>
