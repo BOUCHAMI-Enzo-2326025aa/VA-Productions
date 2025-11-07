@@ -3,15 +3,25 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5555/api/google/callback'
-);
+// Fonction helper pour créer un client OAuth2 avec la bonne redirect URI
+const createOAuth2Client = (req) => {
+  // Déterminer l'URL de redirection basée sur l'environnement
+  const protocol = req.protocol;
+  const host = req.get('host');
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${protocol}://${host}/api/google/callback`;
+  
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri
+  );
+};
 
 // Générer l'URL d'authentification
 export const getAuthUrl = (req, res) => {
   try {
+    const oauth2Client = createOAuth2Client(req);
+    
     const scopes = [
       'https://www.googleapis.com/auth/calendar.events',
       'https://www.googleapis.com/auth/calendar'
@@ -38,6 +48,8 @@ export const handleCallback = async (req, res) => {
     if (!code) {
       return res.status(400).send('Code d\'authentification manquant');
     }
+
+    const oauth2Client = createOAuth2Client(req);
 
     // Échanger le code contre des tokens
     const { tokens } = await oauth2Client.getToken(code);
@@ -79,6 +91,7 @@ export const addEventToCalendar = async (req, res) => {
       return res.status(400).json({ error: 'Champs obligatoires manquants (title, date, startTime, endTime)' });
     }
 
+    const oauth2Client = createOAuth2Client(req);
     oauth2Client.setCredentials(tokens);
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
@@ -124,6 +137,7 @@ export const importMultipleEvents = async (req, res) => {
       return res.status(400).json({ error: 'Tokens ou événements manquants' });
     }
 
+    const oauth2Client = createOAuth2Client(req);
     oauth2Client.setCredentials(tokens);
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
