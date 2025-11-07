@@ -14,3 +14,18 @@
   border-color: transparent transparent transparent #295bc046;
 }
 
+/* Shared login text styles */
+.login-intro-text {
+  color: #3F3F3F;
+  opacity: 0.7;
+  font-size: 0.875rem; /* text-sm */
+}
+
+.login-instruction-text {
+  color: #3F3F3F;
+  opacity: 0.7;
+  font-size: 0.875rem; /* text-sm */
+  white-space: pre-wrap;
+  margin-top: 0.25rem; /* mt-1 */
+}
+
