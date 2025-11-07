@@ -287,4 +287,34 @@ function generateHr(doc, y) {
   doc.strokeColor("#aaaaaa").lineWidth(1).moveTo(50, y).lineTo(550, y).stroke();
 }
 
+// Génère le PDF en mémoire et retourne un Buffer (utile pour hébergement sans système de fichiers persistant)
+export function createOrderPdfBuffer(client, number, tva, randomImageName) {
+  return new Promise((resolve, reject) => {
+    try {
+      console.log("createOrderPdfBuffer called - number:", number, "tva:", tva);
+      const doc = new PDFDocument({ margin: 50 });
+      const chunks = [];
+      
+      doc.on("data", (chunk) => chunks.push(chunk));
+      doc.on("end", () => {
+        const buffer = Buffer.concat(chunks);
+        console.log("PDF buffer generated, size:", buffer.length);
+        resolve(buffer);
+      });
+      doc.on("error", (err) => {
+        console.error("Erreur lors de la génération du PDF buffer:", err);
+        reject(err);
+      });
+
+      // Génération du contenu du PDF
+      generateHeader(doc, client, number);
+      generateInvoiceTable(doc, client, tva, randomImageName);
+      doc.end();
+    } catch (e) {
+      console.error("Exception dans createOrderPdfBuffer:", e);
+      reject(e);
+    }
+  });
+}
+
 export default createOrderPdf;
