@@ -29,6 +29,7 @@
     "mongoose": "^8.6.3",
     "path": "^0.12.7",
     "react": "^18.3.1",
+    "react-csv": "^2.2.2",
     "react-day-picker": "^9.5.0",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",
@@ -55,6 +56,6 @@
     "vite": "^5.4.1"
   },
   "engines": {
-  "node": "22.x"
-}
+    "node": "22.x"
+  }
 }

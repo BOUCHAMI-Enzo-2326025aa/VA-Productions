@@ -11,7 +11,7 @@ import { Roles } from "../utils/Roles.js";
 
 export const router = express.Router();
 
-router.get("/", authorize(Roles.All), getAllUser);
+router.get("/", authorize(Roles.Admin), getAllUser);
 
 router.post("/create", authorize(Roles.Admin), createUser);
 

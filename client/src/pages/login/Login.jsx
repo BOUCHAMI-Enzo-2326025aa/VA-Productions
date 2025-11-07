@@ -16,22 +16,22 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Fonction de validation du mot de passe
-  const validatePassword = (password) => {
+   const validatePassword = (password) => {
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
     return regex.test(password);
   };
 
-  const loginUser = async () => {
-    // Bloque la connexion si mot de passe invalide
+  // Fonction de validation du mot de passe
+   const loginUser = async () => {
+    setErrorMessage(null);
+    // Si le mot de passe ne respecte pas le format, on bloque la connexion.
     if (!validatePassword(password)) {
       setErrorMessage(
-        "Mot de passe trop faible ! Il doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole."
+        "Format de mot de passe invalide. Il doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole."
       );
       return;
     }
 
-    setErrorMessage();
     setLoading(true);
 
     axios
@@ -41,11 +41,18 @@ const Login = () => {
       })
       .then((response) => {
         setLoginSuccessfull(true);
+
+        console.log("Réponse du serveur au login :", response.data);
+        
         localStorage.setItem("user", JSON.stringify(response.data));
         location.replace("/dashboard");
       })
       .catch((error) => {
-        setErrorMessage(error.response.data.message);
+        if (error.response && error.response.data && error.response.data.message) {
+          setErrorMessage(error.response.data.message);
+        } else {
+          setErrorMessage("Une erreur de connexion est survenue. Veuillez réessayer.");
+        }
       })
       .finally(() => setLoading(false));
   };

@@ -42,10 +42,10 @@ const FormComponent = ({
         )}
         <div className="mb-4">
           <label className="block font-inter text-[#3f3f3F]">
-            Heure de début
+            Date et heure de début
           </label>
           <input
-            type="time"
+            type="datetime-local"
             name="startTime"
             value={formData.startTime}
             onChange={handleChange}
@@ -54,10 +54,10 @@ const FormComponent = ({
         </div>
         <div className="mb-4">
           <label className="block font-inter text-[#3f3f3F]">
-            Heure de fin
+            Date et heure de fin
           </label>
           <input
-            type="time"
+            type="datetime-local"
             name="endTime"
             value={formData.endTime}
             onChange={handleChange}
