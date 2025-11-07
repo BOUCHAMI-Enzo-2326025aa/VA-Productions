@@ -6,6 +6,46 @@ import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 
+const toNumber = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const cleaned = value.replace(/\s/g, "").replace(",", ".");
+    const parsed = Number.parseFloat(cleaned);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
+const normaliseSupports = (supports = []) =>
+  Array.isArray(supports)
+    ? supports.map((item) => ({
+        ...item,
+        price: toNumber(item?.price),
+      }))
+    : [];
+
+const withComputedTotal = (orderDoc) => {
+  const order =
+    typeof orderDoc.toObject === "function" ? orderDoc.toObject() : orderDoc;
+  const items = normaliseSupports(order.items);
+  const supportList = normaliseSupports(order.supportList);
+  const source = items.length ? items : supportList;
+  const tvaRate = toNumber(order.tva);
+  const baseTotal = source.reduce((sum, item) => sum + item.price, 0);
+  const computed = Math.round(baseTotal * (1 + tvaRate) * 100) / 100;
+  const stored = toNumber(order.totalPrice);
+
+  return {
+    ...order,
+    items,
+  supportList,
+    tva: tvaRate,
+    totalPrice: computed || stored,
+  };
+};
+
 export const createOrder = async (req, res) => {
   try {
     const client = req.body.invoice.client;
@@ -19,30 +59,35 @@ export const createOrder = async (req, res) => {
 
     console.log(client);
 
-    let total = client.support.reduce(
-      (sum, item) => sum + (item.price || 0),
-      0
-    );
-    total = Number(total) + Number(total * tva);
+    const supports = normaliseSupports(client.support);
+    const tvaRate = toNumber(tva);
+    const baseTotal = supports.reduce((sum, item) => sum + item.price, 0);
+    const total = Math.round(baseTotal * (1 + tvaRate) * 100) / 100;
 
     const order = await Order.create({
       client: client.clientId,
       compagnyName: client.compagnyName,
       orderNumber: maxOrderNumber + 1,
       date: Date.now(),
-      items: client.support,
+      items: supports,
       totalPrice: total,
       firstAddress: client.address1,
       secondAddress: client.address2,
       postalCode: client.postalCode,
       city: client.city,
-      supportList: client.support,
+      supportList: supports,
       status: "Pending",
       signature: randomImageName,
       signatureData: req.body.invoice.client.signature, // Stocke la dataURI complète
-      tva: tva,
+      tva: tvaRate,
     });
-    await createOrderPdf(client, res, maxOrderNumber + 1, tva, randomImageName);
+    await createOrderPdf(
+      { ...client, support: supports },
+      res,
+      maxOrderNumber + 1,
+      tvaRate,
+      randomImageName
+    );
     //res.status(200).json({ order: order });
   } catch (error) {
     console.log(error);
@@ -53,7 +98,7 @@ export const createOrder = async (req, res) => {
 export const getOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ orderNumber: -1 });
-    res.status(200).json(orders);
+    res.status(200).json(orders.map(withComputedTotal));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
@@ -65,7 +110,7 @@ export const getOrdersByEntreprise = async (req, res) => {
     const orders = await Order.find({
       entreprise: req.params.entreprise,
     }).sort({ orderNumber: -1 });
-    res.status(200).json(orders);
+    res.status(200).json(orders.map(withComputedTotal));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
@@ -96,6 +141,9 @@ export const getOrderPdf = async (req, res) => {
 
     console.log("Commande trouvée:", order.orderNumber, order.compagnyName);
 
+    const items = normaliseSupports(order.items);
+    const rate = toNumber(order.tva || 0.2);
+
     // Construire l'objet client attendu par le générateur
     const clientForPdf = {
       compagnyName: order.compagnyName,
@@ -103,12 +151,7 @@ export const getOrderPdf = async (req, res) => {
       address2: order.secondAddress,
       postalCode: order.postalCode,
       city: order.city,
-      support: (order.items || []).map((it) => ({
-        name: it.name,
-        supportName: it.supportName,
-        supportNumber: it.supportNumber,
-        price: it.price,
-      })),
+      support: items,
       signature: order.signature,
       signatureData: order.signatureData, // Passe la dataURI de la signature
     };
@@ -118,7 +161,7 @@ export const getOrderPdf = async (req, res) => {
     const pdfBuffer = await createOrderPdfBuffer(
       clientForPdf,
       order.orderNumber,
-      order.tva || 0.2,
+      rate,
       order.signature
     );
 

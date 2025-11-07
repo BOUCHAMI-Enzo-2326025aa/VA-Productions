@@ -1,8 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { formatDateSlash } from "../../utils/formatDate.js";
 
 const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder }) => {
   const [selected, setSelected] = useState(false);
+
+  const totalDisplay = useMemo(() => {
+    const total = typeof order.totalPrice === "number" ? order.totalPrice : Number(order.totalPrice) || 0;
+    return new Intl.NumberFormat("fr-FR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(total);
+  }, [order.totalPrice]);
 
   return (
     <div
@@ -28,7 +36,7 @@ const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder }) => {
       <table className="order-item-table w-full mt-3">
         <tr>
           <th>Total:</th>
-          <td>{order.totalPrice}€</td>
+          <td>{totalDisplay} €</td>
         </tr>
         <tr>
           <th>Client:</th>
