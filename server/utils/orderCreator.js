@@ -217,13 +217,23 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
       })
       .text("Signature", 100, totalPosition + 140);
 
-    // N'affiche la signature que si le fichier image existe — évite l'erreur ENOENT lors de la régénération
+    // Inclure la signature depuis la dataURI stockée en base (priorité) ou depuis le fichier PNG
     try {
-      const imgPath = path.join(process.cwd(), "invoices", `${randomImageName}.png`);
-      if (fs.existsSync(imgPath)) {
-        doc.image(imgPath, 50, totalPosition + 150, { width: 150 });
+      if (client.signatureData) {
+        // Utilise la dataURI base64 directement depuis la base de données
+        console.log("Utilisation de signatureData (dataURI) pour la signature");
+        doc.image(client.signatureData, 50, totalPosition + 150, { width: 150 });
+      } else if (randomImageName) {
+        // Fallback: cherche le fichier PNG sur disque (pour compatibilité anciennes commandes)
+        const imgPath = path.join(process.cwd(), "invoices", `${randomImageName}.png`);
+        if (fs.existsSync(imgPath)) {
+          console.log("Utilisation du fichier PNG pour la signature:", imgPath);
+          doc.image(imgPath, 50, totalPosition + 150, { width: 150 });
+        } else {
+          console.log("Signature image introuvable, saut de l'inclusion de l'image:", imgPath);
+        }
       } else {
-        console.log("Signature image introuvable, saut de l'inclusion de l'image:", imgPath);
+        console.log("Aucune signature disponible (ni dataURI ni fichier)");
       }
     } catch (e) {
       console.log("Erreur lors de la vérification/inclusion de la signature :", e);
@@ -250,12 +260,21 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
       })
       .text("Signature", 100, 140);
 
+    // Inclure la signature depuis la dataURI stockée en base (priorité) ou depuis le fichier PNG
     try {
-      const imgPath = path.join(process.cwd(), "invoices", `${randomImageName}.png`);
-      if (fs.existsSync(imgPath)) {
-        doc.image(imgPath, 50, 450, { width: 150 });
+      if (client.signatureData) {
+        console.log("Utilisation de signatureData (dataURI) pour la signature (section vide)");
+        doc.image(client.signatureData, 50, 450, { width: 150 });
+      } else if (randomImageName) {
+        const imgPath = path.join(process.cwd(), "invoices", `${randomImageName}.png`);
+        if (fs.existsSync(imgPath)) {
+          console.log("Utilisation du fichier PNG pour la signature (section vide):", imgPath);
+          doc.image(imgPath, 50, 450, { width: 150 });
+        } else {
+          console.log("Signature image introuvable (section vide), saut de l'inclusion de l'image:", imgPath);
+        }
       } else {
-        console.log("Signature image introuvable (section vide), saut de l'inclusion de l'image:", imgPath);
+        console.log("Aucune signature disponible (section vide)");
       }
     } catch (e) {
       console.log("Erreur lors de la vérification/inclusion de la signature (section vide):", e);

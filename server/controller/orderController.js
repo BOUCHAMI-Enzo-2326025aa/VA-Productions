@@ -39,6 +39,7 @@ export const createOrder = async (req, res) => {
       supportList: client.support,
       status: "Pending",
       signature: randomImageName,
+      signatureData: req.body.invoice.client.signature, // Stocke la dataURI complète
       tva: tva,
     });
     await createOrderPdf(client, res, maxOrderNumber + 1, tva, randomImageName);
@@ -109,6 +110,7 @@ export const getOrderPdf = async (req, res) => {
         price: it.price,
       })),
       signature: order.signature,
+      signatureData: order.signatureData, // Passe la dataURI de la signature
     };
 
     // Générer le PDF en mémoire (évite problèmes de fichiers sur hébergement éphémère)
