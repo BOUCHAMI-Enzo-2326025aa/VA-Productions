@@ -1,6 +1,6 @@
 import Order from "../model/orderModel.js";
 import Invoice from "../model/invoiceModel.js";
-import createOrderPdf from "../utils/orderCreator.js";
+import createOrderPdf, { createOrderPdfBuffer } from "../utils/orderCreator.js";
 import { writeFile } from "fs";
 import crypto from "crypto";
 import path from "path";
@@ -39,6 +39,7 @@ export const createOrder = async (req, res) => {
       supportList: client.support,
       status: "Pending",
       signature: randomImageName,
+      signatureData: req.body.invoice.client.signature, // Stocke la dataURI complète
       tva: tva,
     });
     await createOrderPdf(client, res, maxOrderNumber + 1, tva, randomImageName);
@@ -85,86 +86,56 @@ export const generateOrder = async (req, res) => {
 export const getOrderPdf = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log("getOrderPdf appelé pour l'ID:", id);
+    
     const order = await Order.findById(id);
-    const expectedName = `${order.orderNumber}_${order.compagnyName.toUpperCase()}.pdf`;
-    console.log("getOrderPdf called for order id:", id, "expecting file:", expectedName);
-    const filePath = path.resolve(
-      process.cwd(),
-      `./orders/${order.orderNumber}_${order.compagnyName.toUpperCase()}.pdf`
+    if (!order) {
+      console.log("Commande introuvable pour l'ID:", id);
+      return res.status(404).json({ error: "Commande introuvable" });
+    }
+
+    console.log("Commande trouvée:", order.orderNumber, order.compagnyName);
+
+    // Construire l'objet client attendu par le générateur
+    const clientForPdf = {
+      compagnyName: order.compagnyName,
+      address1: order.firstAddress,
+      address2: order.secondAddress,
+      postalCode: order.postalCode,
+      city: order.city,
+      support: (order.items || []).map((it) => ({
+        name: it.name,
+        supportName: it.supportName,
+        supportNumber: it.supportNumber,
+        price: it.price,
+      })),
+      signature: order.signature,
+      signatureData: order.signatureData, // Passe la dataURI de la signature
+    };
+
+    // Générer le PDF en mémoire (évite problèmes de fichiers sur hébergement éphémère)
+    console.log("Génération du PDF en mémoire...");
+    const pdfBuffer = await createOrderPdfBuffer(
+      clientForPdf,
+      order.orderNumber,
+      order.tva || 0.2,
+      order.signature
     );
-    const exists = fs.existsSync(filePath);
-    console.log("PDF filePath:", filePath, "exists:", exists);
-    if (exists) {
-      try {
-        const stats = fs.statSync(filePath);
-        console.log("PDF file mtime:", stats.mtime);
-      } catch (e) {
-        console.log("Could not stat file:", e);
-      }
-    }
-  // Régénère le PDF si le fichier est manquant ou plus ancien que la date de la commande
-    let shouldRegenerate = false;
-    if (!exists) shouldRegenerate = true;
-    else {
-      try {
-        const stats = fs.statSync(filePath);
-        if (order.date && stats.mtime < new Date(order.date)) {
-          shouldRegenerate = true;
-        }
-      } catch (e) {
-        console.log("Could not stat file for regeneration check:", e);
-        shouldRegenerate = true;
-      }
-    }
 
-    if (shouldRegenerate) {
-      console.log("Regenerating PDF for order", order._id);
-  // construit l'objet client attendu par createOrderPdf
-      const clientForPdf = {
-        compagnyName: order.compagnyName,
-        address1: order.firstAddress,
-        address2: order.secondAddress,
-        postalCode: order.postalCode,
-        city: order.city,
-        support: (order.items || []).map((it) => ({
-          name: it.name,
-          supportName: it.supportName,
-          supportNumber: it.supportNumber,
-          price: it.price,
-        })),
-        signature: order.signature,
-      };
+    const filename = `commande-${order.orderNumber}.pdf`;
+    console.log("PDF généré, envoi au client avec le nom:", filename);
 
-  // écrira le fichier et gérera l'envoi de la réponse
-      try {
-        await createOrderPdf(clientForPdf, res, order.orderNumber, order.tva, order.signature);
-        return;
-      } catch (e) {
-        console.error("Erreur lors de la régénération du PDF :", e);
-        return res.status(500).json({ error: "Erreur lors de la régénération du PDF" });
-      }
-    }
-
-  // Envoie le fichier existant en inline pour permettre la prévisualisation dans le navigateur
-    try {
-  // Utilise la disposition 'inline' pour que le PDF soit prévisualisé dans le navigateur plutôt que téléchargé
-      res.setHeader(
-        "Content-Disposition",
-        `inline; filename="${encodeURIComponent(expectedName)}"`
-      );
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Cache-Control", "no-store");
-      res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
-
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
-    } catch (e) {
-      console.error("Erreur lors de l'envoi du fichier existant :", e);
-      res.status(500).json({ error: "Erreur lors de l'envoi du PDF" });
-    }
+    // Envoyer le PDF avec les en-têtes appropriés
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(filename)}"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+    res.setHeader("Content-Length", pdfBuffer.length);
+    
+    return res.status(200).send(pdfBuffer);
   } catch (error) {
-    console.error("Erreur lors de l'envoi du PDF :", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error("Erreur dans getOrderPdf:", error);
+    return res.status(500).json({ error: "Erreur lors de la génération du PDF", details: error.message });
   }
 };
 
