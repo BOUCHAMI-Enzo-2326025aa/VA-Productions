@@ -182,34 +182,6 @@ const DetailContactV2 = ({
                 />
               </>
             )}
-            <ConfirmModal
-              open={showDeleteModal}
-              title={"Confirmer la suppression"}
-              message={"Voulez-vous vraiment supprimer ce contact ? Cette action est irréversible."}
-              requirePassword={true}
-              error={deleteError}
-              loading={isDeleting}
-              confirmLabel={"Supprimer"}
-              onClose={() => {
-                setShowDeleteModal(false);
-                setDeleteError("");
-              }}
-              onConfirm={async (adminPassword) => {
-                setIsDeleting(true);
-                setDeleteError("");
-                try {
-                  await deleteContact(contactId, adminPassword);
-                  setShowDeleteModal(false);
-                  closeDetail();
-                } catch (err) {
-                  console.error("Erreur suppression contact:", err);
-                  const message = err?.response?.data?.erreur || err?.response?.data || err?.message || "Erreur lors de la suppression.";
-                  setDeleteError(message);
-                } finally {
-                  setIsDeleting(false);
-                }
-              }}
-            />
           </div>
         </div>
 

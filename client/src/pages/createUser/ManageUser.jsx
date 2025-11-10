@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import "./manageUsers.css";
 import CreateUser from "./CreateUser";
 import { formatDateSlash } from "../../utils/formatDate";
@@ -15,6 +15,7 @@ const ManageUser = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 10;
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const searchNameRef = useRef("search_" + Math.random().toString(36).slice(2));
 
   const fetchUsers = async () => {
     try {
@@ -52,14 +53,8 @@ const ManageUser = () => {
   };
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchUsers();
-    }
-  }, [isAdmin]); 
-
-  if (!isAdmin) {
-    return <div>Accès refusé. Vous devez être administrateur pour voir cette page.</div>;
-  }
+    fetchUsers();
+  }, []);
 
   return (
     <div className="flex flex-col mt-16 min-h-screen text-[#3F3F3F] w-full ">
@@ -85,8 +80,17 @@ const ManageUser = () => {
       <div>
         <p>Rechercher</p>
         <div>
+          {/* Champs cachés pour pièger l'auto-complétion des gestionnaires de mots de passe */}
+          <div style={{ position: "absolute", left: -9999, width: 1, height: 1, overflow: "hidden" }} aria-hidden>
+            <input name="username" autoComplete="username" />
+            <input name="current-password" type="password" autoComplete="current-password" />
+          </div>
+
           <input
             type="text"
+            name={searchNameRef.current}
+            autoComplete="off"
+            spellCheck={false}
             className="w-full py-2 rounded px-2"
             value={searchTerm}
             onChange={handleSearch}
