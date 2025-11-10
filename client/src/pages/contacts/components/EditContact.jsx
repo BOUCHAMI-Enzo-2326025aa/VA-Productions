@@ -3,7 +3,10 @@ import Input from "../../../components/Input.jsx";
 import Button from "../../../components/ui/Button";
 
 const EditContact = ({ contact, closeModal, saveContact }) => {
-  const [contactCopy, setContact] = useState(contact);
+  const [contactCopy, setContact] = useState({
+    ...contact,
+    delaisPaie: contact.delaisPaie || "comptant",
+  });
 
   const handleChange = (field, value) => {
     setContact((prev) => ({
@@ -57,6 +60,29 @@ const EditContact = ({ contact, closeModal, saveContact }) => {
           value={contactCopy.email}
           onChange={(e) => handleChange("email", e.target.value)}
         />
+        <Input
+          title={"Numéro de SIRET"}
+          value={contactCopy.siret || ""}
+          onChange={(e) => handleChange("siret", e.target.value)}
+        />
+        <Input
+          title={"Numéro de TVA"}
+          value={contactCopy.numTVA || ""}
+          onChange={(e) => handleChange("numTVA", e.target.value)}
+        />
+        <div className="flex flex-col gap-2">
+          <p className="font-medium text-sm text-[#3F3F3F]">Délai de paiement</p>
+          <select
+            className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+            value={contactCopy.delaisPaie || "comptant"}
+            onChange={(e) => handleChange("delaisPaie", e.target.value)}
+          >
+            <option value="comptant">Comptant</option>
+            <option value="30 jours">30 jours</option>
+            <option value="45 jours">45 jours</option>
+            <option value="60 jours">60 jours</option>
+          </select>
+        </div>
         <Button
           value={"Enregistrer"}
           className={"mt-6"}

@@ -21,6 +21,22 @@ const contactSchema = mongoose.Schema({
     type: String,
     required: false,
   },
+  siret: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  numTVA: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  delaisPaie: {
+    type: String,
+    enum: ["comptant", "30 jours", "45 jours", "60 jours"],
+    required: false,
+    default: "comptant",
+  },
   comments: {
     type: String,
     required: false,
