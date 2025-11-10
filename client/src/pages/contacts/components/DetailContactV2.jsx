@@ -245,6 +245,18 @@ const DetailContactV2 = ({
           {showCopyMessage && <CopyConfirmMessage />}
         </div>
 
+        <div className="mt-6 grid gap-2 text-sm text-[#3F3F3F]">
+          <p>
+            <span className="font-semibold">SIRET :</span> {contact.siret || "-"}
+          </p>
+          <p>
+            <span className="font-semibold">Numéro de TVA :</span> {contact.numTVA || "-"}
+          </p>
+          <p>
+            <span className="font-semibold">Délai de paiement :</span> {contact.delaisPaie || "comptant"}
+          </p>
+        </div>
+
         <textarea
           onChange={(e) => handleImmediateCommentChange(e.target.value)}
           className="min-h-[200px] mt-8 min-w-[60%] bg-black
@@ -300,7 +312,7 @@ const DetailContactV2 = ({
             <p className="mt-4 font-medium">Aucune facture pour le moment !</p>
           </div>
         )}
-        {/* Delete button moved next to Modifier / Fermer - keep as Button for consistent styling */}
+
         <div className="flex justify-end w-full">
           {/* spacer to push buttons to the right if needed */}
           <div className="hidden md:block" />

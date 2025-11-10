@@ -7,6 +7,7 @@ import ModalContact from "./components/ModalContact";
 import "./contact.css";
 import Button from "../../components/ui/Button";
 import DetailContactV2 from "./components/DetailContactV2";
+import SnackBar from "./components/SnackBar";
 
 const Contact = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,6 +18,11 @@ const Contact = () => {
   const [selectedContactId, setSelectedContactId] = useState("");
   const [selectedContactCompany, setSelectedContactCompany] = useState("");
   const [isFetching, setIsFetching] = useState(true);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    type: "",
+    message: "",
+  });
 
   let hasFetchedContact = false;
 
@@ -120,14 +126,31 @@ const Contact = () => {
       );
       setIsMenuOpen(false);
       setIsModalOpen(false);
+      setSnackbar({
+        open: true,
+        type: "success",
+        message: "Le contact a été supprimé avec succès !",
+      });
     } catch (error) {
       console.error("Erreur lors de la suppression du contact : ", error);
-      throw error; // rethrow so callers can show error message
+      setSnackbar({
+        open: true,
+        type: "error",
+        message:
+          "Impossible de supprimer le contact pour le moment. Veuillez réessayer.",
+      });
     }
   };
 
   return (
     <>
+      {snackbar.open && (
+        <SnackBar
+          type={snackbar.type}
+          message={snackbar.message}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        />
+      )}
       <div className="bg-[#E8E9EB] w-full ">
         {/*<DetailContact
           contactId={selectedContactId}

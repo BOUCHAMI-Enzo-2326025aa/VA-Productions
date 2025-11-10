@@ -32,6 +32,9 @@ export const createContact = async (req, res) => {
       surname,
       email,
       phoneNumber,
+      siret,
+      numTVA,
+      delaisPaie,
       comments,
       lastCall,
       status,
@@ -43,6 +46,9 @@ export const createContact = async (req, res) => {
       surname,
       email,
       phoneNumber,
+      siret,
+      numTVA,
+      delaisPaie,
       comments,
       lastCall,
       status,
@@ -57,7 +63,17 @@ export const createContact = async (req, res) => {
 export const updateContact = async (req, res) => {
   try {
     const { id } = req.params;
-    const { company, name, surname, email, phoneNumber, comments } = req.body;
+    const {
+      company,
+      name,
+      surname,
+      email,
+      phoneNumber,
+      siret,
+      numTVA,
+      delaisPaie,
+      comments,
+    } = req.body;
 
     const updatedData = {};
     if (company) updatedData.company = company;
@@ -65,6 +81,9 @@ export const updateContact = async (req, res) => {
     if (surname) updatedData.surname = surname;
     if (email) updatedData.email = email;
     if (phoneNumber) updatedData.phoneNumber = phoneNumber;
+    if (siret !== undefined) updatedData.siret = siret;
+    if (numTVA !== undefined) updatedData.numTVA = numTVA;
+    if (delaisPaie !== undefined) updatedData.delaisPaie = delaisPaie;
     if (comments) updatedData.comments = comments;
 
     const updatedContact = await Contact.findByIdAndUpdate(
