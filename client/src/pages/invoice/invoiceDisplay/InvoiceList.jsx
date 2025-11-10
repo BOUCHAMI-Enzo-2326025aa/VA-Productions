@@ -93,7 +93,12 @@ const InvoiceList = ({ invoices, setInvoices }) => {
               </td>
               <td className="table-cell-padding">{invoice.entreprise}</td>
               <td className="table-cell-padding">
-                {invoice.status === "paid" ? "Payé" : "Non Payé"}
+                <div className="flex items-center justify-center space-x-2">
+                  <span className={`h-2 w-2 rounded-full ${
+                    invoice.status === 'paid' ? 'bg-green-500' : 'bg-red-500'
+                  }`}></span>
+                  <span>{invoice.status === "paid" ? "Payé" : "Non Payé"}</span>
+                </div>
               </td>
               <td className="table-cell-padding">
                 {formatDateSlash(invoice.date)}
