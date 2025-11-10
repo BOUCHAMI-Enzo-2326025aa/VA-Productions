@@ -133,12 +133,18 @@ const Contact = () => {
       });
     } catch (error) {
       console.error("Erreur lors de la suppression du contact : ", error);
-      setSnackbar({
-        open: true,
-        type: "error",
-        message:
-          "Impossible de supprimer le contact pour le moment. Veuillez réessayer.",
-      });
+      // On ne montre la snackbar que si la suppression a été appelée sans modal
+      // (par ex. depuis un autre endroit). Sinon on rethrow pour que la modal
+      // affiche l'erreur elle-même.
+      if (!adminPassword) {
+        setSnackbar({
+          open: true,
+          type: "error",
+          message:
+            "Impossible de supprimer le contact pour le moment. Veuillez réessayer.",
+        });
+      }
+      throw error; // Rethrow pour que la modal puisse afficher le message d'erreur
     }
   };
 
