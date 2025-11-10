@@ -99,11 +99,19 @@ const Contact = () => {
     );
   };
 
-  const deleteContact = async (contactId) => {
+  const deleteContact = async (contactId, adminPassword = null) => {
     try {
-      await axios.delete(
-        import.meta.env.VITE_API_HOST + "/api/contact/" + contactId
-      );
+      const token = JSON.parse(localStorage.getItem("user"))?.token;
+      const url = import.meta.env.VITE_API_HOST + "/api/contact/" + contactId;
+      const config = {
+        headers: {},
+      };
+      if (token) config.headers.Authorization = token;
+      if (adminPassword) {
+        config.data = { adminPassword };
+      }
+
+      await axios.delete(url, config);
       setContactsList((prev) =>
         prev.filter((contact) => contact._id !== contactId)
       );
@@ -114,6 +122,7 @@ const Contact = () => {
       setIsModalOpen(false);
     } catch (error) {
       console.error("Erreur lors de la suppression du contact : ", error);
+      throw error; // rethrow so callers can show error message
     }
   };
 

@@ -1,4 +1,7 @@
 import Contact from "../model/contactModel.js";
+import User from "../model/userModel.js";
+import bcrypt from "bcrypt";
+import jsonwebtoken from "jsonwebtoken";
 
 export const getAllContacts = async (req, res) => {
   try {
@@ -81,13 +84,42 @@ export const updateContact = async (req, res) => {
 export const deleteContact = async (req, res) => {
   try {
     const { id } = req.params;
+    const { adminPassword } = req.body || {};
+
+    // Require admin password for deletion
+    if (!adminPassword) {
+      return res.status(400).json({ erreur: "Mot de passe administrateur requis." });
+    }
+
+    // Verify token and admin user
+    const token = req.headers["authorization"] || req.headers["Authorization"];
+    if (!token) {
+      return res.status(401).json({ erreur: "Token d'authentification requis pour cette action." });
+    }
+
+    let decoded;
+    try {
+      decoded = jsonwebtoken.verify(token, process.env.SECRET);
+    } catch (err) {
+      return res.status(401).json({ erreur: "Token invalide." });
+    }
+
+  const adminUser = await User.findById(decoded.user._id);
+    if (!adminUser) {
+      return res.status(401).json({ erreur: "Utilisateur admin introuvable." });
+    }
+
+    const passwordMatch = await bcrypt.compare(adminPassword, adminUser.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ erreur: "Mot de passe utilisateur incorrect." });
+    }
+
     const deletedContact = await Contact.findByIdAndDelete(id);
     if (!deletedContact) {
-      res.status(400).send(`Le contact (${id}) est introuvable !`);
+      return res.status(400).send(`Le contact (${id}) est introuvable !`);
     }
-    res
-      .status(200)
-      .send(`Le contact ayant comme id ${id} vient d'être supprimé !`);
+
+    return res.status(200).send(`Le contact ayant comme id ${id} vient d'être supprimé !`);
   } catch (error) {
     console.log(error);
     res.status(500).json({ erreur: error.message });

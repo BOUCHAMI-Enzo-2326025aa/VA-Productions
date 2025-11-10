@@ -9,6 +9,8 @@ import w_mag from "../../../assets/supports/w-mag.png";
 import axios from "axios";
 import { formatDateSlash } from "../../../utils/formatDate";
 import Button from "../../../components/ui/Button";
+import ConfirmModal from "../../../components/ConfirmModal";
+import useAuth from "../../../hooks/useAuth";
 import CardFacture from "./CardFacture";
 import CopyConfirmMessage from "./CopyConfirmMessage";
 import not_found_illustration from "../../../assets/not-found-illustration.svg";
@@ -94,6 +96,13 @@ const DetailContactV2 = ({
     handleDebouncedCommentChange(value);
   };
 
+  // confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const { isAdmin } = useAuth();
+
   if (contact === null) return <></>;
 
   return (
@@ -131,6 +140,75 @@ const DetailContactV2 = ({
               className={"!py-0 h-8 w-[100px] !min-w-[50px] text-sm "}
               primary={false}
               onClickFunction={closeDetail}
+            />
+            {isAdmin && (
+              <>
+                <Button
+                  value={"Supprimer"}
+                  className={"!py-0 h-8 w-[120px] !min-w-[50px] text-sm bg-red-500 hover:bg-red-600 text-white"}
+                  primary={false}
+                  onClickFunction={() => {
+                    setDeleteError("");
+                    setShowDeleteModal(true);
+                  }}
+                />
+                <ConfirmModal
+                  open={showDeleteModal}
+                  title={"Confirmer la suppression"}
+                  message={"Voulez-vous vraiment supprimer ce contact ? Cette action est irréversible."}
+                  requirePassword={true}
+                  error={deleteError}
+                  loading={isDeleting}
+                  confirmLabel={"Supprimer"}
+                  onClose={() => {
+                    setShowDeleteModal(false);
+                    setDeleteError("");
+                  }}
+                  onConfirm={async (adminPassword) => {
+                    setIsDeleting(true);
+                    setDeleteError("");
+                    try {
+                      await deleteContact(contactId, adminPassword);
+                      setShowDeleteModal(false);
+                      closeDetail();
+                    } catch (err) {
+                      console.error("Erreur suppression contact:", err);
+                      const message = err?.response?.data?.erreur || err?.response?.data || err?.message || "Erreur lors de la suppression.";
+                      setDeleteError(message);
+                    } finally {
+                      setIsDeleting(false);
+                    }
+                  }}
+                />
+              </>
+            )}
+            <ConfirmModal
+              open={showDeleteModal}
+              title={"Confirmer la suppression"}
+              message={"Voulez-vous vraiment supprimer ce contact ? Cette action est irréversible."}
+              requirePassword={true}
+              error={deleteError}
+              loading={isDeleting}
+              confirmLabel={"Supprimer"}
+              onClose={() => {
+                setShowDeleteModal(false);
+                setDeleteError("");
+              }}
+              onConfirm={async (adminPassword) => {
+                setIsDeleting(true);
+                setDeleteError("");
+                try {
+                  await deleteContact(contactId, adminPassword);
+                  setShowDeleteModal(false);
+                  closeDetail();
+                } catch (err) {
+                  console.error("Erreur suppression contact:", err);
+                  const message = err?.response?.data?.erreur || err?.response?.data || err?.message || "Erreur lors de la suppression.";
+                  setDeleteError(message);
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
             />
           </div>
         </div>
@@ -222,13 +300,10 @@ const DetailContactV2 = ({
             <p className="mt-4 font-medium">Aucune facture pour le moment !</p>
           </div>
         )}
+        {/* Delete button moved next to Modifier / Fermer - keep as Button for consistent styling */}
         <div className="flex justify-end w-full">
-          <button
-            className=" mt-10 ml-auto bg-red-500 h-10 text-center px-6 rounded  text-white  font-semibold"
-            onClick={() => deleteContact(contactId)}
-          >
-            Supprimer le contact
-          </button>
+          {/* spacer to push buttons to the right if needed */}
+          <div className="hidden md:block" />
         </div>
       </div>
     </div>
