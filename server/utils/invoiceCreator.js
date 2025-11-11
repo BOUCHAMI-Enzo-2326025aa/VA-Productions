@@ -123,7 +123,7 @@ function generateInvoiceTable(doc, facture, tva) {
     generateTableRow(
       doc,
       invoiceTableTop,
-      "Encart",
+      "Description",
       "Support",
       "Qté",
       "PU",

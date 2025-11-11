@@ -114,7 +114,7 @@ const InvoiceSupportChoice = ({
       }
 
       if (!libelle.trim()) {
-       setErrorSupportMessage("⚠️ Le champ Encart est obligatoire.");
+       setErrorSupportMessage("⚠️ Le champ Description est obligatoire.");
        return;
       }
 
@@ -152,7 +152,7 @@ const InvoiceSupportChoice = ({
       </label>
 
       <label className="flex flex-col font-semibold text-sm sm:text-base w-full lg:flex-1">
-       Encart
+       Description
        <input
         type="text"
         value={libelle}

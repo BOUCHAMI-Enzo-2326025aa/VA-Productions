@@ -7,9 +7,7 @@ import path from "path";
 import fs from "fs";
 
 const toNumber = (value) => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
+  if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
     const cleaned = value.replace(/\s/g, "").replace(",", ".");
     const parsed = Number.parseFloat(cleaned);
@@ -20,15 +18,11 @@ const toNumber = (value) => {
 
 const normaliseSupports = (supports = []) =>
   Array.isArray(supports)
-    ? supports.map((item) => ({
-        ...item,
-        price: toNumber(item?.price),
-      }))
+    ? supports.map((item) => ({ ...item, price: toNumber(item?.price) }))
     : [];
 
 const withComputedTotal = (orderDoc) => {
-  const order =
-    typeof orderDoc.toObject === "function" ? orderDoc.toObject() : orderDoc;
+  const order = typeof orderDoc.toObject === "function" ? orderDoc.toObject() : orderDoc;
   const items = normaliseSupports(order.items);
   const supportList = normaliseSupports(order.supportList);
   const source = items.length ? items : supportList;
@@ -36,28 +30,17 @@ const withComputedTotal = (orderDoc) => {
   const baseTotal = source.reduce((sum, item) => sum + item.price, 0);
   const computed = Math.round(baseTotal * (1 + tvaRate) * 100) / 100;
   const stored = toNumber(order.totalPrice);
-
-  return {
-    ...order,
-    items,
-  supportList,
-    tva: tvaRate,
-    totalPrice: computed || stored,
-  };
+  return { ...order, items, supportList, tva: tvaRate, totalPrice: computed || stored };
 };
 
 export const createOrder = async (req, res) => {
   try {
     const client = req.body.invoice.client;
     const tva = req.body.tva.percentage;
-    const { orderNumber: maxOrderNumber = 0 } =
-      (await Order.findOne().sort({ orderNumber: -1 })) || {};
+    const { orderNumber: maxOrderNumber = 0 } = (await Order.findOne().sort({ orderNumber: -1 })) || {};
 
     const randomImageName = crypto.randomBytes(32).toString("hex");
-
     saveSignature(req.body.invoice.client.signature, randomImageName);
-
-    console.log(client);
 
     const supports = normaliseSupports(client.support);
     const tvaRate = toNumber(tva);
@@ -75,20 +58,15 @@ export const createOrder = async (req, res) => {
       secondAddress: client.address2,
       postalCode: client.postalCode,
       city: client.city,
-      supportList: supports,
       status: "Pending",
       signature: randomImageName,
-      signatureData: req.body.invoice.client.signature, // Stocke la dataURI complète
+      signatureData: req.body.invoice.client.signature,
       tva: tvaRate,
+      costs: client.costs || [], 
     });
-    await createOrderPdf(
-      { ...client, support: supports },
-      res,
-      maxOrderNumber + 1,
-      tvaRate,
-      randomImageName
-    );
-    //res.status(200).json({ order: order });
+    
+    await createOrderPdf({ ...client, support: supports, costs: client.costs }, res, maxOrderNumber + 1, tvaRate, randomImageName);
+    
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error.message });
@@ -129,7 +107,7 @@ export const generateOrder = async (req, res) => {
 };
 
 export const getOrderPdf = async (req, res) => {
-  try {
+   try {
     const { id } = req.params;
     console.log("getOrderPdf appelé pour l'ID:", id);
     
@@ -153,10 +131,9 @@ export const getOrderPdf = async (req, res) => {
       city: order.city,
       support: items,
       signature: order.signature,
-      signatureData: order.signatureData, // Passe la dataURI de la signature
+      signatureData: order.signatureData, 
     };
 
-    // Générer le PDF en mémoire (évite problèmes de fichiers sur hébergement éphémère)
     console.log("Génération du PDF en mémoire...");
     const pdfBuffer = await createOrderPdfBuffer(
       clientForPdf,
@@ -168,7 +145,6 @@ export const getOrderPdf = async (req, res) => {
     const filename = `commande-${order.orderNumber}.pdf`;
     console.log("PDF généré, envoi au client avec le nom:", filename);
 
-    // Envoyer le PDF avec les en-têtes appropriés
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(filename)}"`);
     res.setHeader("Cache-Control", "no-store");
@@ -211,25 +187,35 @@ const saveSignature = (signature, imageName) => {
 
 export const validateOrder = async (req, res) => {
   const { orders } = req.body;
-  for (const orderItem of orders) {
-    const order = await Order.findByIdAndUpdate(orderItem._id, {
-      status: "validated",
-    });
-    const { number: maxNumber = 0 } =
-      (await Invoice.findOne().sort({ number: -1 })) || {};
-    await Invoice.create({
-      client: order.client,
-      number: maxNumber + 1,
-      date: Date.now(),
-      entreprise: order.compagnyName,
-      firstAddress: order.firstAddress,
-      secondAddress: order.secondAddress,
-      postalCode: order.postalCode,
-      city: order.city,
-      supportList: order.items,
-      totalPrice: order.totalPrice,
-    });
-    res.status(200).json({ message: "Commande validée" });
+  try {
+    for (const orderItem of orders) {
+      const order = await Order.findById(orderItem._id);
+      if (!order) continue;
+      
+      order.status = "validated";
+      await order.save();
+
+      const { number: maxNumber = 0 } = (await Invoice.findOne().sort({ number: -1 })) || {};
+      
+      await Invoice.create({
+        client: order.client,
+        number: maxNumber + 1,
+        date: new Date(),
+        entreprise: order.compagnyName,
+        firstAddress: order.firstAddress,
+        secondAddress: order.secondAddress,
+        postalCode: order.postalCode,
+        city: order.city,
+        supportList: order.items,
+        totalPrice: order.totalPrice,
+        tva: order.tva,
+        costs: order.costs || [], 
+      });
+    }
+    res.status(200).json({ message: "Commandes validées et factures créées." });
+  } catch(error) {
+    console.error("Erreur validation commande:", error);
+    res.status(500).json({ error: "Erreur validation." });
   }
 };
 

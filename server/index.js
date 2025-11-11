@@ -25,21 +25,12 @@ app.get("/invoices/:filename", (req, res) => {
   });
 });
 
-function setCorsHeaders(req, res, next) {
-  res.setHeader("Access-Control-Allow-Credentials", true);
-  res.setHeader("Access-Control-Allow-Origin", process.env.FRONT_LINK);
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, PATCH, DELETE"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, Auth-Token"
-  );
-  next();
-}
+app.use(cors({
+  origin: process.env.FRONT_LINK,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  credentials: true, 
+}));
 
-app.use(setCorsHeaders);
 
 app.use(express.json());
 
