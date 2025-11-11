@@ -8,6 +8,13 @@ const emptySupport = () => ({
   price: 0,
 });
 
+const DEFAULT_SUPPORT_OPTIONS = [
+  "WMag",
+  "Rouges et Blancs",
+  "Ambition Sud",
+  "Roses en Provence",
+];
+
 const parseDecimal = (value, fallback = 0) => {
   if (value === null || value === undefined) return fallback;
   const normalised = String(value).replace(/\s/g, "").replace(",", ".");
@@ -36,6 +43,16 @@ const OrderEditModal = ({ order, onClose, refetchOrders }) => {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const supportOptions = useMemo(() => {
+    const options = new Set(DEFAULT_SUPPORT_OPTIONS);
+    items.forEach((item) => {
+      if (item?.supportName) {
+        options.add(item.supportName);
+      }
+    });
+    return Array.from(options);
+  }, [items]);
 
   const totalHT = useMemo(
     () =>
@@ -247,12 +264,20 @@ const OrderEditModal = ({ order, onClose, refetchOrders }) => {
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
                   <label className="text-xs font-medium text-gray-500">Support *</label>
-                  <input
-                    type="text"
+                  <select
                     className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-300"
                     value={item.supportName}
                     onChange={(e) => handleItemChange(index, "supportName", e.target.value)}
-                  />
+                  >
+                    <option value="" disabled>
+                      Sélectionnez un support
+                    </option>
+                    {supportOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-gray-500">Qté *</label>
