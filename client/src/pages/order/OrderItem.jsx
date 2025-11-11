@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { formatDateSlash } from "../../utils/formatDate.js";
 
-const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder }) => {
+const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder, onEdit }) => {
   
   const totalDisplay = useMemo(() => {
     const total = typeof order.totalPrice === "number" ? order.totalPrice : Number(order.totalPrice) || 0;
@@ -47,12 +47,22 @@ const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder }) => {
         </tbody>
       </table>
 
-      <p
-        className="text-blue-400 mt-5 text-sm font-semibold cursor-pointer"
-        onClick={() => fetchCommandPdf(order._id, order.orderNumber)}
-      >
-        Voir le bon de commande
-      </p>
+      <div className="mt-5 flex items-center justify-between text-sm font-semibold">
+        <button
+          type="button"
+          className="text-blue-400 mt-5 text-sm font-semibold cursor-pointer"
+          onClick={() => fetchCommandPdf(order._id, order.orderNumber)}
+        >
+          Voir le bon de commande
+        </button>
+        <button
+          type="button"
+          className="text-blue-400 mt-5 text-sm font-semibold cursor-pointer"
+          onClick={() => onEdit?.(order)}
+        >
+          Modifier
+        </button>
+      </div>
     </div>
   );
 };

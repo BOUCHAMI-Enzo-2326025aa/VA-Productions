@@ -228,3 +228,91 @@ export const cancelOrder = async (req, res) => {
   }
   res.status(200).json({ message: "Commande annulée" });
 };
+
+// Mise à jour d'une commande
+
+export const updateOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      compagnyName,
+      firstAddress,
+      secondAddress,
+      postalCode,
+      city,
+      items = [],
+      tva,
+      status,
+      costs,
+    } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "La commande doit contenir au moins un support." });
+    }
+
+    const sanitizedItems = items.map((item) => ({
+      name: item?.name?.trim() || "",
+      supportName: item?.supportName?.trim() || "",
+      supportNumber: Number.isFinite(Number(item?.supportNumber))
+        ? Number(item.supportNumber)
+        : 0,
+      price: toNumber(item?.price),
+    }));
+
+    if (sanitizedItems.some((item) => !item.name || !item.supportName)) {
+      return res
+        .status(400)
+        .json({ error: "Chaque support doit contenir un encart et un support." });
+    }
+
+    if (sanitizedItems.some((item) => item.supportNumber <= 0)) {
+      return res
+        .status(400)
+        .json({ error: "La quantité de chaque support doit être supérieure à 0." });
+    }
+
+    if (sanitizedItems.some((item) => !Number.isFinite(item.price) || item.price < 0)) {
+      return res
+        .status(400)
+        .json({ error: "Le prix de chaque support doit être un nombre positif." });
+    }
+
+    const rate = toNumber(tva ?? 0);
+    if (!Number.isFinite(rate) || rate < 0) {
+      return res.status(400).json({ error: "Le taux de TVA est invalide." });
+    }
+
+    const baseTotal = sanitizedItems.reduce((sum, item) => sum + item.price, 0);
+    const totalPrice = Math.round(baseTotal * (1 + rate) * 100) / 100;
+
+    const updatePayload = {
+      items: sanitizedItems,
+      totalPrice,
+      tva: rate,
+      supportList: sanitizedItems,
+    };
+
+    if (compagnyName !== undefined) updatePayload.compagnyName = compagnyName;
+    if (firstAddress !== undefined) updatePayload.firstAddress = firstAddress;
+    if (secondAddress !== undefined) updatePayload.secondAddress = secondAddress;
+    if (postalCode !== undefined) updatePayload.postalCode = postalCode;
+    if (city !== undefined) updatePayload.city = city;
+    if (Array.isArray(costs)) updatePayload.costs = costs;
+    if (typeof status === "string") updatePayload.status = status;
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      id,
+      { $set: updatePayload },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ error: "Commande introuvable." });
+    }
+
+    return res.status(200).json({ order: withComputedTotal(updatedOrder) });
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de la commande:", error);
+    return res.status(500).json({ error: "Erreur lors de la mise à jour de la commande." });
+  }
+};
