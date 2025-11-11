@@ -58,7 +58,7 @@ export const createOrder = async (req, res) => {
       secondAddress: client.address2,
       postalCode: client.postalCode,
       city: client.city,
-      status: "Pending",
+      status: "pending",
       signature: randomImageName,
       signatureData: req.body.invoice.client.signature,
       tva: tvaRate,

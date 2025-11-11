@@ -69,10 +69,10 @@ const OrderSchema = new Schema({
     required: false,
   },
   status: {
-    type: String,
-    enum: ["Pending", "Completed", "Cancelled"],
-    default: "Pending",
-  },
+  type: String,
+  enum: ["pending", "validated", "cancel"], 
+  default: "pending",
+},
   tva: {
     type: Number,
     required: true,
