@@ -7,6 +7,7 @@ import {
   generateOrder,
   validateOrder,
   cancelOrder,
+  updateOrder,
 } from "../controller/orderController.js";
 
 import { authorize } from "../middleware/auth.js";
@@ -21,3 +22,4 @@ router.post("/generate-order", authorize(Roles.All), generateOrder);
 router.get("/pdf/:id", authorize(Roles.All), getOrderPdf);
 router.post("/validate", authorize(Roles.All), validateOrder);
 router.post("/cancel", authorize(Roles.All), cancelOrder);
+router.put("/:id", authorize(Roles.All), updateOrder);
