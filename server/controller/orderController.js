@@ -18,7 +18,28 @@ const toNumber = (value) => {
 
 const normaliseSupports = (supports = []) =>
   Array.isArray(supports)
-    ? supports.map((item) => ({ ...item, price: toNumber(item?.price) }))
+    ? supports.map((item) => {
+        const price = toNumber(item?.price);
+        const rawQuantity = item?.supportNumber ?? item?.quantity ?? 1;
+        const supportNumber = Number.isFinite(Number(rawQuantity))
+          ? Number(rawQuantity)
+          : 1;
+        const rawSupportName = item?.supportName || item?.support || item?.support_label || "";
+        const rawName = item?.name || item?.encart || item?.description || "";
+        const supportName =
+          typeof rawSupportName === "string" && rawSupportName.trim()
+            ? rawSupportName.trim()
+            : "-";
+        const name =
+          typeof rawName === "string" && rawName.trim() ? rawName.trim() : "-";
+        return {
+          ...item,
+          price,
+          supportNumber,
+          supportName,
+          name,
+        };
+      })
     : [];
 
 const withComputedTotal = (orderDoc) => {
@@ -54,6 +75,7 @@ export const createOrder = async (req, res) => {
       date: Date.now(),
       items: supports,
       totalPrice: total,
+      supportList: supports,
       firstAddress: client.address1,
       secondAddress: client.address2,
       postalCode: client.postalCode,
@@ -62,10 +84,16 @@ export const createOrder = async (req, res) => {
       signature: randomImageName,
       signatureData: req.body.invoice.client.signature,
       tva: tvaRate,
-      costs: client.costs || [], 
+      costs: client.costs || [],
     });
     
-    await createOrderPdf({ ...client, support: supports, costs: client.costs }, res, maxOrderNumber + 1, tvaRate, randomImageName);
+    await createOrderPdf(
+      { ...client, support: supports, costs: client.costs },
+      res,
+      maxOrderNumber + 1,
+      tvaRate,
+      randomImageName
+    );
     
   } catch (error) {
     console.log(error);
@@ -250,14 +278,28 @@ export const updateOrder = async (req, res) => {
       return res.status(400).json({ error: "La commande doit contenir au moins un support." });
     }
 
-    const sanitizedItems = items.map((item) => ({
-      name: item?.name?.trim() || "",
-      supportName: item?.supportName?.trim() || "",
-      supportNumber: Number.isFinite(Number(item?.supportNumber))
-        ? Number(item.supportNumber)
-        : 0,
-      price: toNumber(item?.price),
-    }));
+    const sanitizedItems = items.map((item) => {
+      const rawQuantity = item?.supportNumber ?? item?.quantity ?? 1;
+      const supportNumber = Number.isFinite(Number(rawQuantity)) ? Number(rawQuantity) : 0;
+      const name =
+        typeof item?.name === "string" && item.name.trim()
+          ? item.name.trim()
+          : typeof item?.encart === "string" && item.encart.trim()
+          ? item.encart.trim()
+          : "";
+      const supportName =
+        typeof item?.supportName === "string" && item.supportName.trim()
+          ? item.supportName.trim()
+          : typeof item?.support === "string" && item.support.trim()
+          ? item.support.trim()
+          : "";
+      return {
+        name,
+        supportName,
+        supportNumber,
+        price: toNumber(item?.price),
+      };
+    });
 
     if (sanitizedItems.some((item) => !item.name || !item.supportName)) {
       return res
@@ -265,10 +307,10 @@ export const updateOrder = async (req, res) => {
         .json({ error: "Chaque support doit contenir un encart et un support." });
     }
 
-    if (sanitizedItems.some((item) => item.supportNumber <= 0)) {
+    if (sanitizedItems.some((item) => item.supportNumber < 0)) {
       return res
         .status(400)
-        .json({ error: "La quantité de chaque support doit être supérieure à 0." });
+        .json({ error: "Le numéro du support ne peut pas être négatif." });
     }
 
     if (sanitizedItems.some((item) => !Number.isFinite(item.price) || item.price < 0)) {

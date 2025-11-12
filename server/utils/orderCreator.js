@@ -2,6 +2,16 @@ import fs from "fs";
 import path from "path";
 import PDFDocument from "pdfkit";
 
+const toNumber = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const cleaned = value.replace(/\s/g, "").replace(",", ".");
+    const parsed = Number.parseFloat(cleaned);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
 function createOrderPdf(client, res, number, tva, randomImageName) {
   const invoicesDir = "./orders";
   if (!fs.existsSync(invoicesDir)) {
@@ -97,6 +107,28 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
   const invoiceTableTop = 330; 
   let currentPosition = invoiceTableTop;
 
+  const supports = Array.isArray(client.support) ? client.support : [];
+  const normalisedSupports = supports.map((item) => {
+    const price = toNumber(item?.price);
+    const rawNumber = item?.supportNumber ?? item?.number ?? item?.quantity ?? "";
+    const supportNumber = typeof rawNumber === "string" && rawNumber.trim()
+      ? rawNumber.trim()
+      : Number.isFinite(Number(rawNumber))
+      ? String(rawNumber)
+      : "";
+    const rawSupportName = item?.supportName || item?.support || item?.support_label || "";
+    const rawName = item?.name || item?.encart || item?.description || "";
+    const supportName = typeof rawSupportName === "string" && rawSupportName.trim() ? rawSupportName.trim() : "-";
+    const name = typeof rawName === "string" && rawName.trim() ? rawName.trim() : "-";
+    return {
+      ...item,
+      price,
+      supportNumber,
+      supportName,
+      name,
+    };
+  });
+
   doc.font("Helvetica-Bold");
   generateTableRow(doc, currentPosition, "Encart", "Support", "Qté", "Montant");
   currentPosition += 15;
@@ -104,14 +136,15 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
   currentPosition += 10;
   
   doc.font("Helvetica");
-  const subTotalSupports = client.support.reduce((sum, item) => sum + (item.price || 0), 0);
-  client.support.forEach(item => {
+  const subTotalSupports = normalisedSupports.reduce((sum, item) => sum + item.price, 0);
+
+  normalisedSupports.forEach(item => {
     generateTableRow(
       doc,
       currentPosition,
       item.name,
       item.supportName,
-      "1",
+      item.supportNumber || "-",
       formatPrice(item.price) + " €"
     );
     currentPosition += 20;
@@ -123,7 +156,7 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
   currentPosition += 25;
 
   if (client.costs && client.costs.length > 0) {
-    const totalCosts = client.costs.reduce((sum, cost) => sum + (cost.amount || 0), 0);
+    const totalCosts = client.costs.reduce((sum, cost) => sum + toNumber(cost.amount), 0);
     const netRevenue = subTotalSupports - totalCosts;
 
     doc.font("Helvetica-Bold").text("FRAIS ASSOCIÉS", 50, currentPosition);
@@ -132,13 +165,15 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
     currentPosition += 10;
 
     doc.font("Helvetica");
-    client.costs.forEach(cost => {
-      generateTableRow(doc, currentPosition, cost.description, "", "", `-${formatPrice(cost.amount)} €`);
+    client.costs.forEach((cost) => {
+      const description = cost?.description || cost?.label || cost?.name || "";
+      const amount = toNumber(cost?.amount);
+      generateTableRow(doc, currentPosition, description, "", "", `-${formatPrice(amount)} €`);
       currentPosition += 20;
     });
     generateHr(doc, currentPosition);
     currentPosition += 10;
-    
+
     doc.font("Helvetica-Bold");
     generateTableRow(doc, currentPosition, "", "", "TOTAL FRAIS", `-${formatPrice(totalCosts)} €`);
     currentPosition += 25;
@@ -147,7 +182,8 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
     currentPosition += 25;
   }
 
-  const tvaAmount = subTotalSupports * tva;
+  const tvaRate = toNumber(tva);
+  const tvaAmount = subTotalSupports * tvaRate;
   const totalTTC = subTotalSupports + tvaAmount;
 
   generateTableRow(doc, currentPosition, "", "", "T.V.A.", `${formatPrice(tvaAmount)} €`);
