@@ -11,7 +11,21 @@ import { CSVLink } from "react-csv";
 const Stats = () => {
   const { isAdmin } = useAuth();
   const [invoices, setInvoices] = useState([]);
-  const colorList = ["#ef4444", "#2563eb", "#22c55e", "#7c3aed"];
+  // Liste de couleurs distinctes pour chaque magazine
+  const colorList = [
+    "#ef4444", // Rouge
+    "#2563eb", // Bleu
+    "#22c55e", // Vert
+    "#7c3aed", // Violet
+    "#f59e0b", // Orange
+    "#ec4899", // Rose
+    "#06b6d4", // Cyan
+    "#84cc16", // Lime
+    "#f97316", // Orange foncé
+    "#8b5cf6", // Violet clair
+    "#14b8a6", // Teal
+    "#eab308", // Jaune
+  ];
 
   const fetchInvoices = async () => {
     try {
