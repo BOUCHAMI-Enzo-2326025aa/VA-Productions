@@ -73,6 +73,7 @@ export const updateContact = async (req, res) => {
       numTVA,
       delaisPaie,
       comments,
+      status,
     } = req.body;
 
     const updatedData = {};
@@ -85,6 +86,7 @@ export const updateContact = async (req, res) => {
     if (numTVA !== undefined) updatedData.numTVA = numTVA;
     if (delaisPaie !== undefined) updatedData.delaisPaie = delaisPaie;
     if (comments) updatedData.comments = comments;
+    if (status) updatedData.status = status;
 
     const updatedContact = await Contact.findByIdAndUpdate(
       id,
