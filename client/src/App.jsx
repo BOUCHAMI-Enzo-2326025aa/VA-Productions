@@ -19,6 +19,7 @@ import "@mantine/core/styles.css";
 import Order from "./pages/order/Order";
 import Guide from "./pages/guide/Guide";
 import Stats from "./pages/stats/Stats";
+import Magazine from "./pages/magazine/Magazine";
 
 function App() {
   const [userLoaded, setUserLoaded] = useState(false);
@@ -141,6 +142,16 @@ function App() {
               <AdminRoute>
                 <Layout pathName={"Statistiques"}>
                   <Stats />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/magazine"
+            element={
+              <AdminRoute>
+                <Layout pathName={"Magazines"}>
+                  <Magazine />
                 </Layout>
               </AdminRoute>
             }

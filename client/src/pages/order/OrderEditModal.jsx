@@ -280,10 +280,10 @@ const OrderEditModal = ({ order, onClose, refetchOrders }) => {
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-gray-500">Qté *</label>
+                  <label className="text-xs font-medium text-gray-500">N° support *</label>
                   <input
                     type="number"
-                    min="1"
+                    min="0"
                     step="1"
                     className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-300"
                     value={item.supportNumber}

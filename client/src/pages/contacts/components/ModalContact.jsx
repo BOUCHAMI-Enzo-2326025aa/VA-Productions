@@ -4,6 +4,11 @@ import SnackBar from "./SnackBar";
 import CloseIcon from "../../../assets/CloseIcon.svg";
 import "../contact.css";
 
+const CUSTOM_DELAY_SUFFIXES = [
+  { value: "", label: "Sans complément" },
+  { value: "fin de mois", label: "Fin de mois" },
+];
+
 const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
   const [formData, setFormData] = useState({
     company: "",
@@ -14,6 +19,8 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
     siret: "",
     numTVA: "",
     delaisPaie: "comptant",
+    customDelaisDays: "",
+    customDelaisSuffix: CUSTOM_DELAY_SUFFIXES[0].value,
     comments: "",
     status: "",
   });
@@ -47,6 +54,8 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
         siret: "",
         numTVA: "",
         delaisPaie: "comptant",
+        customDelaisDays: "",
+        customDelaisSuffix: CUSTOM_DELAY_SUFFIXES[0].value,
         comments: "",
         status: "",
       });
@@ -60,6 +69,60 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+
+    if (name === "customDelaisDays") {
+      const numericValue = value.replace(/[^0-9]/g, "");
+      setFormData((prev) => ({ ...prev, customDelaisDays: numericValue }));
+
+      if (!numericValue) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          customDelaisDays: "Veuillez saisir un nombre de jours.",
+        }));
+      } else {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          customDelaisDays: null,
+        }));
+      }
+      return;
+    }
+
+    if (name === "customDelaisSuffix") {
+      setFormData((prev) => ({ ...prev, customDelaisSuffix: value }));
+      setErrors((prevErrors) => ({ ...prevErrors, customDelaisSuffix: null }));
+      return;
+    }
+
+    if (name === "delaisPaie") {
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        delaisPaie: value,
+        ...(value === "autre"
+          ? {}
+          : {
+              customDelaisDays: "",
+              customDelaisSuffix: CUSTOM_DELAY_SUFFIXES[0].value,
+            }),
+      }));
+
+      if (!value) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          delaisPaie: "Veuillez sélectionner un délai de paiement.",
+        }));
+      } else {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          delaisPaie: null,
+          ...(value !== "autre"
+            ? { customDelaisDays: null, customDelaisSuffix: null }
+            : {}),
+        }));
+      }
+      return;
+    }
+
     setFormData((prevFormData) => ({ ...prevFormData, [name]: value }));
 
     switch (name) {
@@ -137,16 +200,6 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
           setErrors((prevErrors) => ({ ...prevErrors, [name]: null }));
         }
         break;
-      case "delaisPaie":
-        if (!value) {
-          setErrors((prevErrors) => ({
-            ...prevErrors,
-            [name]: "Veuillez sélectionner un délai de paiement.",
-          }));
-        } else {
-          setErrors((prevErrors) => ({ ...prevErrors, [name]: null }));
-        }
-        break;
       case "status":
         if (!value) {
           setErrors((prevErrors) => ({
@@ -162,6 +215,7 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
 
   const handleSubmit = async () => {
     const updatedErrors = { ...errors };
+    let computedDelaisPaie = formData.delaisPaie;
 
     Object.entries(requiredFieldMessages).forEach(([field, message]) => {
       if (!formData[field] || formData[field].trim() === "") {
@@ -181,6 +235,29 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
       updatedErrors.delaisPaie = "Veuillez sélectionner un délai de paiement.";
     } else if (updatedErrors.delaisPaie && updatedErrors.delaisPaie.startsWith("Veuillez sélectionner")) {
       updatedErrors.delaisPaie = null;
+    }
+
+    if (formData.delaisPaie === "autre") {
+      const numericValue = formData.customDelaisDays.trim();
+
+      if (!numericValue) {
+        updatedErrors.customDelaisDays = "Veuillez saisir un nombre de jours.";
+      } else if (!/^[0-9]+$/.test(numericValue)) {
+        updatedErrors.customDelaisDays = "Le nombre de jours doit contenir uniquement des chiffres.";
+      } else {
+        updatedErrors.customDelaisDays = null;
+        const suffixValue = formData.customDelaisSuffix || "";
+        computedDelaisPaie = `${numericValue} jours${
+          suffixValue ? ` ${suffixValue}` : ""
+        }`.trim();
+      }
+    } else {
+      if (updatedErrors.customDelaisDays) {
+        updatedErrors.customDelaisDays = null;
+      }
+      if (updatedErrors.customDelaisSuffix) {
+        updatedErrors.customDelaisSuffix = null;
+      }
     }
 
     const hasBlockingErrors = Object.values(updatedErrors).some((message) => Boolean(message));
@@ -203,7 +280,7 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
         phoneNumber: formData.phoneNumber,
         siret: formData.siret,
         numTVA: formData.numTVA,
-        delaisPaie: formData.delaisPaie,
+        delaisPaie: computedDelaisPaie,
         comments: formData.comments,
         lastCall: Date.now(),
         status: formData.status,
@@ -416,8 +493,51 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
                     <option value="30 jours">30 jours</option>
                     <option value="45 jours">45 jours</option>
                     <option value="60 jours">60 jours</option>
+                    <option value="autre">Autre</option>
                   </select>
                 </div>
+                {formData.delaisPaie === "autre" && (
+                  <div className="flex flex-col gap-[10px] mt-[10px]">
+                    <div className="flex flex-col gap-[5px]">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Jours
+                      </label>
+                      {errors.customDelaisDays && (
+                        <p className="text-red-500 text-sm">{errors.customDelaisDays}</p>
+                      )}
+                      <div className="border-[1px] border-[#3F3F3F] border-opacity-15 rounded-lg p-[5px] space-x-[5px] items-center flex">
+                        <input
+                          className="bg-transparent focus:border-transparent focus:ring-0 border-transparent focus:outline-none font-inter text-[#3F3F3F] placeholder-opacity-50 w-screen"
+                          placeholder="30"
+                          name="customDelaisDays"
+                          value={formData.customDelaisDays}
+                          onChange={handleChange}
+                          inputMode="numeric"
+                          autoComplete="off"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-[5px]">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Complément
+                      </label>
+                      <div className="border-[1px] border-[#3F3F3F] border-opacity-15 rounded-lg p-[5px] items-center flex">
+                        <select
+                          className="bg-transparent focus:border-transparent focus:ring-0 border-transparent focus:outline-none font-inter text-[#3F3F3F] w-full"
+                          name="customDelaisSuffix"
+                          value={formData.customDelaisSuffix}
+                          onChange={handleChange}
+                        >
+                          {CUSTOM_DELAY_SUFFIXES.map((option) => (
+                            <option key={option.value || "default"} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col gap-[5px]">
                 <label

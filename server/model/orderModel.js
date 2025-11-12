@@ -41,6 +41,10 @@ const OrderSchema = new Schema({
     type: [OrderItemSchema],
     required: true,
   },
+  supportList: {
+    type: [OrderItemSchema],
+    default: undefined,
+  },
   firstAddress: {
     type: String,
     required: true,
