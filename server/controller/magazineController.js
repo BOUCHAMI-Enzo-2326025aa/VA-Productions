@@ -2,6 +2,7 @@ import Magazine from "../model/magazineModel.js";
 import User from "../model/userModel.js";
 import bcrypt from "bcrypt";
 import jsonwebtoken from "jsonwebtoken";
+import { v2 as cloudinary } from "cloudinary";
 
 // Récupérer tous les magazines
 export const getAllMagazines = async (req, res) => {
@@ -34,7 +35,22 @@ export const getMagazineById = async (req, res) => {
 // Créer un nouveau magazine
 export const createMagazine = async (req, res) => {
   try {
-    const { nom, image } = req.body;
+    const { nom } = req.body;
+    
+    // L'image peut venir soit d'un upload (req.file) soit d'une URL (req.body.image)
+    let imageUrl;
+    let cloudinaryPublicId = null;
+    
+    if (req.file) {
+      // Si un fichier a été uploadé sur Cloudinary
+      imageUrl = req.file.path; // Cloudinary renvoie l'URL complète dans req.file.path
+      cloudinaryPublicId = req.file.filename; // L'ID public Cloudinary pour supprimer plus tard
+    } else if (req.body.image) {
+      // Si une URL externe a été fournie
+      imageUrl = req.body.image;
+    } else {
+      return res.status(400).json({ erreur: "Une image est requise" });
+    }
     
     // Vérifier si un magazine avec ce nom existe déjà
     const existingMagazine = await Magazine.findOne({ 
@@ -42,17 +58,25 @@ export const createMagazine = async (req, res) => {
     });
     
     if (existingMagazine) {
+      // Supprimer l'image Cloudinary si le nom existe déjà
+      if (cloudinaryPublicId) {
+        await cloudinary.uploader.destroy(cloudinaryPublicId);
+      }
       return res.status(400).json({ erreur: "Un magazine avec ce nom existe déjà" });
     }
     
     const magazine = await Magazine.create({
       nom,
-      image,
+      image: imageUrl,
     });
     
     res.status(201).json({ magazine });
   } catch (error) {
     console.error("Erreur lors de la création du magazine:", error);
+    // Supprimer l'image Cloudinary en cas d'erreur
+    if (req.file && req.file.filename) {
+      await cloudinary.uploader.destroy(req.file.filename);
+    }
     res.status(500).json({ erreur: error.message });
   }
 };
@@ -61,23 +85,66 @@ export const createMagazine = async (req, res) => {
 export const updateMagazine = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nom, image } = req.body;
+    const { nom } = req.body;
+    
+    // Récupérer le magazine existant
+    const existingMag = await Magazine.findById(id);
+    if (!existingMag) {
+      // Supprimer l'image Cloudinary si le magazine n'existe pas
+      if (req.file && req.file.filename) {
+        await cloudinary.uploader.destroy(req.file.filename);
+      }
+      return res.status(404).json({ erreur: "Magazine non trouvé" });
+    }
     
     // Vérifier si un autre magazine avec ce nom existe déjà
     if (nom) {
-      const existingMagazine = await Magazine.findOne({ 
+      const duplicateMagazine = await Magazine.findOne({ 
         nom: { $regex: new RegExp(`^${nom}$`, 'i') },
         _id: { $ne: id }
       });
       
-      if (existingMagazine) {
+      if (duplicateMagazine) {
+        // Supprimer l'image Cloudinary si le nom existe déjà
+        if (req.file && req.file.filename) {
+          await cloudinary.uploader.destroy(req.file.filename);
+        }
         return res.status(400).json({ erreur: "Un magazine avec ce nom existe déjà" });
       }
     }
     
     const updatedData = {};
     if (nom) updatedData.nom = nom;
-    if (image) updatedData.image = image;
+    
+    // Extraire l'ID public de l'ancienne image Cloudinary (si c'en est une)
+    let oldCloudinaryPublicId = null;
+    if (existingMag.image && existingMag.image.includes('cloudinary.com')) {
+      // Extraire le public_id depuis l'URL Cloudinary
+      const urlParts = existingMag.image.split('/');
+      const fileNameWithExt = urlParts[urlParts.length - 1];
+      const folderPath = urlParts.slice(urlParts.indexOf('va-productions'), -1).join('/');
+      oldCloudinaryPublicId = `${folderPath}/${fileNameWithExt.split('.')[0]}`;
+    }
+    
+    // Gérer l'image
+    if (req.file) {
+      // Un nouveau fichier a été uploadé sur Cloudinary
+      updatedData.image = req.file.path; // URL complète Cloudinary
+      
+      // Supprimer l'ancienne image Cloudinary
+      if (oldCloudinaryPublicId) {
+        await cloudinary.uploader.destroy(oldCloudinaryPublicId);
+      }
+    } else if (req.body.image) {
+      // Une nouvelle URL externe a été fournie
+      updatedData.image = req.body.image;
+      
+      // Supprimer l'ancienne image Cloudinary
+      if (oldCloudinaryPublicId) {
+        await cloudinary.uploader.destroy(oldCloudinaryPublicId);
+      }
+    }
+    
     updatedData.updatedAt = Date.now();
     
     const magazine = await Magazine.findByIdAndUpdate(
@@ -86,13 +153,13 @@ export const updateMagazine = async (req, res) => {
       { new: true, runValidators: true }
     );
     
-    if (!magazine) {
-      return res.status(404).json({ erreur: "Magazine non trouvé" });
-    }
-    
     res.status(200).json({ magazine });
   } catch (error) {
     console.error("Erreur lors de la mise à jour du magazine:", error);
+    // Supprimer l'image Cloudinary en cas d'erreur
+    if (req.file && req.file.filename) {
+      await cloudinary.uploader.destroy(req.file.filename);
+    }
     res.status(500).json({ erreur: error.message });
   }
 };
@@ -140,6 +207,17 @@ export const deleteMagazine = async (req, res) => {
     
     if (!magazine) {
       return res.status(404).json({ erreur: "Magazine non trouvé" });
+    }
+    
+    // Supprimer l'image Cloudinary si c'en est une
+    if (magazine.image && magazine.image.includes('cloudinary.com')) {
+      // Extraire le public_id depuis l'URL Cloudinary
+      const urlParts = magazine.image.split('/');
+      const fileNameWithExt = urlParts[urlParts.length - 1];
+      const folderPath = urlParts.slice(urlParts.indexOf('va-productions'), -1).join('/');
+      const publicId = `${folderPath}/${fileNameWithExt.split('.')[0]}`;
+      
+      await cloudinary.uploader.destroy(publicId);
     }
     
     res.status(200).json({ message: "Magazine supprimé avec succès" });

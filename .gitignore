@@ -2,3 +2,7 @@ node_modules/
 # Fichiers PDF générés par le serveur
 /server/invoices/
 /server/orders/
+# Images uploadées des magazines
+/server/uploads/magazines/*
+# Garder le dossier mais ignorer son contenu
+!/server/uploads/magazines/.gitkeep

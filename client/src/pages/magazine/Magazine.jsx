@@ -25,6 +25,7 @@ const Magazine = () => {
   const [formData, setFormData] = useState({
     nom: "",
     image: "",
+    imageFile: null, // Fichier uploadé depuis le PC
   });
 
   // Récupérer tous les magazines
@@ -49,25 +50,25 @@ const Magazine = () => {
     }
   }, [isAdmin]);
 
-  // Afficher le snackbar
+  // Afficher un message temporaire
   const showSnackbar = (type, message) => {
     setSnackbar({ open: true, type, message });
     setTimeout(() => {
       setSnackbar({ open: false, type: "", message: "" });
-    }, 4000);
+    }, 3000);
   };
 
   // Ouvrir le modal pour créer
   const handleOpenCreateModal = () => {
     setEditingMagazine(null);
-    setFormData({ nom: "", image: "" });
+    setFormData({ nom: "", image: "", imageFile: null });
     setIsModalOpen(true);
   };
 
   // Ouvrir le modal pour éditer
   const handleOpenEditModal = (magazine) => {
     setEditingMagazine(magazine);
-    setFormData({ nom: magazine.nom, image: magazine.image });
+    setFormData({ nom: magazine.nom, image: magazine.image, imageFile: null });
     setIsModalOpen(true);
   };
 
@@ -75,7 +76,27 @@ const Magazine = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingMagazine(null);
-    setFormData({ nom: "", image: "" });
+    setFormData({ nom: "", image: "", imageFile: null });
+  };
+
+  // Gérer la sélection d'un fichier image
+  const handleImageFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Vérifier le type de fichier
+      if (!file.type.startsWith("image/")) {
+        showSnackbar("error", "Veuillez sélectionner un fichier image");
+        return;
+      }
+      
+      // Vérifier la taille (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showSnackbar("error", "L'image ne doit pas dépasser 5MB");
+        return;
+      }
+      
+      setFormData({ ...formData, imageFile: file, image: "" });
+    }
   };
 
   // Créer ou modifier un magazine
@@ -87,24 +108,45 @@ const Magazine = () => {
       return;
     }
 
-    if (!formData.image.trim()) {
+    if (!formData.image.trim() && !formData.imageFile) {
       showSnackbar("error", "L'image du magazine est obligatoire");
       return;
     }
 
     try {
+      const formDataToSend = new FormData();
+      formDataToSend.append("nom", formData.nom);
+      
+      if (formData.imageFile) {
+        // Upload d'un fichier
+        formDataToSend.append("image", formData.imageFile);
+      } else if (formData.image) {
+        // URL fournie
+        formDataToSend.append("image", formData.image);
+      }
+
       if (editingMagazine) {
         // Modification
         await axios.put(
           `${import.meta.env.VITE_API_HOST}/api/magazine/${editingMagazine._id}`,
-          formData
+          formDataToSend,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
         );
         showSnackbar("success", "Magazine modifié avec succès");
       } else {
         // Création
         await axios.post(
           `${import.meta.env.VITE_API_HOST}/api/magazine/create`,
-          formData
+          formDataToSend,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
         );
         showSnackbar("success", "Magazine créé avec succès");
       }
@@ -223,7 +265,7 @@ const Magazine = () => {
             >
               <div className="relative h-48 bg-gray-200">
                 <img
-                  src={magazine.image}
+                  src={magazine.image || "https://via.placeholder.com/300x400?text=Image+Non+Disponible"}
                   alt={magazine.nom}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -290,23 +332,60 @@ const Magazine = () => {
 
               <div>
                 <label className="block font-semibold mb-2">
-                  URL de l'image *
+                  Image de couverture *
                 </label>
+                
+                {/* Bouton pour uploader depuis le PC */}
+                <div className="mb-3">
+                  <label className="w-full cursor-pointer">
+                    <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                      <Upload size={20} className="text-gray-600" />
+                      <span className="text-sm font-medium text-gray-700">
+                        {formData.imageFile
+                          ? formData.imageFile.name
+                          : "Choisir une image depuis le PC"}
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {/* OU séparateur */}
+                <div className="flex items-center gap-3 my-3">
+                  <div className="flex-1 h-px bg-gray-300"></div>
+                  <span className="text-sm text-gray-500 font-medium">OU</span>
+                  <div className="flex-1 h-px bg-gray-300"></div>
+                </div>
+
+                {/* Champ URL */}
                 <input
                   type="text"
                   value={formData.image}
                   onChange={(e) =>
-                    setFormData({ ...formData, image: e.target.value })
+                    setFormData({ ...formData, image: e.target.value, imageFile: null })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="URL de l'image de couverture"
-                  required
+                  disabled={!!formData.imageFile}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formData.imageFile ? "bg-gray-100 cursor-not-allowed" : ""
+                  }`}
+                  placeholder="Ou entrez l'URL de l'image"
                 />
-                {formData.image && (
+
+                {/* Aperçu de l'image */}
+                {(formData.image || formData.imageFile) && (
                   <div className="mt-3">
                     <p className="text-sm opacity-70 mb-2">Aperçu :</p>
                     <img
-                      src={formData.image}
+                      src={
+                        formData.imageFile
+                          ? URL.createObjectURL(formData.imageFile)
+                          : formData.image
+                      }
                       alt="Aperçu"
                       className="w-full h-48 object-cover rounded border"
                       onError={(e) => {

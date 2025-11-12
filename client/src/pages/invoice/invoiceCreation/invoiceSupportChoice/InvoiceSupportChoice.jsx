@@ -34,7 +34,7 @@ const InvoiceSupportChoice = ({
     );
     const magazinesFromDB = response.data.magazines.map((mag) => ({
      name: mag.nom,
-     image: mag.image,
+     image: mag.image, // Cloudinary renvoie déjà l'URL complète
     }));
     
     setSupportList(magazinesFromDB);

@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import "dotenv/config";
 import { router as userRouter } from "./routes/userRoute.js";
@@ -11,6 +12,9 @@ import { router as magazineRouter } from "./routes/magazineRoute.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import googleCalendarRouter from "./routes/googleCalendarRoute.js";
 //import nodemailer from "nodemailer";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -32,8 +36,10 @@ app.use(cors({
   credentials: true, 
 }));
 
-
 app.use(express.json());
+
+// Servir les images des magazines uploadées
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/user", userRouter);
 app.use("/api/contact", contactRouter);
