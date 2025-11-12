@@ -37,7 +37,7 @@ const Stats = () => {
     { label: "Date de Facture", key: "date_facture" },
     { label: "Statut du Paiement", key: "statut_paiement" },
     { label: "Nom du Support", key: "support_nom" },
-    { label: "Description du Support", key: "support_description" },
+  { label: "Encart", key: "support_encart" },
     { label: "Prix du Support (€)", key: "support_prix" },
     { label: "Montant Total de la Facture (€)", key: "montant_total_facture" },
   ];
@@ -50,7 +50,7 @@ const Stats = () => {
       date_facture: new Date(invoice.date).toLocaleDateString("fr-FR"),
       statut_paiement: invoice.status === 'paid' ? 'Payé' : 'Non Payé',
       support_nom: support.supportName,
-      support_description: support.name,
+  support_encart: support.name,
       support_prix: support.price,
       montant_total_facture: invoice.totalPrice
     }))
