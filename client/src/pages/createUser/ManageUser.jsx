@@ -86,17 +86,12 @@ const ManageUser = () => {
       <div>
         <p>Rechercher</p>
         <div>
-          {/* Champs cachés pour pièger l'auto-complétion des gestionnaires de mots de passe */}
-          <div style={{ position: "absolute", left: -9999, width: 1, height: 1, overflow: "hidden" }} aria-hidden>
-            <input name="username" autoComplete="username" />
-            <input name="current-password" type="password" autoComplete="current-password" />
-          </div>
-
           <input
             type="text"
             name={searchNameRef.current}
             autoComplete="off"
-            spellCheck={false}
+            readOnly
+            onFocus={(e) => e.target.removeAttribute('readonly')}
             className="w-full py-2 rounded px-2"
             value={searchTerm}
             onChange={handleSearch}
