@@ -87,24 +87,14 @@ export function StatChart({ invoices, colorList }) {
     }
   }, [invoices]);
 
-  const chartConfig = {
-    wmag: {
-      label: "Wmag",
-      color: "#ef4444",
-    },
-    ambitionsud: {
-      label: "Ambition sud",
-      color: "#2563eb",
-    },
-    roseenprovence: {
-      label: "Rose en provence",
-      color: "#22c55e",
-    },
-    rougesetblancs: {
-      label: "Rouges et blancs",
-      color: "#7c3aed",
-    },
-  };
+  // Générer dynamiquement la configuration des couleurs pour chaque magazine
+  const chartConfig = supportList.reduce((config, support, index) => {
+    config[support] = {
+      label: support.charAt(0).toUpperCase() + support.slice(1), // Capitaliser le nom
+      color: colorList[index % colorList.length],
+    };
+    return config;
+  }, {});
 
   // Fonction pour basculer la visibilité d'un support
   const toggleSupportVisibility = (support) => {
