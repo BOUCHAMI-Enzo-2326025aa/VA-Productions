@@ -130,7 +130,7 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
   });
 
   doc.font("Helvetica-Bold");
-  generateTableRow(doc, currentPosition, "Encart", "Support", "Qté", "Montant");
+  generateTableRow(doc, currentPosition, "Encart", "Support", "N° support", "Montant");
   currentPosition += 15;
   generateHr(doc, currentPosition);
   currentPosition += 10;
@@ -219,7 +219,9 @@ function formatPrice(value) {
     style: "decimal",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(numericValue);
+  })
+    .format(numericValue)
+    .replace(/\s/g, "");
 }
 
 function generateTableRow(doc, y, c1, c2, c3, c4) {

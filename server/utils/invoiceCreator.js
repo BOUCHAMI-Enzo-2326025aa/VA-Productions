@@ -119,13 +119,13 @@ function generateInvoiceTable(doc, facture, tva) {
     const invoiceTableTop = 300;
 
     doc.font("Helvetica-Bold");
-    // Colonne: Encart / Support / Qté / Prix Unitaire / Montant
+    // Colonnes: Encart / Support / N° support / Prix Unitaire / Montant
     generateTableRow(
       doc,
       invoiceTableTop,
-      "Description",
+      "Encart",
       "Support",
-      "Qté",
+      "N° support",
       "PU",
       "Montant"
     );
@@ -135,7 +135,7 @@ function generateInvoiceTable(doc, facture, tva) {
     for (i = 0; i < facture?.supportList.length; i++) {
       const item = facture?.supportList[i] || {};
       const position = invoiceTableTop + (i + 1) * 30;
-    // la quantité peut provenir de supportNumber (depuis les commandes) ou de quantity si fournie
+    // le numéro peut provenir de supportNumber (depuis les commandes) ou de quantity si fournie
       const qty = Number(item.supportNumber ?? item.quantity ?? 1);
       const unitPrice = Number(item.price ?? 0);
       const lineTotal = unitPrice * qty;
