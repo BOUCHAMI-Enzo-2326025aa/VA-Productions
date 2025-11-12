@@ -30,7 +30,7 @@ const SupportStats = ({ name, image, invoices }) => {
     { label: "Numéro de Facture", key: "numero_facture" },
     { label: "Client", key: "client" },
     { label: "Date de Facture", key: "date_facture" },
-    { label: "Description du Support", key: "support_description" },
+  { label: "Encart", key: "support_encart" },
     { label: "Prix du Support (€)", key: "support_prix" },
   ];
 
@@ -39,7 +39,7 @@ const SupportStats = ({ name, image, invoices }) => {
       numero_facture: invoice.number,
       client: invoice.entreprise,
       date_facture: new Date(invoice.date).toLocaleDateString("fr-FR"),
-      support_description: support.name,
+  support_encart: support.name,
       support_prix: support.price,
     }))
   );
