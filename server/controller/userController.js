@@ -188,3 +188,51 @@ export const updateUserRole = async (req, res) => {
     res.status(500).json({ erreur: error.message });
   }
 };
+
+export const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { adminPassword } = req.body;
+
+    // Vérifier que le mot de passe admin est fourni
+    if (!adminPassword) {
+      return res.status(400).json({ erreur: "Mot de passe administrateur requis." });
+    }
+
+    // Récupérer l'utilisateur admin depuis le token
+    const token = req.headers["authorization"] || req.headers["Authorization"];
+    if (!token) {
+      return res.status(401).json({ erreur: "Token d'authentification requis." });
+    }
+
+    const decodedToken = jsonwebtoken.verify(token, process.env.SECRET);
+    const adminUser = await User.findById(decodedToken.user._id);
+
+    if (!adminUser) {
+      return res.status(401).json({ erreur: "Utilisateur administrateur non trouvé." });
+    }
+
+    // Vérifier le mot de passe de l'admin
+    const passwordMatch = await bcrypt.compare(adminPassword, adminUser.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ erreur: "Mot de passe administrateur incorrect." });
+    }
+
+    // Empêcher la suppression de son propre compte
+    if (userId === adminUser._id.toString()) {
+      return res.status(400).json({ erreur: "Vous ne pouvez pas supprimer votre propre compte." });
+    }
+
+    // Supprimer l'utilisateur
+    const deletedUser = await User.findByIdAndDelete(userId);
+
+    if (!deletedUser) {
+      return res.status(404).json({ erreur: "Utilisateur non trouvé." });
+    }
+
+    res.status(200).json({ message: "Utilisateur supprimé avec succès." });
+  } catch (error) {
+    console.error("Erreur lors de la suppression de l'utilisateur:", error);
+    res.status(500).json({ erreur: error.message });
+  }
+};
