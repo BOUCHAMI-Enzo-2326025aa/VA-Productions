@@ -98,7 +98,7 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
   let currentPosition = invoiceTableTop;
 
   doc.font("Helvetica-Bold");
-  generateTableRow(doc, currentPosition, "Description", "Support", "Qté", "Montant");
+  generateTableRow(doc, currentPosition, "Encart", "Support", "Qté", "Montant");
   currentPosition += 15;
   generateHr(doc, currentPosition);
   currentPosition += 10;
