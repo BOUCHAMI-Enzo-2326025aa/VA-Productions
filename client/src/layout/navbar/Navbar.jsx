@@ -73,6 +73,11 @@ const Navbar = ({ isOpen, closeNavbar }) => {
                 icon={manageUserSvg}
               />
               <PageLink
+                link={"/admin/magazine"}
+                text={"Magazines"}
+                icon={contactSvg}
+              />
+              <PageLink
                 link={"/admin/stats"}
                 text={"Statistiques"}
                 icon={statsSvg}

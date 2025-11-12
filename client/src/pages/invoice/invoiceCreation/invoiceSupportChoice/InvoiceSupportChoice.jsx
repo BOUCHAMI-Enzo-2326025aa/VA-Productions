@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import InvoiceButton from "../../component/InvoiceButton";
 import CreationSectionTitle from "../../CreationSectionTitle";
 import Support from "./Support";
 import "./invoiceSupport.css";
-import ambition_sud from "../../../../assets/supports/ambition-sud.png";
-import roses_en_provence from "../../../../assets/supports/roses-en-provence.png";
-import rouges_et_blanc from "../../../../assets/supports/rouges-et-blancs.png";
-import w_mag from "../../../../assets/supports/w-mag.png";
 
 const InvoiceSupportChoice = ({
  nextPageFunction,
@@ -15,12 +12,8 @@ const InvoiceSupportChoice = ({
  createdSupports,
  deleteSupport,
 }) => {
- const [supportList, setSupportList] = useState([
-  { name: "WMag", image: w_mag },
-  { name: "Rouges et Blancs", image: rouges_et_blanc },
-  { name: "AmbitionSud", image: ambition_sud },
-  { name: "Roses en Provence", image: roses_en_provence },
- ]);
+ const [supportList, setSupportList] = useState([]);
+ const [isLoadingMagazines, setIsLoadingMagazines] = useState(true);
 
  const [libelle, setLibelle] = useState("");
  const [supportNumber, setSupportNumber] = useState(0);
@@ -31,6 +24,30 @@ const InvoiceSupportChoice = ({
 
  const [errorNextMessage, setErrorNextMessage] = useState("");  //message d'erreur si aucun support n'a été ajouté
  const [errorSupportMessage, setErrorSupportMessage] = useState(""); //message d'erreur si aucun support n'a été selectionné
+
+ // Récupérer les magazines depuis la base de données
+ useEffect(() => {
+  const fetchMagazines = async () => {
+   try {
+    const response = await axios.get(
+     import.meta.env.VITE_API_HOST + "/api/magazine/"
+    );
+    const magazinesFromDB = response.data.magazines.map((mag) => ({
+     name: mag.nom,
+     image: mag.image,
+    }));
+    
+    setSupportList(magazinesFromDB);
+   } catch (error) {
+    console.error("Erreur lors de la récupération des magazines:", error);
+    setSupportList([]);
+   } finally {
+    setIsLoadingMagazines(false);
+   }
+  };
+
+  fetchMagazines();
+ }, []);
 
  const handleSupportSelection = (support) => {
   setSelectedSupport(support);
