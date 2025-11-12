@@ -33,9 +33,9 @@ const contactSchema = mongoose.Schema({
   },
   delaisPaie: {
     type: String,
-    enum: ["comptant", "30 jours", "45 jours", "60 jours"],
     required: false,
     default: "comptant",
+    trim: true,
   },
   comments: {
     type: String,
