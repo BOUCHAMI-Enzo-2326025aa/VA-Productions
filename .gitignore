@@ -1,3 +1,4 @@
 node_modules/
 # Fichiers PDF générés par le serveur
 /server/invoices/
+/server/orders/

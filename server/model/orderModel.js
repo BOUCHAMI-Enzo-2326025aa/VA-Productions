@@ -64,11 +64,15 @@ const OrderSchema = new Schema({
     type: String,
     required: false,
   },
-  status: {
-    type: String,
-    enum: ["Pending", "Completed", "Cancelled"],
-    default: "Pending",
+  signatureData: {
+    type: String, // Stocke la dataURI complète base64 de la signature
+    required: false,
   },
+  status: {
+  type: String,
+  enum: ["pending", "validated", "cancel"], 
+  default: "pending",
+},
   tva: {
     type: Number,
     required: true,

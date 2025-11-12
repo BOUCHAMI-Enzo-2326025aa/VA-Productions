@@ -8,13 +8,13 @@ import InvoiceConfirm from "./invoiceConfirm/InvoiceConfirm";
 import axios from "axios";
 import "./invoice.css";
 import LoadingScreen from "./LoadingScreen";
+import InvoiceCostsStep from "./invoiceCostsStep/InvoiceCostsStep";
 
 const InvoiceCreation = () => {
   const [step, setStep] = useState(1);
   const [contactList, setContactList] = useState([]);
-  const [savedSupportList, setSavedSupportList] = useState([]);
   const [TVA_PERCENTAGE, setTVA_PERCENTAGE] = useState(0.2);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [invoice, setInvoice] = useState({
     client: {
       clientId: "",
@@ -30,17 +30,17 @@ const InvoiceCreation = () => {
       totalPrice: 0,
       support: [],
       signature: null,
+      costs: [], 
     },
   });
+
   const fetchContact = async () => {
-    await axios
-      .get(import.meta.env.VITE_API_HOST + "/api/contact/")
-      .then((response) => {
-        setContactList(response.data.contactList);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    try {
+      const response = await axios.get(import.meta.env.VITE_API_HOST + "/api/contact/");
+      setContactList(response.data.contactList);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   useEffect(() => {
@@ -48,7 +48,7 @@ const InvoiceCreation = () => {
   }, []);
 
   const deleteSupport = (index) => {
-    const newSupportList = savedSupportList.filter((support, i) => i !== index);
+    const newSupportList = invoice.client.support.filter((_, i) => i !== index);
     handleClientChange("support", newSupportList);
   };
 
@@ -62,73 +62,73 @@ const InvoiceCreation = () => {
     }));
   };
 
-  const createNewSupport = (
-    libelle,
-    supportNumber,
-    price,
-    supportName,
-    image
-  ) => {
+  const createNewSupport = (libelle, supportNumber, price, supportName, image) => {
     const newSupport = {
       name: libelle,
-      price: price,
+      price: parseFloat(price) || 0, 
       supportName: supportName,
       supportNumber: supportNumber,
       image: image,
     };
+    handleClientChange("support", [...invoice.client.support, newSupport]);
+  };
+  
+  const addCost = (description, amount) => {
+    const newCost = { description, amount: parseFloat(amount) || 0 };
+    handleClientChange("costs", [...invoice.client.costs, newCost]);
+  };
 
-    setInvoice((prevState) => ({
-      ...prevState,
-      client: {
-        ...prevState.client,
-        support: [...prevState.client.support, newSupport],
-      },
-    }));
+  const deleteCost = (index) => {
+    const newCosts = invoice.client.costs.filter((_, i) => i !== index);
+    handleClientChange("costs", newCosts);
   };
 
   const createOrder = async () => {
+    increaseStep(); 
     setLoading(true);
-    increaseStep();
-    for (let i = 0; i < savedSupportList.length; i++) {
-      invoice.client.totalPrice += parseInt(savedSupportList[i].price);
-    }
+
+    const totalPrice = invoice.client.support.reduce((sum, item) => sum + (item.price || 0), 0);
+    const updatedClientData = { ...invoice.client, totalPrice };
 
     const tva = { percentage: TVA_PERCENTAGE };
 
     try {
       const response = await axios.post(
         import.meta.env.VITE_API_HOST + "/api/order/create",
-        { invoice, tva },
-        {
-          responseType: "blob", // Indiquer que la réponse est un fichier (PDF)
-        }
+        { invoice: { client: updatedClientData }, tva },
+        { responseType: "blob" }
       );
 
       if (response.status === 200) {
         const contentDisposition = response.headers["content-disposition"];
-        console.log("Content-Disposition:", response.headers); // Log pour vérifier
-        let fileName = "facture.pdf";
-
+        let fileName = "bon-de-commande.pdf";
         if (contentDisposition) {
           const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
           if (fileNameMatch && fileNameMatch[1]) {
             fileName = fileNameMatch[1];
           }
         }
-
-        console.log("Nom du fichier récupéré :", fileName);
-
         const blob = response.data;
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
         link.download = fileName;
+        document.body.appendChild(link);
         link.click();
-        setLoading(false);
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(link.href);
+
+        setLoading(false); 
       } else {
-        console.error("Erreur lors de la création de la facture");
+        console.error("Erreur serveur lors de la création de la commande.");
+        alert("Une erreur est survenue côté serveur.");
+        setLoading(false);
+        decreaseStep();
       }
     } catch (error) {
-      console.error("Erreur :", error);
+      console.error("Erreur critique lors de l'appel API :", error);
+      alert("Une erreur de connexion est survenue. Vérifiez la console.");
+      setLoading(false);
+      decreaseStep(); 
     }
   };
 
@@ -137,14 +137,16 @@ const InvoiceCreation = () => {
 
   return (
     <div className="flex gap-2 mt-8">
-      {step == 5 && <LoadingScreen loading={loading} />}
-      {step < 4 && (
+      {step === 6 && <LoadingScreen loading={loading} />} 
+      
+      {step < 5 && (
         <div className="flex flex-col w-[50%] max-w-[450px] min-w-[450px] gap-2 overflow-hidden">
           <InvoiceCreationStepFollow step={step} />
-          {step > 1 && <InvoiceSummary supportList={savedSupportList} />}
+          {step > 1 && <InvoiceSummary supportList={invoice.client.support} costList={invoice.client.costs} />}
         </div>
       )}
-      {step == 1 && (
+      
+      {step === 1 && (
         <ClientInformationsStep
           contactList={contactList}
           invoice={invoice}
@@ -153,7 +155,7 @@ const InvoiceCreation = () => {
           changeTVA={setTVA_PERCENTAGE}
         />
       )}
-      {step == 2 && (
+      {step === 2 && (
         <InvoiceSupportChoice
           nextPageFunction={increaseStep}
           previousPageFunction={decreaseStep}
@@ -162,7 +164,16 @@ const InvoiceCreation = () => {
           createdSupports={invoice.client.support}
         />
       )}
-      {step == 3 && (
+      {step === 3 && (
+        <InvoiceCostsStep
+          nextPageFunction={increaseStep}
+          previousPageFunction={decreaseStep}
+          addCost={addCost}
+          deleteCost={deleteCost}
+          costs={invoice.client.costs}
+        />
+      )}
+      {step === 4 && (
         <ClientFacturationInfo
           nextPageFunction={increaseStep}
           previousPageFunction={decreaseStep}
@@ -170,10 +181,11 @@ const InvoiceCreation = () => {
           invoice={invoice}
         />
       )}
-      {step >= 4 && (
+      {step === 5 && (
         <InvoiceConfirm
           invoice={invoice}
           supportList={invoice.client.support}
+          costList={invoice.client.costs}
           createOrder={createOrder}
           handleChange={handleClientChange}
           returnFunction={decreaseStep}

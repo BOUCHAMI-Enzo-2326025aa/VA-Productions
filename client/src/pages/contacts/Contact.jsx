@@ -7,6 +7,7 @@ import ModalContact from "./components/ModalContact";
 import "./contact.css";
 import Button from "../../components/ui/Button";
 import DetailContactV2 from "./components/DetailContactV2";
+import SnackBar from "./components/SnackBar";
 
 const Contact = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,6 +18,11 @@ const Contact = () => {
   const [selectedContactId, setSelectedContactId] = useState("");
   const [selectedContactCompany, setSelectedContactCompany] = useState("");
   const [isFetching, setIsFetching] = useState(true);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    type: "",
+    message: "",
+  });
 
   let hasFetchedContact = false;
 
@@ -99,11 +105,19 @@ const Contact = () => {
     );
   };
 
-  const deleteContact = async (contactId) => {
+  const deleteContact = async (contactId, adminPassword = null) => {
     try {
-      await axios.delete(
-        import.meta.env.VITE_API_HOST + "/api/contact/" + contactId
-      );
+      const token = JSON.parse(localStorage.getItem("user"))?.token;
+      const url = import.meta.env.VITE_API_HOST + "/api/contact/" + contactId;
+      const config = {
+        headers: {},
+      };
+      if (token) config.headers.Authorization = token;
+      if (adminPassword) {
+        config.data = { adminPassword };
+      }
+
+      await axios.delete(url, config);
       setContactsList((prev) =>
         prev.filter((contact) => contact._id !== contactId)
       );
@@ -112,13 +126,37 @@ const Contact = () => {
       );
       setIsMenuOpen(false);
       setIsModalOpen(false);
+      setSnackbar({
+        open: true,
+        type: "success",
+        message: "Le contact a été supprimé avec succès !",
+      });
     } catch (error) {
       console.error("Erreur lors de la suppression du contact : ", error);
+      // On ne montre la snackbar que si la suppression a été appelée sans modal
+      // (par ex. depuis un autre endroit). Sinon on rethrow pour que la modal
+      // affiche l'erreur elle-même.
+      if (!adminPassword) {
+        setSnackbar({
+          open: true,
+          type: "error",
+          message:
+            "Impossible de supprimer le contact pour le moment. Veuillez réessayer.",
+        });
+      }
+      throw error; // Rethrow pour que la modal puisse afficher le message d'erreur
     }
   };
 
   return (
     <>
+      {snackbar.open && (
+        <SnackBar
+          type={snackbar.type}
+          message={snackbar.message}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        />
+      )}
       <div className="bg-[#E8E9EB] w-full ">
         {/*<DetailContact
           contactId={selectedContactId}

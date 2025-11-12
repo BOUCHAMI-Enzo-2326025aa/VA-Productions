@@ -11,6 +11,9 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
     surname: "",
     email: "",
     phoneNumber: "",
+    siret: "",
+    numTVA: "",
+    delaisPaie: "comptant",
     comments: "",
     status: "",
   });
@@ -19,6 +22,14 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
   const nameRegex = /^[A-Za-z'-]+$/;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phoneRegex = /^[0-9]{2}( ?:?[0-9]{2}){4}$/;
+  const siretRegex = /^[0-9]{14}$/;
+  const requiredFieldMessages = {
+    company: "Le nom de l'entreprise est requis.",
+    name: "Le nom du contact est requis.",
+    surname: "Le prénom du contact est requis.",
+    siret: "Le numéro de SIRET est requis.",
+    numTVA: "Le numéro de TVA est requis.",
+  };
   const [snackbar, setSnackbar] = useState({
     open: false,
     type: "",
@@ -33,6 +44,9 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
         surname: "",
         email: "",
         phoneNumber: "",
+        siret: "",
+        numTVA: "",
+        delaisPaie: "comptant",
         comments: "",
         status: "",
       });
@@ -49,8 +63,25 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
     setFormData((prevFormData) => ({ ...prevFormData, [name]: value }));
 
     switch (name) {
+      case "company":
+        if (!value.trim()) {
+          setErrors((prevErrors) => ({
+            ...prevErrors,
+            [name]: requiredFieldMessages.company,
+          }));
+        } else {
+          setErrors((prevErrors) => ({ ...prevErrors, [name]: null }));
+        }
+        break;
       case "name":
       case "surname":
+        if (!value.trim()) {
+          setErrors((prevErrors) => ({
+            ...prevErrors,
+            [name]: requiredFieldMessages[name],
+          }));
+          break;
+        }
         if (value && !nameRegex.test(value)) {
           setErrors((prevErrors) => ({
             ...prevErrors,
@@ -81,6 +112,41 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
           setErrors((prevErrors) => ({ ...prevErrors, [name]: null }));
         }
         break;
+      case "siret":
+        if (!value.trim()) {
+          setErrors((prevErrors) => ({
+            ...prevErrors,
+            [name]: requiredFieldMessages.siret,
+          }));
+        } else if (value && !siretRegex.test(value)) {
+          setErrors((prevErrors) => ({
+            ...prevErrors,
+            [name]: "Le numéro de SIRET doit contenir 14 chiffres.",
+          }));
+        } else {
+          setErrors((prevErrors) => ({ ...prevErrors, [name]: null }));
+        }
+        break;
+      case "numTVA":
+        if (!value.trim()) {
+          setErrors((prevErrors) => ({
+            ...prevErrors,
+            [name]: requiredFieldMessages.numTVA,
+          }));
+        } else {
+          setErrors((prevErrors) => ({ ...prevErrors, [name]: null }));
+        }
+        break;
+      case "delaisPaie":
+        if (!value) {
+          setErrors((prevErrors) => ({
+            ...prevErrors,
+            [name]: "Veuillez sélectionner un délai de paiement.",
+          }));
+        } else {
+          setErrors((prevErrors) => ({ ...prevErrors, [name]: null }));
+        }
+        break;
       case "status":
         if (!value) {
           setErrors((prevErrors) => ({
@@ -90,36 +156,61 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
         } else {
           setErrors((prevErrors) => ({ ...prevErrors, [name]: null }));
         }
+        break;
     }
   };
 
   const handleSubmit = async () => {
+    const updatedErrors = { ...errors };
+
+    Object.entries(requiredFieldMessages).forEach(([field, message]) => {
+      if (!formData[field] || formData[field].trim() === "") {
+        updatedErrors[field] = message;
+      } else if (updatedErrors[field] && updatedErrors[field] === message) {
+        updatedErrors[field] = null;
+      }
+    });
+
     if (!formData.status) {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        status: "Veuillez sélectionner une option (Prospect ou Client).",
-      }));
-      return;
+      updatedErrors.status = "Veuillez sélectionner une option (Prospect ou Client).";
+    } else if (updatedErrors.status && updatedErrors.status.startsWith("Veuillez sélectionner")) {
+      updatedErrors.status = null;
     }
-    if (Object.values(errors).some((error) => error)) {
-      alert("Veuillez corriger les erreurs avant de soumettre.");
+
+    if (!formData.delaisPaie) {
+      updatedErrors.delaisPaie = "Veuillez sélectionner un délai de paiement.";
+    } else if (updatedErrors.delaisPaie && updatedErrors.delaisPaie.startsWith("Veuillez sélectionner")) {
+      updatedErrors.delaisPaie = null;
+    }
+
+    const hasBlockingErrors = Object.values(updatedErrors).some((message) => Boolean(message));
+    setErrors(updatedErrors);
+
+    if (hasBlockingErrors) {
+      showSnackbar(
+        "error",
+        "Impossible de créer le contact : veuillez corriger les champs indiqués en rouge."
+      );
       return;
     }
     try {
       setIsCreating(true);
-      const response = await axios.post(
-        import.meta.env.VITE_API_HOST + "/api/contact/create",
-        {
-          company: formData.company,
-          name: formData.name,
-          surname: formData.surname,
-          email: formData.email,
-          phoneNumber: formData.phoneNumber,
-          comments: formData.comments,
-          lastCall: Date.now(),
-          status: formData.status,
-        }
-      );
+      await axios.post(import.meta.env.VITE_API_HOST + "/api/contact/create", {
+        company: formData.company,
+        name: formData.name,
+        surname: formData.surname,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        siret: formData.siret,
+        numTVA: formData.numTVA,
+        delaisPaie: formData.delaisPaie,
+        comments: formData.comments,
+        lastCall: Date.now(),
+        status: formData.status,
+      });
+      showSnackbar("success", "Le nouveau contact a été créé avec succès !");
+      fetchContact();
+      handleCloseModal();
     } catch (error) {
       console.error("Erreur lors de la création du contact : ", error);
       showSnackbar(
@@ -127,9 +218,6 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
         "Une erreur est survenue lors de la création du contact."
       );
     } finally {
-      showSnackbar("success", "Le nouveau contact a été créé avec succès !");
-      fetchContact();
-      handleCloseModal();
       setIsCreating(false);
     }
   };
@@ -171,6 +259,9 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
                 >
                   Entreprise
                 </label>
+                {errors.company && (
+                  <p className="text-red-500 text-sm">{errors.company}</p>
+                )}
                 <div className="border-[1px] border-[#3F3F3F] border-opacity-15 rounded-lg p-[5px] space-x-[5px] items-center flex">
                   <input
                     className="bg-transparent focus:border-transparent focus:ring-0 border-transparent focus:outline-none font-inter text-[#3F3F3F] placeholder-opacity-50 w-screen "
@@ -262,6 +353,70 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
                     value={formData.phoneNumber}
                     onChange={handleChange}
                   />
+                </div>
+              </div>
+              <div className="flex flex-col gap-[5px]">
+                <label
+                  htmlFor="siret"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Numéro de SIRET
+                </label>
+                {errors.siret && (
+                  <p className="text-red-500 text-sm">{errors.siret}</p>
+                )}
+                <div className="border-[1px] border-[#3F3F3F] border-opacity-15 rounded-lg p-[5px] space-x-[5px] items-center flex">
+                  <input
+                    className="bg-transparent focus:border-transparent focus:ring-0 border-transparent focus:outline-none font-inter text-[#3F3F3F] placeholder-opacity-50 w-screen "
+                    placeholder="12345678901234"
+                    name="siret"
+                    value={formData.siret}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-[5px]">
+                <label
+                  htmlFor="numTVA"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Numéro de TVA
+                </label>
+                {errors.numTVA && (
+                  <p className="text-red-500 text-sm">{errors.numTVA}</p>
+                )}
+                <div className="border-[1px] border-[#3F3F3F] border-opacity-15 rounded-lg p-[5px] space-x-[5px] items-center flex">
+                  <input
+                    className="bg-transparent focus:border-transparent focus:ring-0 border-transparent focus:outline-none font-inter text-[#3F3F3F] placeholder-opacity-50 w-screen "
+                    placeholder="FR00123456789"
+                    name="numTVA"
+                    value={formData.numTVA}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-[5px]">
+                <label
+                  htmlFor="delaisPaie"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Délai de paiement
+                </label>
+                {errors.delaisPaie && (
+                  <p className="text-red-500 text-sm">{errors.delaisPaie}</p>
+                )}
+                <div className="border-[1px] border-[#3F3F3F] border-opacity-15 rounded-lg p-[5px] items-center flex">
+                  <select
+                    className="bg-transparent focus:border-transparent focus:ring-0 border-transparent focus:outline-none font-inter text-[#3F3F3F] w-full"
+                    name="delaisPaie"
+                    value={formData.delaisPaie}
+                    onChange={handleChange}
+                  >
+                    <option value="comptant">Comptant</option>
+                    <option value="30 jours">30 jours</option>
+                    <option value="45 jours">45 jours</option>
+                    <option value="60 jours">60 jours</option>
+                  </select>
                 </div>
               </div>
               <div className="flex flex-col gap-[5px]">

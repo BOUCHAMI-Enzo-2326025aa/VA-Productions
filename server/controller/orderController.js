@@ -1,48 +1,72 @@
 import Order from "../model/orderModel.js";
 import Invoice from "../model/invoiceModel.js";
-import createOrderPdf from "../utils/orderCreator.js";
+import createOrderPdf, { createOrderPdfBuffer } from "../utils/orderCreator.js";
 import { writeFile } from "fs";
 import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 
+const toNumber = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const cleaned = value.replace(/\s/g, "").replace(",", ".");
+    const parsed = Number.parseFloat(cleaned);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
+const normaliseSupports = (supports = []) =>
+  Array.isArray(supports)
+    ? supports.map((item) => ({ ...item, price: toNumber(item?.price) }))
+    : [];
+
+const withComputedTotal = (orderDoc) => {
+  const order = typeof orderDoc.toObject === "function" ? orderDoc.toObject() : orderDoc;
+  const items = normaliseSupports(order.items);
+  const supportList = normaliseSupports(order.supportList);
+  const source = items.length ? items : supportList;
+  const tvaRate = toNumber(order.tva);
+  const baseTotal = source.reduce((sum, item) => sum + item.price, 0);
+  const computed = Math.round(baseTotal * (1 + tvaRate) * 100) / 100;
+  const stored = toNumber(order.totalPrice);
+  return { ...order, items, supportList, tva: tvaRate, totalPrice: computed || stored };
+};
+
 export const createOrder = async (req, res) => {
   try {
     const client = req.body.invoice.client;
     const tva = req.body.tva.percentage;
-    const { orderNumber: maxOrderNumber = 0 } =
-      (await Order.findOne().sort({ orderNumber: -1 })) || {};
+    const { orderNumber: maxOrderNumber = 0 } = (await Order.findOne().sort({ orderNumber: -1 })) || {};
 
     const randomImageName = crypto.randomBytes(32).toString("hex");
-
     saveSignature(req.body.invoice.client.signature, randomImageName);
 
-    console.log(client);
-
-    let total = client.support.reduce(
-      (sum, item) => sum + (item.price || 0),
-      0
-    );
-    total = Number(total) + Number(total * tva);
+    const supports = normaliseSupports(client.support);
+    const tvaRate = toNumber(tva);
+    const baseTotal = supports.reduce((sum, item) => sum + item.price, 0);
+    const total = Math.round(baseTotal * (1 + tvaRate) * 100) / 100;
 
     const order = await Order.create({
       client: client.clientId,
       compagnyName: client.compagnyName,
       orderNumber: maxOrderNumber + 1,
       date: Date.now(),
-      items: client.support,
+      items: supports,
       totalPrice: total,
       firstAddress: client.address1,
       secondAddress: client.address2,
       postalCode: client.postalCode,
       city: client.city,
-      supportList: client.support,
-      status: "Pending",
+      status: "pending",
       signature: randomImageName,
-      tva: tva,
+      signatureData: req.body.invoice.client.signature,
+      tva: tvaRate,
+      costs: client.costs || [], 
     });
-    await createOrderPdf(client, res, maxOrderNumber + 1, tva, randomImageName);
-    //res.status(200).json({ order: order });
+    
+    await createOrderPdf({ ...client, support: supports, costs: client.costs }, res, maxOrderNumber + 1, tvaRate, randomImageName);
+    
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error.message });
@@ -52,7 +76,7 @@ export const createOrder = async (req, res) => {
 export const getOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ orderNumber: -1 });
-    res.status(200).json(orders);
+    res.status(200).json(orders.map(withComputedTotal));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
@@ -64,7 +88,7 @@ export const getOrdersByEntreprise = async (req, res) => {
     const orders = await Order.find({
       entreprise: req.params.entreprise,
     }).sort({ orderNumber: -1 });
-    res.status(200).json(orders);
+    res.status(200).json(orders.map(withComputedTotal));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
@@ -83,88 +107,54 @@ export const generateOrder = async (req, res) => {
 };
 
 export const getOrderPdf = async (req, res) => {
-  try {
+   try {
     const { id } = req.params;
+    console.log("getOrderPdf appelé pour l'ID:", id);
+    
     const order = await Order.findById(id);
-    const expectedName = `${order.orderNumber}_${order.compagnyName.toUpperCase()}.pdf`;
-    console.log("getOrderPdf called for order id:", id, "expecting file:", expectedName);
-    const filePath = path.resolve(
-      process.cwd(),
-      `./orders/${order.orderNumber}_${order.compagnyName.toUpperCase()}.pdf`
+    if (!order) {
+      console.log("Commande introuvable pour l'ID:", id);
+      return res.status(404).json({ error: "Commande introuvable" });
+    }
+
+    console.log("Commande trouvée:", order.orderNumber, order.compagnyName);
+
+    const items = normaliseSupports(order.items);
+    const rate = toNumber(order.tva || 0.2);
+
+    // Construire l'objet client attendu par le générateur
+    const clientForPdf = {
+      compagnyName: order.compagnyName,
+      address1: order.firstAddress,
+      address2: order.secondAddress,
+      postalCode: order.postalCode,
+      city: order.city,
+      support: items,
+      signature: order.signature,
+      signatureData: order.signatureData, 
+    };
+
+    console.log("Génération du PDF en mémoire...");
+    const pdfBuffer = await createOrderPdfBuffer(
+      clientForPdf,
+      order.orderNumber,
+      rate,
+      order.signature
     );
-    const exists = fs.existsSync(filePath);
-    console.log("PDF filePath:", filePath, "exists:", exists);
-    if (exists) {
-      try {
-        const stats = fs.statSync(filePath);
-        console.log("PDF file mtime:", stats.mtime);
-      } catch (e) {
-        console.log("Could not stat file:", e);
-      }
-    }
-  // Régénère le PDF si le fichier est manquant ou plus ancien que la date de la commande
-    let shouldRegenerate = false;
-    if (!exists) shouldRegenerate = true;
-    else {
-      try {
-        const stats = fs.statSync(filePath);
-        if (order.date && stats.mtime < new Date(order.date)) {
-          shouldRegenerate = true;
-        }
-      } catch (e) {
-        console.log("Could not stat file for regeneration check:", e);
-        shouldRegenerate = true;
-      }
-    }
 
-    if (shouldRegenerate) {
-      console.log("Regenerating PDF for order", order._id);
-  // construit l'objet client attendu par createOrderPdf
-      const clientForPdf = {
-        compagnyName: order.compagnyName,
-        address1: order.firstAddress,
-        address2: order.secondAddress,
-        postalCode: order.postalCode,
-        city: order.city,
-        support: (order.items || []).map((it) => ({
-          name: it.name,
-          supportName: it.supportName,
-          supportNumber: it.supportNumber,
-          price: it.price,
-        })),
-        signature: order.signature,
-      };
+    const filename = `commande-${order.orderNumber}.pdf`;
+    console.log("PDF généré, envoi au client avec le nom:", filename);
 
-  // écrira le fichier et gérera l'envoi de la réponse
-      try {
-        await createOrderPdf(clientForPdf, res, order.orderNumber, order.tva, order.signature);
-        return;
-      } catch (e) {
-        console.error("Erreur lors de la régénération du PDF :", e);
-        return res.status(500).json({ error: "Erreur lors de la régénération du PDF" });
-      }
-    }
-
-  // Envoie le fichier existant en inline pour permettre la prévisualisation dans le navigateur
-    try {
-  // Utilise la disposition 'inline' pour que le PDF soit prévisualisé dans le navigateur plutôt que téléchargé
-      res.setHeader(
-        "Content-Disposition",
-        `inline; filename="${encodeURIComponent(expectedName)}"`
-      );
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Cache-Control", "no-store");
-      res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
-
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
-    } catch (e) {
-      console.error("Erreur lors de l'envoi du fichier existant :", e);
-      res.status(500).json({ error: "Erreur lors de l'envoi du PDF" });
-    }
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(filename)}"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+    res.setHeader("Content-Length", pdfBuffer.length);
+    
+    return res.status(200).send(pdfBuffer);
   } catch (error) {
-    console.error("Erreur lors de l'envoi du PDF :", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error("Erreur dans getOrderPdf:", error);
+    return res.status(500).json({ error: "Erreur lors de la génération du PDF", details: error.message });
   }
 };
 
@@ -197,25 +187,35 @@ const saveSignature = (signature, imageName) => {
 
 export const validateOrder = async (req, res) => {
   const { orders } = req.body;
-  for (const orderItem of orders) {
-    const order = await Order.findByIdAndUpdate(orderItem._id, {
-      status: "validated",
-    });
-    const { number: maxNumber = 0 } =
-      (await Invoice.findOne().sort({ number: -1 })) || {};
-    await Invoice.create({
-      client: order.client,
-      number: maxNumber + 1,
-      date: Date.now(),
-      entreprise: order.compagnyName,
-      firstAddress: order.firstAddress,
-      secondAddress: order.secondAddress,
-      postalCode: order.postalCode,
-      city: order.city,
-      supportList: order.items,
-      totalPrice: order.totalPrice,
-    });
-    res.status(200).json({ message: "Commande validée" });
+  try {
+    for (const orderItem of orders) {
+      const order = await Order.findById(orderItem._id);
+      if (!order) continue;
+      
+      order.status = "validated";
+      await order.save();
+
+      const { number: maxNumber = 0 } = (await Invoice.findOne().sort({ number: -1 })) || {};
+      
+      await Invoice.create({
+        client: order.client,
+        number: maxNumber + 1,
+        date: new Date(),
+        entreprise: order.compagnyName,
+        firstAddress: order.firstAddress,
+        secondAddress: order.secondAddress,
+        postalCode: order.postalCode,
+        city: order.city,
+        supportList: order.items,
+        totalPrice: order.totalPrice,
+        tva: order.tva,
+        costs: order.costs || [], 
+      });
+    }
+    res.status(200).json({ message: "Commandes validées et factures créées." });
+  } catch(error) {
+    console.error("Erreur validation commande:", error);
+    res.status(500).json({ error: "Erreur validation." });
   }
 };
 
@@ -227,4 +227,92 @@ export const cancelOrder = async (req, res) => {
     });
   }
   res.status(200).json({ message: "Commande annulée" });
+};
+
+// Mise à jour d'une commande
+
+export const updateOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      compagnyName,
+      firstAddress,
+      secondAddress,
+      postalCode,
+      city,
+      items = [],
+      tva,
+      status,
+      costs,
+    } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "La commande doit contenir au moins un support." });
+    }
+
+    const sanitizedItems = items.map((item) => ({
+      name: item?.name?.trim() || "",
+      supportName: item?.supportName?.trim() || "",
+      supportNumber: Number.isFinite(Number(item?.supportNumber))
+        ? Number(item.supportNumber)
+        : 0,
+      price: toNumber(item?.price),
+    }));
+
+    if (sanitizedItems.some((item) => !item.name || !item.supportName)) {
+      return res
+        .status(400)
+        .json({ error: "Chaque support doit contenir un encart et un support." });
+    }
+
+    if (sanitizedItems.some((item) => item.supportNumber <= 0)) {
+      return res
+        .status(400)
+        .json({ error: "La quantité de chaque support doit être supérieure à 0." });
+    }
+
+    if (sanitizedItems.some((item) => !Number.isFinite(item.price) || item.price < 0)) {
+      return res
+        .status(400)
+        .json({ error: "Le prix de chaque support doit être un nombre positif." });
+    }
+
+    const rate = toNumber(tva ?? 0);
+    if (!Number.isFinite(rate) || rate < 0) {
+      return res.status(400).json({ error: "Le taux de TVA est invalide." });
+    }
+
+    const baseTotal = sanitizedItems.reduce((sum, item) => sum + item.price, 0);
+    const totalPrice = Math.round(baseTotal * (1 + rate) * 100) / 100;
+
+    const updatePayload = {
+      items: sanitizedItems,
+      totalPrice,
+      tva: rate,
+      supportList: sanitizedItems,
+    };
+
+    if (compagnyName !== undefined) updatePayload.compagnyName = compagnyName;
+    if (firstAddress !== undefined) updatePayload.firstAddress = firstAddress;
+    if (secondAddress !== undefined) updatePayload.secondAddress = secondAddress;
+    if (postalCode !== undefined) updatePayload.postalCode = postalCode;
+    if (city !== undefined) updatePayload.city = city;
+    if (Array.isArray(costs)) updatePayload.costs = costs;
+    if (typeof status === "string") updatePayload.status = status;
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      id,
+      { $set: updatePayload },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ error: "Commande introuvable." });
+    }
+
+    return res.status(200).json({ order: withComputedTotal(updatedOrder) });
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de la commande:", error);
+    return res.status(500).json({ error: "Erreur lors de la mise à jour de la commande." });
+  }
 };

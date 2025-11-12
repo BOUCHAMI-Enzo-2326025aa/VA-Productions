@@ -5,19 +5,19 @@ const ActionModal = ({ selectedOrder, validateOrder, cancelOrder }) => {
   return (
     <div className="bg-white w-[800px] px-2 py-4 h-fit absolute right-0 -bottom-2 translate-y-[100%] z-[60] appear-animation rounded">
       <p className="text-left ml-4 mt-2">ACTIONS</p>
-      <p className="text-left ml-4 opacity-80 font-normal">
-        Choisissez une action a effectuer sur les commande(s) suivante(s) :{" "}
-        <span className="text-blue-600 font-semibold flex gap-1 mt-2">
+      <div className="text-left ml-4 opacity-80 font-normal">
+        Choisissez une action à effectuer sur la ou les commande(s) suivante(s) :
+        <div className="font-semibold flex flex-wrap gap-1 mt-2">
           {selectedOrder.map((order, index) => (
-            <p
-              className="bg-blue-600 text-white bg-opacity-60 px-4 py-1 rounded"
+            <div
+              className="bg-blue-600 text-white bg-opacity-80 px-4 py-1 rounded"
               key={index}
             >
-              Commande n° {order.orderNumber}{" "}
-            </p>
+              Commande n° {order.orderNumber}
+            </div>
           ))}
-        </span>
-      </p>
+        </div>
+      </div>
 
       <div className="flex items-center gap-3 hover:bg-black hover:bg-opacity-10 rounded mt-2">
         <img

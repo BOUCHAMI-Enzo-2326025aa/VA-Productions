@@ -27,7 +27,7 @@ const Login = () => {
     // Si le mot de passe ne respecte pas le format, on bloque la connexion.
     if (!validatePassword(password)) {
       setErrorMessage(
-        "Format de mot de passe invalide. Il doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole."
+        "Format de mot de passe invalide.\nIl doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole."
       );
       return;
     }
@@ -59,7 +59,7 @@ const Login = () => {
 
   return (
     <div className="flex w-screen justify-center gap-[200px] min-h-screen mt-48 ">
-      <div className="flex flex-col font-inter text-sm min-w-[400px]">
+  <div className={`flex flex-col font-inter text-sm min-w-[400px] relative ${errorMessage ? 'pt-20' : ''}`}>
         {errorMessage && <ErrorMessage message={errorMessage} />}
         {loginSuccessfull && (
           <p className="bg-green-400 px-6 py-1 w-96">Connecté avec succès</p>
@@ -95,16 +95,18 @@ const Login = () => {
             Mot de passe
             <input
               required
-              onFocus={() =>
+              onFocus={() => {
+                setErrorMessage(null);
                 setPasswordError(
-                  "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole."
-                )
+                  "Le mot de passe doit contenir au moins 8 caractères, une majuscule,\nune minuscule, un chiffre et un symbole."
+                );
+              }
               }
               onChange={(e) => {
                 setPassword(e.target.value);
                 if (!validatePassword(e.target.value)) {
                   setPasswordError(
-                    "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole."
+                    "Le mot de passe doit contenir au moins 8 caractères, une majuscule,\nune minuscule, un chiffre et un symbole."
                   );
                 } else {
                   setPasswordError("");
@@ -122,7 +124,7 @@ const Login = () => {
               {showPassword ? <EyeOff size={30} /> : <Eye size={30} />}
             </button>
             {passwordError && (
-              <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+              <p className="text-[#3F3F3F] opacity-70 text-sm mt-1 whitespace-pre-line font-inter">{passwordError}</p>
             )}
           </label>
 

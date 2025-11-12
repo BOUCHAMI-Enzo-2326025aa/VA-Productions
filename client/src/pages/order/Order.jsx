@@ -8,6 +8,7 @@ import ActionButton from "./ActionButton";
 import InvoiceButton from "../invoice/component/InvoiceButton";
 import OrderValidationModal from "./OrderValidationModal";
 import OrderDeleteModal from "./OrderDeleteModal";
+import OrderEditModal from "./OrderEditModal";
 
 const Order = () => {
   const [orders, setOrders] = useState([]);
@@ -17,6 +18,7 @@ const Order = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [orderBeingEdited, setOrderBeingEdited] = useState(null);
 
   const fetchOrders = async () => {
     await axios
@@ -155,10 +157,18 @@ const Order = () => {
               fetchCommandPdf={fetchCommandPdf}
               handleSelect={handleSelect}
               selectedOrder={selectedOrder}
+              onEdit={setOrderBeingEdited}
             />
           ))}
         </div>
       </div>
+      {orderBeingEdited && (
+        <OrderEditModal
+          order={orderBeingEdited}
+          onClose={() => setOrderBeingEdited(null)}
+          refetchOrders={fetchOrders}
+        />
+      )}
     </div>
   );
 };

@@ -123,7 +123,7 @@ function generateInvoiceTable(doc, facture, tva) {
     generateTableRow(
       doc,
       invoiceTableTop,
-      "Encart",
+      "Description",
       "Support",
       "Qté",
       "PU",
@@ -191,7 +191,7 @@ function generateInvoiceTable(doc, facture, tva) {
       "",
       "",
       "T.V.A.",
-      formatPrice(subTotal * tva)
+      formatPrice(subTotal * tva) + " €"
     );
 
     const totalPosition = tvaPosition + 20;
@@ -247,12 +247,16 @@ function generateInvoiceTable(doc, facture, tva) {
 }
 
 function formatPrice(value) {
+  // Arrondir au centième pour éviter les erreurs de précision en virgule flottante
+  const numericValue = Number(value ?? 0);
+  const safeValue = Number.isFinite(numericValue) ? numericValue : 0;
+  const rounded = Math.round((safeValue + Number.EPSILON) * 100) / 100;
   return new Intl.NumberFormat("fr-FR", {
     style: "decimal",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
-    .format(value)
+    .format(rounded)
     .replace(/\s/g, "\u00A0");
 }
 
