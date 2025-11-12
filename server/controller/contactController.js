@@ -40,6 +40,9 @@ export const createContact = async (req, res) => {
       status,
     } = req.body;
 
+    const sanitizedDelaisPaie =
+      typeof delaisPaie === "string" ? delaisPaie.trim() : delaisPaie;
+
     const contact = await Contact.create({
       company,
       name,
@@ -48,7 +51,10 @@ export const createContact = async (req, res) => {
       phoneNumber,
       siret,
       numTVA,
-      delaisPaie,
+      delaisPaie:
+        sanitizedDelaisPaie && sanitizedDelaisPaie.length > 0
+          ? sanitizedDelaisPaie
+          : undefined,
       comments,
       lastCall,
       status,
@@ -83,7 +89,10 @@ export const updateContact = async (req, res) => {
     if (phoneNumber) updatedData.phoneNumber = phoneNumber;
     if (siret !== undefined) updatedData.siret = siret;
     if (numTVA !== undefined) updatedData.numTVA = numTVA;
-    if (delaisPaie !== undefined) updatedData.delaisPaie = delaisPaie;
+    if (delaisPaie !== undefined) {
+      updatedData.delaisPaie =
+        typeof delaisPaie === "string" ? delaisPaie.trim() : delaisPaie;
+    }
     if (comments) updatedData.comments = comments;
 
     const updatedContact = await Contact.findByIdAndUpdate(
