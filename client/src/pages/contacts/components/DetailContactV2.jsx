@@ -219,6 +219,16 @@ const DetailContactV2 = ({
 
         <div className="mt-6 grid gap-2 text-sm text-[#3F3F3F]">
           <p>
+            <span className="font-semibold">Statut :</span>{" "}
+            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+              contact.status === "CLIENT" 
+                ? "bg-green-100 text-green-700" 
+                : "bg-blue-100 text-blue-700"
+            }`}>
+              {contact.status === "CLIENT" ? "Client" : contact.status === "PROSPECT" ? "Prospect" : "-"}
+            </span>
+          </p>
+          <p>
             <span className="font-semibold">SIRET :</span> {contact.siret || "-"}
           </p>
           <p>

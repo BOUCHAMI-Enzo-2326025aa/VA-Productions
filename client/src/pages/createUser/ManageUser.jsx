@@ -4,6 +4,7 @@ import "./manageUsers.css";
 import CreateUser from "./CreateUser";
 import { formatDateSlash } from "../../utils/formatDate";
 import RoleSelection from "./RoleSelection";
+import DeleteUserButton from "./DeleteUserButton";
 import useAuth from "../../hooks/useAuth";
 
 const ManageUser = () => {
@@ -24,8 +25,13 @@ const ManageUser = () => {
       setUsers(allUsers);
       setFilteredUsers(allUsers);
     } catch (error) {
-      console.error("Erreur lors de la récupération des utilisateurs :", error);
+      console.error("Erreur lors de la récupération des utilisateurs :", error);
     }
+  };
+
+  const handleUserDeleted = (userId) => {
+    setUsers((prev) => prev.filter((user) => user._id !== userId));
+    setFilteredUsers((prev) => prev.filter((user) => user._id !== userId));
   };
 
   const handleSearch = (event) => {
@@ -113,6 +119,7 @@ const ManageUser = () => {
             <th>Email</th>
             <th>Role</th>
             <th>Date de création</th>
+            {isAdmin && <th>Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -131,11 +138,21 @@ const ManageUser = () => {
                   />
                 </td>
                 <td>{formatDateSlash(user.creationDate)}</td>
+                {isAdmin && (
+                  <td>
+                    <DeleteUserButton
+                      userId={user._id}
+                      userName={`${user.nom} ${user.prenom}`}
+                      isAdmin={isAdmin}
+                      onUserDeleted={handleUserDeleted}
+                    />
+                  </td>
+                )}
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="4" className="text-center py-4">
+              <td colSpan={isAdmin ? "5" : "4"} className="text-center py-4">
                 Aucun utilisateur trouvé.
               </td>
             </tr>
