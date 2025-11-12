@@ -83,6 +83,33 @@ const EditContact = ({ contact, closeModal, saveContact }) => {
             <option value="60 jours">60 jours</option>
           </select>
         </div>
+        <div className="flex flex-col gap-2">
+          <p className="font-medium text-sm text-[#3F3F3F]">Statut</p>
+          <div className="flex gap-4 items-center">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="status"
+                value="PROSPECT"
+                checked={contactCopy.status === "PROSPECT"}
+                onChange={(e) => handleChange("status", e.target.value)}
+                className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm">Prospect</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="status"
+                value="CLIENT"
+                checked={contactCopy.status === "CLIENT"}
+                onChange={(e) => handleChange("status", e.target.value)}
+                className="w-4 h-4 text-green-600 focus:ring-green-500"
+              />
+              <span className="text-sm">Client</span>
+            </label>
+          </div>
+        </div>
         <Button
           value={"Enregistrer"}
           className={"mt-6"}
