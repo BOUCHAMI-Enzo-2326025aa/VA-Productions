@@ -219,7 +219,9 @@ function formatPrice(value) {
     style: "decimal",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(numericValue);
+  })
+    .format(numericValue)
+    .replace(/\s/g, "");
 }
 
 function generateTableRow(doc, y, c1, c2, c3, c4) {
