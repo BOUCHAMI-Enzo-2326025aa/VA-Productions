@@ -130,7 +130,7 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
   });
 
   doc.font("Helvetica-Bold");
-  generateTableRow(doc, currentPosition, "Encart", "Support", "Qté", "Montant");
+  generateTableRow(doc, currentPosition, "Encart", "Support", "N° support", "Montant");
   currentPosition += 15;
   generateHr(doc, currentPosition);
   currentPosition += 10;
