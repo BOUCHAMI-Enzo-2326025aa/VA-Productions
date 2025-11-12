@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Upload, Trash2, Edit2, Plus, X } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
+import ConfirmModal from "../../components/ConfirmModal";
 
 const Magazine = () => {
   const { isAdmin } = useAuth();
@@ -10,6 +11,15 @@ const Magazine = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMagazine, setEditingMagazine] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, type: "", message: "" });
+
+  // État pour le modal de confirmation de suppression
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    magazineId: null,
+    magazineName: "",
+    loading: false,
+    error: "",
+  });
 
   // État du formulaire
   const [formData, setFormData] = useState({
@@ -109,21 +119,53 @@ const Magazine = () => {
     }
   };
 
-  // Supprimer un magazine
-  const handleDelete = async (id, nom) => {
-    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer le magazine "${nom}" ?`)) {
-      return;
-    }
+  // Ouvrir le modal de confirmation de suppression
+  const handleOpenDeleteModal = (id, nom) => {
+    setDeleteModal({
+      open: true,
+      magazineId: id,
+      magazineName: nom,
+      loading: false,
+      error: "",
+    });
+  };
+
+  // Fermer le modal de confirmation de suppression
+  const handleCloseDeleteModal = () => {
+    setDeleteModal({
+      open: false,
+      magazineId: null,
+      magazineName: "",
+      loading: false,
+      error: "",
+    });
+  };
+
+  // Confirmer la suppression avec mot de passe
+  const handleConfirmDelete = async (password) => {
+    setDeleteModal((prev) => ({ ...prev, loading: true, error: "" }));
 
     try {
       await axios.delete(
-        `${import.meta.env.VITE_API_HOST}/api/magazine/${id}`
+        `${import.meta.env.VITE_API_HOST}/api/magazine/${deleteModal.magazineId}`,
+        {
+          data: { adminPassword: password },
+        }
       );
+      
       showSnackbar("success", "Magazine supprimé avec succès");
       fetchMagazines();
+      handleCloseDeleteModal();
     } catch (error) {
       console.error("Erreur lors de la suppression du magazine:", error);
-      showSnackbar("error", "Erreur lors de la suppression");
+      const errorMessage =
+        error.response?.data?.erreur || "Erreur lors de la suppression";
+      
+      setDeleteModal((prev) => ({
+        ...prev,
+        loading: false,
+        error: errorMessage,
+      }));
     }
   };
 
@@ -200,7 +242,7 @@ const Magazine = () => {
                     Modifier
                   </button>
                   <button
-                    onClick={() => handleDelete(magazine._id, magazine.nom)}
+                    onClick={() => handleOpenDeleteModal(magazine._id, magazine.nom)}
                     className="flex-1 bg-red-500 text-white py-2 rounded hover:bg-red-600 transition flex items-center justify-center gap-2"
                   >
                     <Trash2 size={16} />
@@ -294,6 +336,20 @@ const Magazine = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de confirmation de suppression */}
+      <ConfirmModal
+        open={deleteModal.open}
+        title="Supprimer le magazine"
+        message={`Êtes-vous sûr de vouloir supprimer le magazine "${deleteModal.magazineName}" ? Cette action est irréversible.`}
+        requirePassword={true}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        loading={deleteModal.loading}
+        error={deleteModal.error}
+      />
     </div>
   );
 };

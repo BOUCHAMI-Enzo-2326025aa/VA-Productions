@@ -1,4 +1,7 @@
 import Magazine from "../model/magazineModel.js";
+import User from "../model/userModel.js";
+import bcrypt from "bcrypt";
+import jsonwebtoken from "jsonwebtoken";
 
 // Récupérer tous les magazines
 export const getAllMagazines = async (req, res) => {
@@ -98,6 +101,40 @@ export const updateMagazine = async (req, res) => {
 export const deleteMagazine = async (req, res) => {
   try {
     const { id } = req.params;
+    const { adminPassword } = req.body;
+    
+    // Vérifier que le mot de passe admin est fourni
+    if (!adminPassword) {
+      return res.status(400).json({ erreur: "Le mot de passe administrateur est requis" });
+    }
+    
+    // Vérifier le mot de passe de l'admin
+    const token = req.headers.authorization;
+    if (!token) {
+      return res.status(401).json({ erreur: "Token manquant" });
+    }
+    
+    let decoded;
+    try {
+      decoded = jsonwebtoken.verify(token, process.env.SECRET);
+    } catch (err) {
+      return res.status(401).json({ erreur: "Token invalide" });
+    }
+    
+    const admin = await User.findById(decoded.user._id);
+    
+    if (!admin) {
+      return res.status(401).json({ erreur: "Utilisateur administrateur non trouvé" });
+    }
+    
+    if (admin.role !== "admin") {
+      return res.status(403).json({ erreur: "Accès refusé. Seuls les administrateurs peuvent supprimer des magazines" });
+    }
+    
+    const isPasswordValid = await bcrypt.compare(adminPassword, admin.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ erreur: "Mot de passe administrateur incorrect" });
+    }
     
     const magazine = await Magazine.findByIdAndDelete(id);
     
