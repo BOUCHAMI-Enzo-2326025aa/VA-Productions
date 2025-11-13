@@ -1,4 +1,6 @@
 import Magazine from "../model/magazineModel.js";
+import Order from "../model/orderModel.js";
+import Invoice from "../model/invoiceModel.js";
 import User from "../model/userModel.js";
 import bcrypt from "bcrypt";
 import jsonwebtoken from "jsonwebtoken";
@@ -98,9 +100,11 @@ export const updateMagazine = async (req, res) => {
     }
     
     // Vérifier si un autre magazine avec ce nom existe déjà
-    if (nom) {
+    const trimmedName = typeof nom === "string" ? nom.trim() : nom;
+
+    if (trimmedName) {
       const duplicateMagazine = await Magazine.findOne({ 
-        nom: { $regex: new RegExp(`^${nom}$`, 'i') },
+        nom: { $regex: new RegExp(`^${trimmedName}$`, "i") },
         _id: { $ne: id }
       });
       
@@ -114,7 +118,7 @@ export const updateMagazine = async (req, res) => {
     }
     
     const updatedData = {};
-    if (nom) updatedData.nom = nom;
+  if (trimmedName) updatedData.nom = trimmedName;
     
     // Extraire l'ID public de l'ancienne image Cloudinary (si c'en est une)
     let oldCloudinaryPublicId = null;
@@ -152,6 +156,47 @@ export const updateMagazine = async (req, res) => {
       updatedData,
       { new: true, runValidators: true }
     );
+
+    const newName = magazine?.nom;
+    if (trimmedName && newName && newName !== existingMag.nom) {
+      const oldName = existingMag.nom;
+
+      await Promise.all([
+        Order.updateMany(
+          { "items.supportName": oldName },
+          {
+            $set: {
+              "items.$[item].supportName": newName,
+            },
+          },
+          {
+            arrayFilters: [{ "item.supportName": oldName }],
+          }
+        ),
+        Order.updateMany(
+          { "supportList.supportName": oldName },
+          {
+            $set: {
+              "supportList.$[support].supportName": newName,
+            },
+          },
+          {
+            arrayFilters: [{ "support.supportName": oldName }],
+          }
+        ),
+        Invoice.updateMany(
+          { "supportList.supportName": oldName },
+          {
+            $set: {
+              "supportList.$[support].supportName": newName,
+            },
+          },
+          {
+            arrayFilters: [{ "support.supportName": oldName }],
+          }
+        ),
+      ]);
+    }
     
     res.status(200).json({ magazine });
   } catch (error) {
