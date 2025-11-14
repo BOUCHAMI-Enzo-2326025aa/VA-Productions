@@ -105,7 +105,7 @@ const DeleteUserButton = ({ userId, userName, isAdmin, onUserDeleted }) => {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-2 top-3 text-[#5C89E0]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   aria-label={
                     showPassword
                       ? "Cacher le mot de passe"
