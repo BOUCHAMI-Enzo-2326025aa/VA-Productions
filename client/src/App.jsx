@@ -20,6 +20,7 @@ import Order from "./pages/order/Order";
 import Guide from "./pages/guide/Guide";
 import Stats from "./pages/stats/Stats";
 import Magazine from "./pages/magazine/Magazine";
+import Settings from "./pages/settings/Settings";
 
 function App() {
   const [userLoaded, setUserLoaded] = useState(false);
@@ -182,6 +183,16 @@ function App() {
               <ProtectedRoute>
                 <Layout pathName={"Bons de Commande"}>
                   <Order />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Layout pathName={"Paramètres"}>
+                  <Settings />
                 </Layout>
               </ProtectedRoute>
             }
