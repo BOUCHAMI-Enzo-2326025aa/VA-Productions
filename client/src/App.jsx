@@ -20,7 +20,7 @@ import Order from "./pages/order/Order";
 import Guide from "./pages/guide/Guide";
 import Stats from "./pages/stats/Stats";
 import Magazine from "./pages/magazine/Magazine";
-import Settings from "./pages/settings/Settings";
+import Charge from "./pages/charge/Charge";
 
 function App() {
   const [userLoaded, setUserLoaded] = useState(false);
@@ -153,6 +153,16 @@ function App() {
               <AdminRoute>
                 <Layout pathName={"Magazines"}>
                   <Magazine />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/charge"
+            element={
+              <AdminRoute>
+                <Layout pathName={"Saisie des charges"}>
+                  <Charge />
                 </Layout>
               </AdminRoute>
             }
