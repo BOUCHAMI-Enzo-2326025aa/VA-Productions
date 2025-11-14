@@ -1,30 +1,7 @@
 import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
 
-// Configuration de Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-// Configuration du stockage Cloudinary
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: "va-productions/magazines", // Dossier dans Cloudinary
-    allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
-    transformation: [
-      {
-        width: 800,
-        height: 1200,
-        crop: "limit", // Ne pas agrandir, juste limiter la taille max
-        quality: "auto", // Optimisation automatique
-      },
-    ],
-  },
-});
+// Configuration du stockage en mémoire pour conversion en base64
+const storage = multer.memoryStorage();
 
 // Filtre pour accepter uniquement les images
 const fileFilter = (req, file, cb) => {
@@ -37,7 +14,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configuration de multer avec Cloudinary
+// Configuration de multer pour stockage en mémoire
 export const uploadMagazineCover = multer({
   storage: storage,
   fileFilter: fileFilter,

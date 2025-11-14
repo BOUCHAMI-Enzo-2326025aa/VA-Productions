@@ -223,6 +223,33 @@ const EditContact = ({ contact, closeModal, saveContact }) => {
           onChange={(e) => handleChange("numTVA", e.target.value)}
         />
         <div className="flex flex-col gap-2">
+          <p className="font-medium text-sm text-[#3F3F3F]">Statut</p>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="status"
+                value="PROSPECT"
+                checked={contactCopy.status === "PROSPECT"}
+                onChange={(e) => handleChange("status", e.target.value)}
+                className="cursor-pointer"
+              />
+              <span>Prospect</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="status"
+                value="CLIENT"
+                checked={contactCopy.status === "CLIENT"}
+                onChange={(e) => handleChange("status", e.target.value)}
+                className="cursor-pointer"
+              />
+              <span>Client</span>
+            </label>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2">
           <p className="font-medium text-sm text-[#3F3F3F]">Délai de paiement</p>
           <select
             className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400"

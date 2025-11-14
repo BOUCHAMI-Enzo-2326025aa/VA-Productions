@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
 const emptySupport = () => ({
@@ -7,13 +7,6 @@ const emptySupport = () => ({
   supportNumber: 1,
   price: 0,
 });
-
-const DEFAULT_SUPPORT_OPTIONS = [
-  "WMag",
-  "Rouges et Blancs",
-  "Ambition Sud",
-  "Roses en Provence",
-];
 
 const parseDecimal = (value, fallback = 0) => {
   if (value === null || value === undefined) return fallback;
@@ -43,16 +36,61 @@ const OrderEditModal = ({ order, onClose, refetchOrders }) => {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [availableSupports, setAvailableSupports] = useState([]);
+  const [isLoadingSupports, setIsLoadingSupports] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchSupports = async () => {
+      try {
+        setIsLoadingSupports(true);
+        const { data } = await axios.get(
+          `${import.meta.env.VITE_API_HOST}/api/magazine/`
+        );
+        if (!isMounted) return;
+
+        const supportsFromDb = Array.isArray(data?.magazines)
+          ? data.magazines
+              .map((mag) =>
+                typeof mag?.nom === "string" ? mag.nom.trim() : ""
+              )
+              .filter(Boolean)
+          : [];
+        setAvailableSupports(supportsFromDb);
+      } catch (fetchError) {
+        console.error(
+          "Erreur lors de la récupération des supports:",
+          fetchError
+        );
+        if (isMounted) {
+          setAvailableSupports([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingSupports(false);
+        }
+      }
+    };
+
+    fetchSupports();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const supportOptions = useMemo(() => {
-    const options = new Set(DEFAULT_SUPPORT_OPTIONS);
+    const options = new Set(availableSupports);
     items.forEach((item) => {
       if (item?.supportName) {
         options.add(item.supportName);
       }
     });
-    return Array.from(options);
-  }, [items]);
+    return Array.from(options).sort((a, b) =>
+      a.localeCompare(b, "fr", { sensitivity: "base" })
+    );
+  }, [availableSupports, items]);
 
   const totalHT = useMemo(
     () =>
@@ -249,6 +287,16 @@ const OrderEditModal = ({ order, onClose, refetchOrders }) => {
               + Ajouter un support
             </button>
           </div>
+
+          {isLoadingSupports ? (
+            <p className="mt-2 text-xs text-gray-500">Chargement des supports...</p>
+          ) : (
+            supportOptions.length === 0 && (
+              <p className="mt-2 text-xs text-red-500">
+                Aucun support disponible. Ajoutez des magazines dans l'administration.
+              </p>
+            )
+          )}
 
           <div className="mt-4 space-y-4">
             {items.map((item, index) => (

@@ -113,8 +113,7 @@ export function PieChartStats({ invoices, colorList }) {
       <CardContent className="flex-1 pb-0 w-full">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[100%] h-[290px] pb-0 [&_.recharts-pie-label-text]:fill-foreground"
-        >
+          className="mx-auto aspect-square max-h-[100%] h-[290px] pb-0 [&_.recharts-pie-label-text]:fill-foreground">
           <PieChart>
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
             <Pie

@@ -20,6 +20,7 @@ import Order from "./pages/order/Order";
 import Guide from "./pages/guide/Guide";
 import Stats from "./pages/stats/Stats";
 import Magazine from "./pages/magazine/Magazine";
+import Charge from "./pages/charge/Charge";
 
 function App() {
   const [userLoaded, setUserLoaded] = useState(false);
@@ -157,6 +158,16 @@ function App() {
             }
           />
           <Route
+            path="/admin/charge"
+            element={
+              <AdminRoute>
+                <Layout pathName={"Saisie des charges"}>
+                  <Charge />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
             path="/invoice/create"
             element={
               <ProtectedRoute>
@@ -182,6 +193,16 @@ function App() {
               <ProtectedRoute>
                 <Layout pathName={"Bons de Commande"}>
                   <Order />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Layout pathName={"Paramètres"}>
+                  <Settings />
                 </Layout>
               </ProtectedRoute>
             }

@@ -1,17 +1,26 @@
+import { useState } from "react";
 import logo from "../../assets/va-production-logo.png";
 import PageLink from "./PageLink";
 import dashboardSvg from "../../assets/dashboard-icon.svg";
 import contactSvg from "../../assets/contact-icon.svg";
+import chargeSvg from "../../assets/charge-icon.svg";
 import facturationSvg from "../../assets/facturation-icon.svg";
 import calendrierSvg from "../../assets/calendar-icon.svg";
 import manageUserSvg from "../../assets/manage-user-icon.svg";
 import userGuideSvg from "../../assets/user-guide-icon.svg";
 import statsSvg from "../../assets/stats-icon.svg";
 import oderSvg from "../../assets/order-icon.svg";
+import powerIconSvg from "../../assets/power-icon.svg";
+import gearIconSvg from "../../assets/gear-icon.svg";
 import useAuth from "../../hooks/useAuth";
 
 const Navbar = ({ isOpen, closeNavbar }) => {
   const { isAdmin } = useAuth();
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
+
+  const toggleAdminMenu = () => {
+    setIsAdminMenuOpen((prev) => !prev);
+  };
 
   return (
     <div
@@ -40,7 +49,7 @@ const Navbar = ({ isOpen, closeNavbar }) => {
             <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
           </svg>
         </div>
-        <p className="mt-10 text-sm text-white font-medium opacity-70">MENU</p>
+        <p className="mt-6 text-sm text-white font-medium opacity-70">MENU</p>
         <div className="flex gap-0 flex-col mt-4">
           <PageLink
             link={"/dashboard"}
@@ -63,45 +72,81 @@ const Navbar = ({ isOpen, closeNavbar }) => {
 
         {isAdmin && (
           <>
-            <p className="mt-16 text-sm text-white font-medium opacity-70">
-              ADMINISTRATION
-            </p>
-            <div className="mt-4 flex gap-2 flex-col">
-              <PageLink
-                link={"/admin/user"} 
-                text={"Gestion Utilisateur"}
-                icon={manageUserSvg}
-              />
-              <PageLink
-                link={"/admin/magazine"}
-                text={"Magazines"}
-                icon={contactSvg}
-              />
-              <PageLink
-                link={"/admin/stats"}
-                text={"Statistiques"}
-                icon={statsSvg}
-              />
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={toggleAdminMenu}
+                className="flex w-full items-center justify-between rounded-md px-2 py-2 text-white opacity-70 hover:bg-black hover:bg-opacity-5 hover:opacity-100 hover:scale-105 transition-all"
+                aria-expanded={isAdminMenuOpen}
+              >
+                <span className="text-lg font-normal">Administration</span>
+                <svg
+                  className={`size-5 transition-transform ${
+                    isAdminMenuOpen ? "rotate-180" : ""
+                  }`}
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 -960 960 960"
+                  fill="currentColor"
+                >
+                  <path d="M480-360 226-614l56-56 198 198 198-198 56 56-254 254Z" />
+                </svg>
+              </button>
+              {isAdminMenuOpen && (
+                <div className="ml-4 flex flex-col gap-1">
+                  <PageLink
+                    link={"/admin/user"}
+                    text={"Gestion Utilisateur"}
+                    icon={manageUserSvg}
+                  />
+                  <PageLink
+                    link={"/admin/charge"}
+                    text={"Saisie des charges"}
+                    icon={chargeSvg}
+                  />
+                  <PageLink
+                    link={"/admin/magazine"}
+                    text={"Magazines"}
+                    icon={contactSvg}
+                  />
+                  <PageLink
+                    link={"/admin/stats"}
+                    text={"Statistiques"}
+                    icon={statsSvg}
+                  />
+                </div>
+              )}
             </div>
           </>
         )}
 
-        <PageLink
-          link={"/guide"}
-          text={"Guide d'utilisation"}
-          icon={userGuideSvg}
-          className={"absolute px-2 bottom-16 w-full"}
-        />
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-4">
+          <button
+            onClick={() => {
+              localStorage.removeItem("user");
+              window.location.href = "/connexion";
+            }}
+            className="p-2 hover:bg-black hover:bg-opacity-10 rounded-lg transition group"
+            title="Déconnexion"
+          >
+            <img src={powerIconSvg} alt="Déconnexion" className="w-10 h-10 opacity-70 group-hover:opacity-100 transition" />
+          </button>
 
-        <button
-          onClick={() => {
-            localStorage.removeItem("user");
-            window.location.href = "/connexion";
-          }}
-          className="absolute left-0 bottom-5 w-[90%] mx-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition"
-        >
-          Déconnexion
-        </button>
+          <a
+            href="/settings"
+            className="p-2 hover:bg-black hover:bg-opacity-10 rounded-lg transition group"
+            title="Paramètres"
+          >
+            <img src={gearIconSvg} alt="Paramètres" className="w-10 h-10 opacity-70 group-hover:opacity-100 transition" />
+          </a>
+
+          <a
+            href="/guide"
+            className="p-2 hover:bg-black hover:bg-opacity-10 rounded-lg transition group"
+            title="Guide d'utilisation"
+          >
+            <img src={userGuideSvg} alt="Guide d'utilisation" className="w-10 h-10 opacity-70 group-hover:opacity-100 transition" />
+          </a>
+        </div>
       </div>
     </div>
   );
