@@ -198,6 +198,16 @@ function App() {
             }
           />
           <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Layout pathName={"Paramètres"}>
+                  <Settings />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/guide"
             element={
               <ProtectedRoute>

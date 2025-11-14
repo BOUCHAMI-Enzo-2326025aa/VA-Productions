@@ -1,12 +1,10 @@
 {
   "dependencies": {
     "@react-pdf-viewer/core": "^3.12.0",
-    "cloudinary": "^1.41.3",
     "crypto": "^1.0.1",
     "gapi-script": "^1.2.0",
     "googleapis": "^164.1.0",
     "mailersend": "^2.6.0",
-    "multer-storage-cloudinary": "^4.0.0",
     "pdfkit": "^0.15.1",
     "react-signature-canvas": "^1.0.7"
   }

@@ -236,3 +236,95 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ erreur: error.message });
   }
 };
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { nom, prenom } = req.body;
+
+    // Récupérer l'utilisateur depuis le token
+    const token = req.headers["authorization"] || req.headers["Authorization"];
+    if (!token) {
+      return res.status(401).json({ erreur: "Token d'authentification requis." });
+    }
+
+    const decodedToken = jsonwebtoken.verify(token, process.env.SECRET);
+    const userId = decodedToken.user._id;
+
+    if (!nom || !prenom) {
+      return res.status(400).json({ erreur: "Nom et prénom sont requis." });
+    }
+
+    // Mettre à jour le profil
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { nom, prenom },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ erreur: "Utilisateur non trouvé." });
+    }
+
+    // Créer un nouveau token avec les informations mises à jour
+    const newToken = createToken(updatedUser);
+
+    res.status(200).json({ 
+      message: "Profil mis à jour avec succès", 
+      user: updatedUser,
+      token: newToken
+    });
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour du profil:", error);
+    res.status(500).json({ erreur: error.message });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Récupérer l'utilisateur depuis le token
+    const token = req.headers["authorization"] || req.headers["Authorization"];
+    if (!token) {
+      return res.status(401).json({ erreur: "Token d'authentification requis." });
+    }
+
+    const decodedToken = jsonwebtoken.verify(token, process.env.SECRET);
+    const userId = decodedToken.user._id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ erreur: "L'ancien et le nouveau mot de passe sont requis." });
+    }
+
+    // Vérifier la force du nouveau mot de passe
+    if (!isPasswordStrong(newPassword)) {
+      return res.status(400).json({ 
+        erreur: "Mot de passe trop faible. Il doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole." 
+      });
+    }
+
+    // Récupérer l'utilisateur
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ erreur: "Utilisateur non trouvé." });
+    }
+
+    // Vérifier l'ancien mot de passe
+    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ erreur: "Mot de passe actuel incorrect." });
+    }
+
+    // Hasher le nouveau mot de passe
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(newPassword, salt);
+
+    // Mettre à jour le mot de passe
+    await User.findByIdAndUpdate(userId, { password: hash });
+
+    res.status(200).json({ message: "Mot de passe mis à jour avec succès." });
+  } catch (error) {
+    console.error("Erreur lors du changement de mot de passe:", error);
+    res.status(500).json({ erreur: error.message });
+  }
+};
