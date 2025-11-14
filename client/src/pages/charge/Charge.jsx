@@ -207,6 +207,13 @@ const Charge = () => {
     [charges]
   );
 
+  const ecart = useMemo(
+    () => totalPrevu - totalPrecedent,
+    [totalPrecedent, totalPrevu]
+  );
+
+  const ecartClass = ecart > 0 ? "text-red-500" : ecart < 0 ? "text-green-600" : "text-gray-600";
+
   if (!isAdmin) {
     return (
       <div className="text-[#3F3F3F] mt-10">
@@ -361,7 +368,7 @@ const Charge = () => {
           {charges.length > 0 && !isLoading && (
             <tfoot>
               <tr className="bg-gray-50">
-                <td className="px-4 py-3 text-sm font-semibold text-gray-600">Totaux</td>
+                <td className="px-4 py-3 text-sm font-semibold text-gray-600">Total des saisies</td>
                 <td></td>
                 <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                   {totalPrecedent.toLocaleString("fr-FR", {
@@ -371,6 +378,22 @@ const Charge = () => {
                 </td>
                 <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                   {totalPrevu.toLocaleString("fr-FR", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}
+                </td>
+                <td></td>
+              </tr>
+              <tr className="bg-gray-50">
+                <td className="px-4 py-3 text-sm font-semibold text-gray-600">
+                  Ecart exercice précédent / prévisionnel
+                </td>
+                <td></td>
+                <td></td>
+                <td
+                  className={`px-4 py-3 text-right text-sm font-semibold ${ecartClass}`}
+                >
+                  {ecart.toLocaleString("fr-FR", {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 0,
                   })}
