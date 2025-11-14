@@ -1,6 +1,8 @@
 import Order from "../model/orderModel.js";
 import Invoice from "../model/invoiceModel.js";
+import Contact from "../model/contactModel.js";
 import createOrderPdf, { createOrderPdfBuffer } from "../utils/orderCreator.js";
+import createInvoice from "../utils/invoiceCreator.js";
 import { writeFile } from "fs";
 import crypto from "crypto";
 import path from "path";
@@ -150,7 +152,6 @@ export const getOrderPdf = async (req, res) => {
     const items = normaliseSupports(order.items);
     const rate = toNumber(order.tva || 0.2);
 
-    // Construire l'objet client attendu par le générateur
     const clientForPdf = {
       compagnyName: order.compagnyName,
       address1: order.firstAddress,
@@ -216,36 +217,64 @@ const saveSignature = (signature, imageName) => {
 export const validateOrder = async (req, res) => {
   const { orders } = req.body;
   try {
-    for (const orderItem of orders) {
-      const order = await Order.findById(orderItem._id);
-      if (!order) continue;
-      
-      order.status = "validated";
-      await order.save();
+    const createdInvoices = [];
+    const lastInvoice = await Invoice.findOne().sort({ number: -1 });
+    let currentInvoiceNumber = lastInvoice ? lastInvoice.number : 0;
 
-      const { number: maxNumber = 0 } = (await Invoice.findOne().sort({ number: -1 })) || {};
-      
-      await Invoice.create({
-        client: order.client,
-        number: maxNumber + 1,
-        date: new Date(),
-        entreprise: order.compagnyName,
-        firstAddress: order.firstAddress,
-        secondAddress: order.secondAddress,
-        postalCode: order.postalCode,
-        city: order.city,
-        supportList: order.items,
-        totalPrice: order.totalPrice,
-        tva: order.tva,
-        costs: order.costs || [], 
+    for (const orderItem of orders) {
+      const orderData = await Order.findById(orderItem._id).populate({
+        path: 'client',   
+        model: 'Contact'  
       });
+
+      if (!orderData || !orderData.client) {
+        console.warn(`Commande ${orderItem._id} ou contact associé introuvable, ignorée.`);
+        continue;
+      }
+      
+      currentInvoiceNumber++;
+
+      const newInvoice = new Invoice({
+        client: orderData.client._id,
+        number: currentInvoiceNumber,
+        date: new Date(),
+        entreprise: orderData.compagnyName,
+        firstAddress: orderData.firstAddress,
+        secondAddress: orderData.secondAddress,
+        postalCode: orderData.postalCode,
+        city: orderData.city,
+        supportList: orderData.items,
+        totalPrice: orderData.totalPrice,
+        tva: orderData.tva,
+        status: "unpaid",
+        costs: orderData.costs || [],
+      });
+      
+      await newInvoice.save();
+      createdInvoices.push(newInvoice);
+
+      await Order.findByIdAndUpdate(orderData._id, { status: "validated" });
+      
+      const pdfData = {
+        ...newInvoice.toObject(),
+        delaisPaie: orderData.client.delaisPaie
+      };
+
+      createInvoice(pdfData, null, newInvoice.number, newInvoice.tva)
+        .catch(err => console.error(`Erreur lors de la génération du PDF pour la facture ${newInvoice.number}:`, err));
     }
-    res.status(200).json({ message: "Commandes validées et factures créées." });
+    
+    res.status(200).json({ 
+      message: `${createdInvoices.length} commande(s) validée(s) et facture(s) créée(s).`,
+      invoices: createdInvoices
+    });
+
   } catch(error) {
     console.error("Erreur validation commande:", error);
-    res.status(500).json({ error: "Erreur validation." });
+    res.status(500).json({ error: "Erreur lors de la validation des commandes." });
   }
 };
+
 
 export const cancelOrder = async (req, res) => {
   const { orders } = req.body;
@@ -258,7 +287,6 @@ export const cancelOrder = async (req, res) => {
 };
 
 // Mise à jour d'une commande
-
 export const updateOrder = async (req, res) => {
   try {
     const { id } = req.params;

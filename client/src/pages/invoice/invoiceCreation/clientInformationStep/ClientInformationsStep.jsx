@@ -3,6 +3,28 @@ import InvoiceButton from "../../component/InvoiceButton";
 import InvoiceInput from "../../component/InvoiceInput";
 import CreationSectionTitle from "../../CreationSectionTitle";
 
+const STANDARD_PAYMENT_DELAYS = [
+  "comptant",
+  "30 jours",
+  "45 jours",
+  "60 jours",
+];
+
+const CUSTOM_DELAY_SUFFIXES = [
+  { value: "", label: "Sans complément" },
+  { value: "fin de mois", label: "Fin de mois" },
+];
+
+const DEFAULT_SUFFIX = CUSTOM_DELAY_SUFFIXES[0].value;
+
+const parseCustomDelay = (value) => {
+  if (!value) return { days: "", suffix: DEFAULT_SUFFIX };
+  const match = value.match(/^(\d+)\s+jours(?:\s+(.*))?$/i);
+  if (!match) return { days: "", suffix: value.trim() || DEFAULT_SUFFIX };
+  const [, days, suffixRaw] = match;
+  return { days, suffix: suffixRaw ? suffixRaw.trim() : DEFAULT_SUFFIX };
+};
+
 const ClientInformationsStep = ({
   contactList,
   invoice,
@@ -33,16 +55,33 @@ const ClientInformationsStep = ({
         : Number(invoice.TVA_PERCENTAGE) * 100;
     setDisplayTva(pct);
   }, [invoice.TVA_PERCENTAGE]);
+
   const selectContact = (e) => {
     const contact = contactList.find(
       (contact) => contact._id === e.target.value
     );
+    if (!contact) return;
+
     handleChange("clientId", contact._id);
     handleChange("compagnyName", contact.company || "");
     handleChange("name", contact.name || "");
     handleChange("surname", contact.surname || "");
     handleChange("email", contact.email || "");
     handleChange("phone", contact.phoneNumber || "");
+    handleChange("delaisPaie", contact.delaisPaie || "comptant");
+
+    // Logique pour le délai de paiement
+    const delay = contact.delaisPaie || "comptant";
+    if (STANDARD_PAYMENT_DELAYS.includes(delay)) {
+      handleChange("delaisPaie", delay);
+      handleChange("customDelaisDays", "");
+      handleChange("customDelaisSuffix", DEFAULT_SUFFIX);
+    } else {
+      handleChange("delaisPaie", "autre");
+      const { days, suffix } = parseCustomDelay(delay);
+      handleChange("customDelaisDays", days);
+      handleChange("customDelaisSuffix", suffix);
+    }
   };
 
   // validation des champs obligatoires avant de passer à l'étape suivante
@@ -62,7 +101,9 @@ const ClientInformationsStep = ({
       const re = /\S+@\S+\.\S+/;
       if (!re.test(invoice.client.email)) missing.push("Adresse mail (format invalide)");
     }
-
+    if (invoice.client.delaisPaie === "autre" && (!invoice.client.customDelaisDays || !/^\d+$/.test(invoice.client.customDelaisDays))) {
+      missing.push("Délai de paiement (jours invalides)");
+    }
     return missing;
   };
 
@@ -150,6 +191,49 @@ const ClientInformationsStep = ({
               onChange={(e) => handleChange("phone", e.target.value)}
             />
           </div>
+          <div className="flex flex-col gap-2 mt-2">
+            <p className="font-medium text-sm text-[#3F3F3F]">Délai de paiement</p>
+            <select
+              className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              value={invoice.client.delaisPaie || "comptant"}
+              onChange={(e) => handleChange("delaisPaie", e.target.value)}
+            >
+              <option value="comptant">Comptant</option>
+              <option value="30 jours">30 jours</option>
+              <option value="45 jours">45 jours</option>
+              <option value="60 jours">60 jours</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+          {invoice.client.delaisPaie === "autre" && (
+            <div className="flex flex-col gap-2 md:flex-row md:gap-4 page-appear-animation">
+              <div className="flex-1 flex flex-col gap-1">
+                <label className="font-medium text-sm text-[#3F3F3F]">Jours</label>
+                <input
+                  className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  value={invoice.client.customDelaisDays || ""}
+                  onChange={(e) => handleChange("customDelaisDays", e.target.value.replace(/[^0-9]/g, ""))}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="30"
+                />
+              </div>
+              <div className="flex-1 flex flex-col gap-1">
+                <label className="font-medium text-sm text-[#3F3F3F]">Complément</label>
+                <select
+                  className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  value={invoice.client.customDelaisSuffix || DEFAULT_SUFFIX}
+                  onChange={(e) => handleChange("customDelaisSuffix", e.target.value)}
+                >
+                  {CUSTOM_DELAY_SUFFIXES.map((option) => (
+                    <option key={option.value || "default"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-1">
             <p className="text-[#FF6767]">*</p>

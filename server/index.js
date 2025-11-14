@@ -4,6 +4,14 @@ import path from "path";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import "dotenv/config";
+
+import "./model/contactModel.js";
+import "./model/userModel.js";
+import "./model/orderModel.js";
+import "./model/invoiceModel.js";
+import "./model/eventModel.js";
+import "./model/magazineModel.js";
+
 import { router as userRouter } from "./routes/userRoute.js";
 import { router as invoiceRouter } from "./routes/invoiceRoute.js";
 import { router as contactRouter } from "./routes/contactRoute.js";

@@ -193,11 +193,21 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
   generateTableRow(doc, currentPosition, "", "", "TOTAL À PAYER (TTC)", `${formatPrice(totalTTC)} €`);
   currentPosition += 40;
 
+  let paymentTermsText = "Total dû à réception de la commande."; 
+  if (client && client.delaisPaie) {
+    if (client.delaisPaie.toLowerCase() === 'comptant') {
+      paymentTermsText = "Total dû comptant à réception de la commande.";
+    } else {
+      paymentTermsText = `Total dû dans un délai de ${client.delaisPaie}.`;
+    }
+  }
+
   doc
     .font("Helvetica")
     .fontSize(9)
     .text("Veuillez rédiger tous les chèques à l'ordre de V.A. PRODUCTIONS.", 50, currentPosition)
-    .text("Total dû dans un délai de 15 jours. Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, currentPosition + 12);
+    .text(paymentTermsText, 50, currentPosition + 12)
+    .text("Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, currentPosition + 24);
   currentPosition += 50;
   
   doc.font("Helvetica-Bold").fontSize(12).text("MERCI DE VOTRE CONFIANCE !", 50, currentPosition, { align: "center" });

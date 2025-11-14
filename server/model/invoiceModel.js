@@ -30,7 +30,7 @@ const invoiceShema = new mongoose.Schema({
   client: {
     type: Schema.Types.ObjectId,
     required: true,
-    ref: 'Client'
+    ref: 'Contact'
   },
   entreprise: {
     type: String,
@@ -39,6 +39,7 @@ const invoiceShema = new mongoose.Schema({
   number: {
     type: Number,
     required: true,
+    unique: true
   },
   date: {
     type: Date,
