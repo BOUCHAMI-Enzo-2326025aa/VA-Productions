@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { Trash2 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
+import refreshIcon from "../../assets/SaveIcon.svg";
 
 const emptyRow = () => ({
   compte: "",
@@ -327,18 +329,28 @@ const Charge = () => {
                       <button
                         type="button"
                         onClick={() => handleSaveRow(index)}
-                        className="rounded-md bg-green-500 px-3 py-1 text-xs font-semibold text-white hover:bg-green-600 transition disabled:cursor-not-allowed disabled:bg-green-300"
+                        className="flex h-9 w-9 items-center justify-center rounded-md bg-green-500 transition hover:bg-green-600 disabled:cursor-not-allowed disabled:bg-green-300"
                         disabled={!row.isDirty || savingRowId === (row._id || `temp-${index}`)}
+                        aria-label="Enregistrer la charge"
                       >
-                        {savingRowId === (row._id || `temp-${index}`) ? "En cours..." : "Enregistrer"}
+                        {savingRowId === (row._id || `temp-${index}`) ? (
+                          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                        ) : (
+                          <img src={refreshIcon} alt="" className="h-4 w-4" />
+                        )}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleRemoveRow(index)}
-                        className="rounded-md border border-red-200 px-3 py-1 text-xs font-semibold text-red-500 hover:bg-red-50 transition disabled:cursor-not-allowed"
+                        className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed"
                         disabled={savingRowId === (row._id || `temp-${index}`)}
+                        aria-label="Supprimer la charge"
                       >
-                        Supprimer
+                        {savingRowId === (row._id || `temp-${index}`) ? (
+                          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-r-transparent" />
+                        ) : (
+                          <Trash2 size={16} strokeWidth={1.75} />
+                        )}
                       </button>
                     </div>
                   </td>
