@@ -104,6 +104,12 @@ const ClientInformationsStep = ({
     if (invoice.client.delaisPaie === "autre" && (!invoice.client.customDelaisDays || !/^\d+$/.test(invoice.client.customDelaisDays))) {
       missing.push("Délai de paiement (jours invalides)");
     }
+    // Validation des champs de facturation
+    if (!invoice.client.city || invoice.client.city.trim() === "") missing.push("Ville");
+    if (!invoice.client.postalCode || invoice.client.postalCode.trim() === "")
+      missing.push("Code postal");
+    if (!invoice.client.address1 || invoice.client.address1.trim() === "")
+      missing.push("Adresse 1");
     return missing;
   };
 
@@ -194,7 +200,7 @@ const ClientInformationsStep = ({
           <div className="flex flex-col gap-2 mt-2">
             <p className="font-medium text-sm text-[#3F3F3F]">Délai de paiement</p>
             <select
-              className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400 text-[#3F3F3F]"
               value={invoice.client.delaisPaie || "comptant"}
               onChange={(e) => handleChange("delaisPaie", e.target.value)}
             >
@@ -210,7 +216,7 @@ const ClientInformationsStep = ({
               <div className="flex-1 flex flex-col gap-1">
                 <label className="font-medium text-sm text-[#3F3F3F]">Jours</label>
                 <input
-                  className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400 text-[#3F3F3F]"
                   value={invoice.client.customDelaisDays || ""}
                   onChange={(e) => handleChange("customDelaisDays", e.target.value.replace(/[^0-9]/g, ""))}
                   inputMode="numeric"
@@ -221,7 +227,7 @@ const ClientInformationsStep = ({
               <div className="flex-1 flex flex-col gap-1">
                 <label className="font-medium text-sm text-[#3F3F3F]">Complément</label>
                 <select
-                  className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400 text-[#3F3F3F]"
                   value={invoice.client.customDelaisSuffix || DEFAULT_SUFFIX}
                   onChange={(e) => handleChange("customDelaisSuffix", e.target.value)}
                 >
@@ -238,6 +244,46 @@ const ClientInformationsStep = ({
           <div className="flex gap-1">
             <p className="text-[#FF6767]">*</p>
             <p className="text-[#3F3F3F] opacity-50">Champs obligatoires</p>
+          </div>
+
+          {/* Section Informations de facturation */}
+          <div className="mt-8 pt-6 border-t-2 border-gray-200">
+            <div className="flex gap-1 items-center mb-4">
+              <svg className="size-[28px] fill-[#3F3F3F]" viewBox="0 -960 960 960">
+                <path d="M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z" />
+              </svg>
+              <p className="text-[#3F3F3F] font-bold text-lg">Informations de facturation</p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-2">
+                <InvoiceInput
+                  title={"Ville"}
+                  mandatory={true}
+                  value={invoice.client.city}
+                  onChange={(e) => handleChange("city", e.target.value)}
+                />
+                <InvoiceInput
+                  title={"Code postal"}
+                  value={invoice.client.postalCode}
+                  mandatory={true}
+                  onChange={(e) => handleChange("postalCode", e.target.value)}
+                />
+              </div>
+
+              <InvoiceInput
+                title={"Adresse 1"}
+                value={invoice.client.address1}
+                mandatory={true}
+                onChange={(e) => handleChange("address1", e.target.value)}
+              />
+              <InvoiceInput
+                title={"Adresse 2 - Facultatif"}
+                value={invoice.client.address2}
+                mandatory={false}
+                onChange={(e) => handleChange("address2", e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="flex items-center mt-5 gap-2">
