@@ -72,37 +72,26 @@ export const getInvoicesPdf = async (req, res) => {
     const invoice = await Invoice.findById(id);
 
     if (!invoice) {
-      return res.status(404).send("Facture non trouvée.");
+      return res.status(404).json({ error: "Facture non trouvée." });
     }
 
-    const contact = await Contact.findById(invoice.client); 
-
-    if (!contact) {
-      console.warn(`Contact non trouvé pour la facture ${id}. Le délai de paiement sera par défaut.`);
-    }
-
-    const pdfData = {
-      ...invoice.toObject(),
-      delaisPaie: contact ? contact.delaisPaie : "15 jours" 
-    };
-
-    const fileName = `${invoice.entreprise.toUpperCase()}-${invoice.number}.pdf`;
-    const filePath = path.resolve(process.cwd(), `./invoices/${fileName}`);
+    const fileName = `${invoice.number}_${invoice.entreprise.toUpperCase() || "facture"}.pdf`;
+    const filePath = path.resolve(process.cwd(), "invoices", fileName);
 
     if (fs.existsSync(filePath)) {
-      console.log("Envoi du fichier PDF existant :", filePath);
       res.setHeader("Content-Type", "application/pdf");
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
-      return; 
+      res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
+      fs.createReadStream(filePath).pipe(res);
+    } else {
+     
+      console.warn(`PDF non trouvé pour la facture ${invoice.number}, tentative de régénération...`);
+  
+      await createInvoice(invoice.toObject(), res, invoice.number, invoice.tva);
     }
-
-    console.log("Création du fichier PDF manquant...");
-    await createInvoice(pdfData, res, invoice.number, invoice.tva);
 
   } catch (error) {
     console.error("Erreur lors de l'envoi du PDF de la facture :", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    res.status(500).json({ error: "Erreur interne du serveur." });
   }
 };
 
