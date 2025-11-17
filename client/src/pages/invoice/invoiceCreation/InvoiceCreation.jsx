@@ -27,6 +27,9 @@ const InvoiceCreation = () => {
       address2: "",
       city: "",
       postalCode: "",
+      delaisPaie: "comptant", 
+      customDelaisDays: "",    
+      customDelaisSuffix: "", 
       totalPrice: 0,
       support: [],
       signature: null,
@@ -87,8 +90,22 @@ const InvoiceCreation = () => {
     increaseStep(); 
     setLoading(true);
 
+    let finalDelaisPaie = invoice.client.delaisPaie;
+    if (invoice.client.delaisPaie === "autre") {
+      const days = (invoice.client.customDelaisDays || "").trim();
+      const suffix = (invoice.client.customDelaisSuffix || "").trim();
+      if (days) {
+        finalDelaisPaie = `${days} jours${suffix ? ` ${suffix}` : ""}`;
+      } else {
+        finalDelaisPaie = "comptant"; 
+      }
+    }
+
     const totalPrice = invoice.client.support.reduce((sum, item) => sum + (item.price || 0), 0);
-    const updatedClientData = { ...invoice.client, totalPrice };
+    const updatedClientData = { ...invoice.client, totalPrice, delaisPaie: finalDelaisPaie };
+
+    delete updatedClientData.customDelaisDays;
+    delete updatedClientData.customDelaisSuffix;
 
     const tva = { percentage: TVA_PERCENTAGE };
 

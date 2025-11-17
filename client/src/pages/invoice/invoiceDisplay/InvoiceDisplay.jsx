@@ -12,6 +12,7 @@ const InvoiceDisplay = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [clientList, setClientList] = useState([]);
+  const [showOverdueOnly, setShowOverdueOnly] = useState(false);
   const [filter, setFilter] = useState({
     support: [],
     compagnies: [],
@@ -20,15 +21,50 @@ const InvoiceDisplay = () => {
     status: [],
   });
 
-  const fetchInvoices = async () => {
-    await axios
-      .get(import.meta.env.VITE_API_HOST + "/api/invoice")
-      .then((response) => {
-        setInvoices(response.data);
-        setInvoicesToShow(response.data);
-        setIsLoading(false);
-      });
+  const fetchOverdueInvoices = () => {
+    setShowOverdueOnly(true);
+    const overdueInvoices = invoices.filter(inv => inv.isOverdue);
+    setInvoicesToShow(overdueInvoices);
   };
+
+  // Fonction pour réinitialiser les filtres
+  const resetAllFilters = () => {
+      deleteFilter();
+      setShowOverdueOnly(false);
+      setInvoicesToShow(invoices);
+  }
+
+  const fetchInvoices = async () => {
+    setIsLoading(true);
+    try {
+      // On récupère toutes les factures
+      const invoicesResponse = await axios.get(import.meta.env.VITE_API_HOST + "/api/invoice");
+      // On récupère seulement les factures en retard
+      const overdueResponse = await axios.get(import.meta.env.VITE_API_HOST + "/api/invoice/overdue");
+      const allInvoices = invoicesResponse.data;
+      const overdueIds = new Set(overdueResponse.data.map(inv => inv._id));
+      const invoicesWithStatus = allInvoices.map(invoice => ({
+        ...invoice,
+        isOverdue: overdueIds.has(invoice._id)
+      }));
+      
+      // On trie pour mettre les factures en retard en haut de la liste
+      invoicesWithStatus.sort((a, b) => {
+        if (a.isOverdue && !b.isOverdue) return -1;
+        if (!a.isOverdue && b.isOverdue) return 1;
+        return new Date(b.date) - new Date(a.date); 
+      });
+
+      setInvoices(invoicesWithStatus);
+      setInvoicesToShow(invoicesWithStatus);
+
+    } catch (error) {
+      console.error("Erreur lors de la récupération des factures :", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   const fetchAllClients = async () => {
     axios
@@ -126,6 +162,22 @@ const InvoiceDisplay = () => {
           className={"!h-full !py-0 mr-auto text-sm w-[170px]"}
           onClickFunction={() => setIsFilterOpen(!isFilterOpen)}
         />
+
+        <InvoiceButton
+          value={"En retard"}
+          className={`!h-full !py-0 text-sm w-[170px] ${showOverdueOnly ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-600'}`}
+          onClickFunction={fetchOverdueInvoices}
+        />
+        
+        {(isFilterOpen || showOverdueOnly) && (
+            <button
+                onClick={resetAllFilters}
+                className="text-sm text-blue-500 hover:underline whitespace-nowrap ml-2"
+            >
+                Réinitialiser tout
+            </button>
+        )}
+
         {isFilterOpen && (
           <FilterModal
             filter={filter}

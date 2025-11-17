@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import PDFDocument from "pdfkit";
+import Contact from "../model/contactModel.js";
 
 async function createInvoice(facture, res, number, tva = 0.2) {
   const invoicesDir = "./invoices";
@@ -11,8 +12,7 @@ async function createInvoice(facture, res, number, tva = 0.2) {
   }
 
   const fileName = `${number}_${
-    facture?.entreprise?.toUpperCase() || "facture"
-  }.pdf`;
+    facture?.entreprise?.toUpperCase() || "facture"}.pdf`;
   const filePath = path.join(invoicesDir, fileName);
 
   const doc = new PDFDocument({ margin: 50 });
@@ -30,34 +30,32 @@ async function createInvoice(facture, res, number, tva = 0.2) {
   generateHeader(doc, facture, number);
   generateInvoiceTable(doc, facture, tva);
 
-  // Terminer le document
   doc.end();
-
-  // Attendre la fin de l'écriture
   await streamFinished;
 
-  // Envoi du fichier généré
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${encodeURIComponent(fileName)}"`
-  );
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Cache-Control", "no-store");
-  res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+  if (res) {
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
 
-  // Envoyer le fichier
-  res.download(filePath, fileName, (err) => {
-    if (err) {
-      console.error("Erreur lors de l'envoi du fichier PDF :", err);
-      res.status(500).send("Erreur lors de l'envoi du fichier PDF.");
-    } else {
-      console.log("Fichier envoyé avec succès :", fileName);
-    }
-  });
+    res.download(filePath, fileName, (err) => {
+      if (err) {
+        console.error("Erreur lors de l'envoi du fichier PDF :", err);
+        if (!res.headersSent) {
+          res.status(500).send("Erreur lors de l'envoi du fichier PDF.");
+        }
+      } else {
+        console.log("Fichier envoyé avec succès :", fileName);
+      }
+    });
+  } else {
+    console.log(`Fichier PDF de facture généré et sauvegardé : ${fileName}`);
+  }
 }
 
 function generateHeader(doc, facture, number) {
-  const currentDate = new Date();
+  const currentDate = new Date(facture.date);
   const formattedDate = currentDate.toLocaleDateString("fr-FR");
   doc
     .image("assets/Logo VA.jpg", 50, 50, { width: 150 })
@@ -195,6 +193,16 @@ function generateInvoiceTable(doc, facture, tva) {
     );
 
     const totalPosition = tvaPosition + 20;
+
+     let paymentTermsText = "Total dû à réception de la facture.";
+    if (facture && facture.delaisPaie) {
+      if (facture.delaisPaie.toLowerCase() === 'comptant') {
+        paymentTermsText = "Total dû comptant à réception de la facture.";
+      } else {
+        paymentTermsText = `Total dû dans un délai de ${facture.delaisPaie}.`;
+      }
+    }
+    
     doc.font("Helvetica-Bold");
     generateTableRow(
       doc,
@@ -205,25 +213,37 @@ function generateInvoiceTable(doc, facture, tva) {
       "TOTAL",
       formatPrice(total) + " €"
     );
+
     doc
       .font("Helvetica")
+      .fontSize(10)
       .text(
         "Veuillez rédiger tous les chèques à l'ordre de V.A. PRODUCTIONS.",
         50,
         totalPosition + 50,
         { align: "left" }
       )
+      .text(paymentTermsText, 50, totalPosition + 65, { align: "left" })
       .text(
-        "Total dû dans un délai de 15 jours. Comptes en souffrance soumis à des frais de service de 1 % par mois.",
+        "Comptes en souffrance soumis à des frais de service de 1 % par mois.",
         50,
-        totalPosition + 60,
+        totalPosition + 80,
         { align: "left" }
       )
       .font("Helvetica-Bold")
-      .text("MERCI DE VOTRE CONFIANCE !", 50, totalPosition + 100, {
+      .text("MERCI DE VOTRE CONFIANCE !", 50, totalPosition + 110, {
         align: "center",
       });
   } else {
+     let paymentTermsText = "Total dû dans un délai de 15 jours."; 
+    if (contact && contact.delaisPaie) {
+      if (contact.delaisPaie.toLowerCase() === 'comptant') {
+        paymentTermsText = "Total dû comptant à réception de la facture.";
+      } else {
+        paymentTermsText = `Total dû dans un délai de ${contact.delaisPaie}.`;
+      }
+    }
+
     doc
       .font("Helvetica")
       .text("Aucun support à facturer !", 50, 330, { align: "center" })
@@ -233,14 +253,10 @@ function generateInvoiceTable(doc, facture, tva) {
         380,
         { align: "left" }
       )
-      .text(
-        "Total dû dans un délai de 15 jours. Comptes en souffrance soumis à des frais de service de 1 % par mois.",
-        50,
-        390,
-        { align: "left" }
-      )
+      .text(paymentTermsText, 50, 390, { align: "left" })
+      .text("Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, 400, { align: "left" })
       .font("Helvetica-Bold")
-      .text("MERCI DE VOTRE CONFIANCE ! ", 50, 400, {
+      .text("MERCI DE VOTRE CONFIANCE ! ", 50, 420, {
         align: "center",
       });
   }
