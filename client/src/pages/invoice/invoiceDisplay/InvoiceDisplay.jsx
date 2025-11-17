@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import InvoiceButton from "../component/InvoiceButton";
-import ExportInvoiceButton from "./exportInvoiceButton";
 import InvoiceList from "./InvoiceList";
 import InvoiceNumbers from "./invoiceNumbers/InvoiceNumbers";
 import axios from "axios";
@@ -12,7 +11,6 @@ const InvoiceDisplay = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [clientList, setClientList] = useState([]);
-  const [showOverdueOnly, setShowOverdueOnly] = useState(false);
   const [filter, setFilter] = useState({
     support: [],
     compagnies: [],
@@ -20,19 +18,6 @@ const InvoiceDisplay = () => {
     end: "",
     status: [],
   });
-
-  const fetchOverdueInvoices = () => {
-    setShowOverdueOnly(true);
-    const overdueInvoices = invoices.filter(inv => inv.isOverdue);
-    setInvoicesToShow(overdueInvoices);
-  };
-
-  // Fonction pour réinitialiser les filtres
-  const resetAllFilters = () => {
-      deleteFilter();
-      setShowOverdueOnly(false);
-      setInvoicesToShow(invoices);
-  }
 
   const fetchInvoices = async () => {
     setIsLoading(true);
@@ -85,20 +70,39 @@ const InvoiceDisplay = () => {
 
   const filterInvoices = () => {
     setIsFilterOpen(false);
+    
+    const { start, end, status, support, compagnies } = filter;
+
     const filteredInvoices = invoices.filter((invoice) => {
-      return (
-        (filter.start === "" || new Date(invoice.date) >= filter.start) &&
-        (filter.end === "" || new Date(invoice.date) <= filter.end) &&
-        (filter.status.length === 0 ||
-          filter.status.includes(invoice.status)) &&
-        (filter.support.length === 0 ||
-          invoice.supportList.some((support) =>
-            filter.support.includes(support.supportName)
-          )) &&
-        (filter.compagnies.length === 0 ||
-          filter.compagnies.includes(invoice.entreprise))
-      );
+      const dateMatch = (start === "" || new Date(invoice.date) >= start) && (end === "" || new Date(invoice.date) <= end);
+      if (!dateMatch) return false;
+      const supportMatch = support.length === 0 || invoice.supportList.some((s) => support.includes(s.supportName));
+      if (!supportMatch) return false;
+      const companyMatch = compagnies.length === 0 || compagnies.includes(invoice.entreprise);
+      if (!companyMatch) return false;
+
+      if (status.length > 0) {
+        const wantsPaid = status.includes("paid");
+        const wantsUnpaid = status.includes("unpaid");
+        const wantsOverdue = status.includes("overdue");
+
+        if (invoice.status === 'paid') {
+          return wantsPaid; 
+        }
+
+        if (invoice.status === 'unpaid') {
+          if (invoice.isOverdue) {
+            // facture "Impayé"
+            return wantsOverdue; 
+          } else {
+            // facture "Non Payé" (dans les temps)
+            return wantsUnpaid;
+          }
+        }
+      }
+      return true;
     });
+
     setInvoicesToShow(filteredInvoices);
   };
 
@@ -110,25 +114,15 @@ const InvoiceDisplay = () => {
   };
 
   const deleteFilter = () => {
-    setFilter({
-      support: [],
-      start: "",
-      end: "",
-      status: [],
-      compagnies: [],
-    });
+    setFilter({ support: [], compagnies: [], start: "", end: "", status: [] });
+    setInvoicesToShow(invoices); 
     setIsFilterOpen(false);
-    setInvoicesToShow(invoices);
   };
 
   useEffect(() => {
     fetchInvoices();
     fetchAllClients();
   }, []);
-
-  useEffect(() => {
-    filterInvoices();
-  }, [invoices]);
 
   return (
     <div>
@@ -162,21 +156,6 @@ const InvoiceDisplay = () => {
           className={"!h-full !py-0 mr-auto text-sm w-[170px]"}
           onClickFunction={() => setIsFilterOpen(!isFilterOpen)}
         />
-
-        <InvoiceButton
-          value={"Impayés"}
-          className={`!h-full !py-0 text-sm w-[170px] ${showOverdueOnly ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-600'}`}
-          onClickFunction={fetchOverdueInvoices}
-        />
-        
-        {(isFilterOpen || showOverdueOnly) && (
-            <button
-                onClick={resetAllFilters}
-                className="text-sm text-blue-500 hover:underline whitespace-nowrap ml-2"
-            >
-                Réinitialiser tout
-            </button>
-        )}
 
         {isFilterOpen && (
           <FilterModal

@@ -92,9 +92,7 @@ const InvoiceList = ({ invoices, setInvoices }) => {
             return (
               <tr 
                 key={invoice._id} 
-                className={`text-center font-medium text-sm ${
-                  isOverdue ? 'bg-red-100 text-red-800 font-bold' : ''
-                }`}
+                 className="text-center font-medium text-sm"
               >
                 <td className="table-cell-padding cursor-pointer text-[#3399CC] text-center ">
                   {invoice.number.toString().padStart(5, "0") +
@@ -105,9 +103,15 @@ const InvoiceList = ({ invoices, setInvoices }) => {
                 <td className="table-cell-padding">
                   <div className="flex items-center justify-center space-x-2">
                     <span className={`h-2 w-2 rounded-full ${
-                      invoice.status === 'paid' ? 'bg-green-500' : isOverdue ? 'bg-red-500' : 'bg-yellow-500' // Pastille rouge plus foncée si en retard
+                      invoice.status === 'paid' ? 'bg-green-500' : isOverdue ? 'bg-red-500' : 'bg-yellow-500' 
                     }`}></span>
-                    <span>{invoice.status === "paid" ? "Payé" : "Non Payé"}</span>
+                    <span>
+                      {invoice.status === "paid" 
+                        ? "Payé" 
+                        : isOverdue 
+                          ? "Impayé" 
+                          : "Non Payé"}
+                    </span>
                   </div>
                 </td>
                 <td className="table-cell-padding">

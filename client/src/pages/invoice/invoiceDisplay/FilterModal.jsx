@@ -65,7 +65,14 @@ const FilterModal = ({
             checked={filter.status.includes("unpaid")}
           />
         </div>
-        
+         <div className="flex items-center justify-between w-[100px]">
+          Impayé
+          <input
+            type="checkbox"
+            onChange={(e) => handleCheckboxChange("overdue", e)} 
+            checked={filter.status.includes("overdue")}
+          />
+        </div>
         {/*
         <div className="flex items-center justify-between w-[100px]">
           En cours
