@@ -92,9 +92,7 @@ const InvoiceList = ({ invoices, setInvoices }) => {
             return (
               <tr 
                 key={invoice._id} 
-                className={`text-center font-medium text-sm ${
-                  isOverdue ? 'bg-red-100 text-red-800 font-bold' : ''
-                }`}
+                 className="text-center font-medium text-sm"
               >
                 <td className="table-cell-padding cursor-pointer text-[#3399CC] text-center ">
                   {invoice.number.toString().padStart(5, "0") +
