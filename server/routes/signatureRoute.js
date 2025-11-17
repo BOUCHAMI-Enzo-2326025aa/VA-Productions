@@ -1,7 +1,7 @@
 import express from "express";
 import { getSignature, updateSignature } from "../controller/signatureController.js";
-import { authorize } from "../middleware/authorize.js";
-import { Roles } from "../utils/roles.js";
+import { authorize } from "../middleware/auth.js";
+import { Roles } from "../utils/Roles.js";
 
 const router = express.Router();
 

@@ -31,7 +31,7 @@ export const getSignature = async (req, res) => {
 export const updateSignature = async (req, res) => {
   try {
     const { signatureData } = req.body;
-    const userId = req.userId; // Extrait du token par le middleware authorize
+    const userId = req.user._id; // Extrait du token par le middleware authorize
 
     if (!signatureData) {
       return res.status(400).json({ 
