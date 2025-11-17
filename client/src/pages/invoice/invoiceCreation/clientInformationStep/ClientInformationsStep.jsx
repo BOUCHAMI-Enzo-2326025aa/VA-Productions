@@ -17,6 +17,23 @@ const CUSTOM_DELAY_SUFFIXES = [
 
 const DEFAULT_SUFFIX = CUSTOM_DELAY_SUFFIXES[0].value;
 
+const TVA_OPTIONS = ["20", "10", "5.5", "2.1"];
+const DEFAULT_TVA_OPTION = TVA_OPTIONS[0];
+
+const resolveTvaOption = (fractionalValue) => {
+  if (fractionalValue === "" || fractionalValue == null) {
+    return DEFAULT_TVA_OPTION;
+  }
+
+  const percent = Number(fractionalValue) * 100;
+  if (!Number.isFinite(percent)) {
+    return DEFAULT_TVA_OPTION;
+  }
+
+  const match = TVA_OPTIONS.find((option) => Math.abs(Number(option) - percent) < 0.001);
+  return match ?? DEFAULT_TVA_OPTION;
+};
+
 const parseCustomDelay = (value) => {
   if (!value) return { days: "", suffix: DEFAULT_SUFFIX };
   const match = value.match(/^(\d+)\s+jours(?:\s+(.*))?$/i);
@@ -33,27 +50,19 @@ const ClientInformationsStep = ({
   changeTVA,
 }) => {
   // affichage local (en %) pour rendre le champ vraiment modifiable
-  const [displayTva, setDisplayTva] = useState(() =>
-    invoice.TVA_PERCENTAGE === "" || invoice.TVA_PERCENTAGE == null
-      ? 20
-      : Number(invoice.TVA_PERCENTAGE) * 100
-  );
+  const [displayTva, setDisplayTva] = useState(() => resolveTvaOption(invoice.TVA_PERCENTAGE));
 
   // initialise la TVA stockée côté parent à 20% si elle est absente
   useEffect(() => {
     if (invoice.TVA_PERCENTAGE === "" || invoice.TVA_PERCENTAGE == null) {
-      changeTVA(0.2);
+      changeTVA(Number(DEFAULT_TVA_OPTION) / 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // si la valeur côté parent change, on met à jour l'affichage
   useEffect(() => {
-    const pct =
-      invoice.TVA_PERCENTAGE === "" || invoice.TVA_PERCENTAGE == null
-        ? 20
-        : Number(invoice.TVA_PERCENTAGE) * 100;
-    setDisplayTva(pct);
+    setDisplayTva(resolveTvaOption(invoice.TVA_PERCENTAGE));
   }, [invoice.TVA_PERCENTAGE]);
 
   const selectContact = (e) => {
@@ -241,27 +250,25 @@ const ClientInformationsStep = ({
           </div>
 
           <div className="flex items-center mt-5 gap-2">
-            <label htmlFor="tvaCheckbox" className="ml-2 text-[#3F3F3F]">
+            <label htmlFor="tvaSelect" className="ml-2 text-[#3F3F3F]">
               TVA
             </label>
-            <div className="flex items-center">
-              <input
-                type="number"
-                min="0"
-                className="rounded-sm border-[#E1E1E1] border-[3px] h-8 w-[60px] text-[#3F3F3F] text-center font-bold"
-                // affichage local modifiable en pourcentage 
-                value={displayTva}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  setDisplayTva(raw);
-                  // stocke la TVA en fraction (ex: 20 -> 0.2), arrondie au centième près
-                  const fraction = raw / 100;
-                  const rounded = Math.round(fraction * 100) / 100;
-                  changeTVA(rounded);
-                }}
-              />
-              <span className="ml-2 text-sm text-[#3F3F3F]">%</span>
-            </div>
+            <select
+              id="tvaSelect"
+              className="rounded-sm border-[#E1E1E1] border-[3px] h-8 w-[90px] px-3 text-center text-[#3F3F3F] font-bold"
+              value={displayTva}
+              onChange={(e) => {
+                const selected = e.target.value;
+                setDisplayTva(selected);
+                changeTVA(Number(selected) / 100);
+              }}
+            >
+              {TVA_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option} %
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
