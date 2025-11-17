@@ -155,33 +155,6 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
   generateTableRow(doc, currentPosition, "", "", "SOUS-TOTAL (C.A.)", formatPrice(subTotalSupports) + " €");
   currentPosition += 25;
 
-  if (client.costs && client.costs.length > 0) {
-    const totalCosts = client.costs.reduce((sum, cost) => sum + toNumber(cost.amount), 0);
-    const netRevenue = subTotalSupports - totalCosts;
-
-    doc.font("Helvetica-Bold").text("FRAIS ASSOCIÉS", 50, currentPosition);
-    currentPosition += 15;
-    generateHr(doc, currentPosition);
-    currentPosition += 10;
-
-    doc.font("Helvetica");
-    client.costs.forEach((cost) => {
-      const description = cost?.description || cost?.label || cost?.name || "";
-      const amount = toNumber(cost?.amount);
-      generateTableRow(doc, currentPosition, description, "", "", `-${formatPrice(amount)} €`);
-      currentPosition += 20;
-    });
-    generateHr(doc, currentPosition);
-    currentPosition += 10;
-
-    doc.font("Helvetica-Bold");
-    generateTableRow(doc, currentPosition, "", "", "TOTAL FRAIS", `-${formatPrice(totalCosts)} €`);
-    currentPosition += 25;
-    
-    generateTableRow(doc, currentPosition, "", "", "BÉNÉFICE (HT)", `${formatPrice(netRevenue)} €`);
-    currentPosition += 25;
-  }
-
   const tvaRate = toNumber(tva);
   const tvaAmount = subTotalSupports * tvaRate;
   const totalTTC = subTotalSupports + tvaAmount;
@@ -193,11 +166,21 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
   generateTableRow(doc, currentPosition, "", "", "TOTAL À PAYER (TTC)", `${formatPrice(totalTTC)} €`);
   currentPosition += 40;
 
+  let paymentTermsText = "Total dû à réception de la commande."; 
+  if (client && client.delaisPaie) {
+    if (client.delaisPaie.toLowerCase() === 'comptant') {
+      paymentTermsText = "Total dû comptant à réception de la commande.";
+    } else {
+      paymentTermsText = `Total dû dans un délai de ${client.delaisPaie}.`;
+    }
+  }
+
   doc
     .font("Helvetica")
     .fontSize(9)
     .text("Veuillez rédiger tous les chèques à l'ordre de V.A. PRODUCTIONS.", 50, currentPosition)
-    .text("Total dû dans un délai de 15 jours. Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, currentPosition + 12);
+    .text(paymentTermsText, 50, currentPosition + 12)
+    .text("Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, currentPosition + 24);
   currentPosition += 50;
   
   doc.font("Helvetica-Bold").fontSize(12).text("MERCI DE VOTRE CONFIANCE !", 50, currentPosition, { align: "center" });

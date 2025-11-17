@@ -1,5 +1,4 @@
-import { useEffect, useState, useRef } from "react";
-import SignatureCanvas from "react-signature-canvas";
+import { useEffect, useState } from "react";
 import InfoComponent from "./sectionTitle/InfoComponent";
 import SectionTitle from "./sectionTitle/SectionTitle";
 import InvoiceButton from "../../component/InvoiceButton";
@@ -8,41 +7,23 @@ import InvoiceSummary from "../invoiceSummary/InvoiceSummary";
 const InvoiceConfirm = ({
   invoice,
   supportList,
-  costList,
   createOrder,
   returnFunction,
   TVA_PERCENTAGE,
-  handleChange,
 }) => {
   const [totalSupports, setTotalSupports] = useState(0);
-  const [totalCosts, setTotalCosts] = useState(0);
-  const signaturePadRef = useRef(null);
 
   useEffect(() => {
     const newTotalSupports = supportList.reduce((sum, s) => sum + (s.price || 0), 0);
-    const newTotalCosts = costList.reduce((sum, c) => sum + (c.amount || 0), 0);
     setTotalSupports(newTotalSupports);
-    setTotalCosts(newTotalCosts);
-  }, [supportList, costList]);
-
-  const clearSignature = () => {
-    if (signaturePadRef.current) {
-      signaturePadRef.current.clear();
-      handleChange("signature", null);
-    }
-  };
+  }, [supportList]);
 
   const handleConfirmOrder = () => {
-    if (signaturePadRef.current && signaturePadRef.current.isEmpty()) {
-      alert("Veuillez signer avant de confirmer la commande.");
-      return;
-    }
     createOrder();
   };
 
   const tvaAmount = totalSupports * TVA_PERCENTAGE;
   const totalToPay = totalSupports + tvaAmount;
-  const netRevenue = totalSupports - totalCosts;
 
   return (
     <div className="bg-white w-full h-full py-8 px-9 rounded-md flex min-h-[600px] page-appear-animation">
@@ -76,32 +57,10 @@ const InvoiceConfirm = ({
           <InfoComponent name={"ADRESSE 1"} value={invoice.client.address1} />
           <InfoComponent name={"ADRESSE 2"} value={invoice.client.address2} />
         </div>
-        <SectionTitle title={"Signature"} className={"mt-10"} 
-        svg={
-          <svg
-              xmlns="http://www.w3.org/2000/svg"
-              height="24px"
-              viewBox="0 -960 960 960"
-              width="24px"
-              fill="#5f6368"
-            >
-              <path d="m499-287 335-335-52-52-335 335 52 52Zm-261 87q-100-5-149-42T40-349q0-65 53.5-105.5T242-503q39-3 58.5-12.5T320-542q0-26-29.5-39T193-600l7-80q103 8 151.5 41.5T400-542q0 53-38.5 83T248-423q-64 5-96 23.5T120-349q0 35 28 50.5t94 18.5l-4 80Zm280 7L353-358l382-382q20-20 47.5-20t47.5 20l70 70q20 20 20 47.5T900-575L518-193Zm-159 33q-17 4-30-9t-9-30l33-159 165 165-159 33Z" />
-            </svg>
-        }
-        />
-        <div className="mt-4 w-full ">
-          <SignatureCanvas
-            ref={signaturePadRef}
-            penColor="black"
-            onEnd={() => handleChange("signature", signaturePadRef.current.toDataURL())}
-            canvasProps={{ className: "border border-gray-300 rounded w-full h-40" }}
-          />
-          <InvoiceButton
-            value={"Effacer"}
-            className={" py-3 mt-1 !w-full "}
-            primary={false}
-            onClickFunction={clearSignature}
-          />
+
+        <div className="mt-8 text-center text-sm text-gray-600">
+          <p className="font-semibold">La signature de l'entreprise sera automatiquement ajoutée au bon de commande.</p>
+          <p className="mt-1 opacity-70">Les administrateurs peuvent la modifier dans les paramètres.</p>
         </div>
       </div>
 
@@ -115,7 +74,7 @@ const InvoiceConfirm = ({
             </svg>
           }
           />
-        <InvoiceSummary supportList={supportList} costList={costList} />
+        <InvoiceSummary supportList={supportList} />
 
         <div className="flex flex-col text-[#3F3F3F] w-full justify-end h-full items-end mt-5">
           <table className="w-full text-right">
@@ -123,16 +82,6 @@ const InvoiceConfirm = ({
               <tr>
                 <td className="opacity-70 pr-4">SOUS-TOTAL (C.A.)</td>
                 <td className="font-semibold">{totalSupports.toFixed(2)} €</td>
-              </tr>
-              {totalCosts > 0 && (
-                <tr className="text-red-600">
-                  <td className="opacity-70 pr-4">TOTAL DES FRAIS</td>
-                  <td className="font-semibold">- {totalCosts.toFixed(2)} €</td>
-                </tr>
-              )}
-              <tr className="border-t mt-2 pt-2">
-                <td className="opacity-70 pr-4 pt-2 font-bold">BÉNÉFICE (HT)</td>
-                <td className="font-bold pt-2">{netRevenue.toFixed(2)} €</td>
               </tr>
               <tr className="text-gray-500">
                 <td className="opacity-70 pr-4 pt-4">TAUX DE T.V.A</td>

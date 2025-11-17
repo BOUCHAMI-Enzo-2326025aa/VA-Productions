@@ -15,22 +15,11 @@ const SupportSchema = new Schema({
   },
 });
 
-const CostSchema = new Schema({
-  description: {
-    type: String,
-    required: true,
-  },
-  amount: {
-    type: Number,
-    required: true,
-  }
-});
-
 const invoiceShema = new mongoose.Schema({
   client: {
     type: Schema.Types.ObjectId,
     required: true,
-    ref: 'Client'
+    ref: 'Contact'
   },
   entreprise: {
     type: String,
@@ -39,6 +28,7 @@ const invoiceShema = new mongoose.Schema({
   number: {
     type: Number,
     required: true,
+    unique: true
   },
   date: {
     type: Date,
@@ -77,10 +67,6 @@ const invoiceShema = new mongoose.Schema({
     required: true,
     default: 0.2
   },
-  costs: {
-    type: [CostSchema],
-    default: []
-  }
 });
 
 let Invoice = mongoose.model("Facture", invoiceShema);

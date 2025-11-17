@@ -4,6 +4,14 @@ import path from "path";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import "dotenv/config";
+
+import "./model/contactModel.js";
+import "./model/userModel.js";
+import "./model/orderModel.js";
+import "./model/invoiceModel.js";
+import "./model/eventModel.js";
+import "./model/magazineModel.js";
+
 import { router as userRouter } from "./routes/userRoute.js";
 import { router as invoiceRouter } from "./routes/invoiceRoute.js";
 import { router as contactRouter } from "./routes/contactRoute.js";
@@ -12,6 +20,7 @@ import { router as magazineRouter } from "./routes/magazineRoute.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import googleCalendarRouter from "./routes/googleCalendarRoute.js";
 import chargeRouter from "./routes/chargeRoute.js";
+import signatureRouter from "./routes/signatureRoute.js";
 //import nodemailer from "nodemailer";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,7 +46,8 @@ app.use(cors({
   credentials: true, 
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Servir les images des magazines uploadées
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -50,6 +60,7 @@ app.use("/api/order", orderRouter);
 app.use("/api/magazine", magazineRouter);
 app.use("/api/google", googleCalendarRouter);
 app.use("/api/charge", chargeRouter);
+app.use("/api/signature", signatureRouter);
 
 
 app.listen(process.env.PORT, () => {

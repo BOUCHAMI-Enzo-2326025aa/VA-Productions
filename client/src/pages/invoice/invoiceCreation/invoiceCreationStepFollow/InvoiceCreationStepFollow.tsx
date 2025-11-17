@@ -25,12 +25,6 @@ const InvoiceCreationStepFollow = ({ step }: { step: number }) => {
           isLastStep={false}
         />
         <InvoiceStep
-          title={"Frais de la facture"}
-          subtitle={"Ajoutez les coûts et frais de sous-traitance"}
-          isComplete={step > 3}
-          isLastStep={false}
-        />
-        <InvoiceStep
           title={"Information de facturation"}
           subtitle={
             "Saisissez toutes les informations relatives au client et à la facture "

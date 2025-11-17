@@ -1,6 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
+const TVA_OPTIONS = ["20", "5.5", "10", "2.1"];
+const DEFAULT_TVA_OPTION = TVA_OPTIONS[0];
+
+const normaliseTvaToOption = (fractionalValue) => {
+  if (fractionalValue === null || fractionalValue === undefined) {
+    return DEFAULT_TVA_OPTION;
+  }
+
+  const percent = Number(fractionalValue) * 100;
+  if (!Number.isFinite(percent)) {
+    return DEFAULT_TVA_OPTION;
+  }
+
+  const match = TVA_OPTIONS.find((option) => Math.abs(Number(option) - percent) < 0.001);
+  return match ?? DEFAULT_TVA_OPTION;
+};
+
 const emptySupport = () => ({
   name: "",
   supportName: "",
@@ -22,7 +39,7 @@ const OrderEditModal = ({ order, onClose, refetchOrders }) => {
     secondAddress: order?.secondAddress || "",
     postalCode: order?.postalCode || "",
     city: order?.city || "",
-    tva: ((order?.tva ?? 0.2) * 100).toString(),
+    tva: normaliseTvaToOption(order?.tva ?? Number(DEFAULT_TVA_OPTION) / 100),
   });
   const [items, setItems] = useState(
     order?.items?.length
@@ -265,14 +282,17 @@ const OrderEditModal = ({ order, onClose, refetchOrders }) => {
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">TVA (%) *</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
+            <select
               className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-300"
-              value={form.tva}
+              value={TVA_OPTIONS.includes(form.tva) ? form.tva : DEFAULT_TVA_OPTION}
               onChange={(e) => handleFieldChange("tva", e.target.value)}
-            />
+            >
+              {TVA_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option} %
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

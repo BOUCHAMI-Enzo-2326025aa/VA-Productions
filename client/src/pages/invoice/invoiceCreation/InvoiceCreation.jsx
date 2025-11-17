@@ -8,7 +8,6 @@ import InvoiceConfirm from "./invoiceConfirm/InvoiceConfirm";
 import axios from "axios";
 import "./invoice.css";
 import LoadingScreen from "./LoadingScreen";
-import InvoiceCostsStep from "./invoiceCostsStep/InvoiceCostsStep";
 
 const InvoiceCreation = () => {
   const [step, setStep] = useState(1);
@@ -27,10 +26,12 @@ const InvoiceCreation = () => {
       address2: "",
       city: "",
       postalCode: "",
+      delaisPaie: "comptant", 
+      customDelaisDays: "",    
+      customDelaisSuffix: "", 
       totalPrice: 0,
       support: [],
       signature: null,
-      costs: [], 
     },
   });
 
@@ -73,22 +74,26 @@ const InvoiceCreation = () => {
     handleClientChange("support", [...invoice.client.support, newSupport]);
   };
   
-  const addCost = (description, amount) => {
-    const newCost = { description, amount: parseFloat(amount) || 0 };
-    handleClientChange("costs", [...invoice.client.costs, newCost]);
-  };
-
-  const deleteCost = (index) => {
-    const newCosts = invoice.client.costs.filter((_, i) => i !== index);
-    handleClientChange("costs", newCosts);
-  };
-
   const createOrder = async () => {
     increaseStep(); 
     setLoading(true);
 
+    let finalDelaisPaie = invoice.client.delaisPaie;
+    if (invoice.client.delaisPaie === "autre") {
+      const days = (invoice.client.customDelaisDays || "").trim();
+      const suffix = (invoice.client.customDelaisSuffix || "").trim();
+      if (days) {
+        finalDelaisPaie = `${days} jours${suffix ? ` ${suffix}` : ""}`;
+      } else {
+        finalDelaisPaie = "comptant"; 
+      }
+    }
+
     const totalPrice = invoice.client.support.reduce((sum, item) => sum + (item.price || 0), 0);
-    const updatedClientData = { ...invoice.client, totalPrice };
+    const updatedClientData = { ...invoice.client, totalPrice, delaisPaie: finalDelaisPaie };
+
+    delete updatedClientData.customDelaisDays;
+    delete updatedClientData.customDelaisSuffix;
 
     const tva = { percentage: TVA_PERCENTAGE };
 
@@ -137,12 +142,12 @@ const InvoiceCreation = () => {
 
   return (
     <div className="flex gap-2 mt-8">
-      {step === 6 && <LoadingScreen loading={loading} />} 
+      {step === 5 && <LoadingScreen loading={loading} />} 
       
-      {step < 5 && (
+      {step < 4 && (
         <div className="flex flex-col w-[50%] max-w-[450px] min-w-[450px] gap-2 overflow-hidden">
           <InvoiceCreationStepFollow step={step} />
-          {step > 1 && <InvoiceSummary supportList={invoice.client.support} costList={invoice.client.costs} />}
+          {step > 1 && <InvoiceSummary supportList={invoice.client.support} />}
         </div>
       )}
       
@@ -165,15 +170,6 @@ const InvoiceCreation = () => {
         />
       )}
       {step === 3 && (
-        <InvoiceCostsStep
-          nextPageFunction={increaseStep}
-          previousPageFunction={decreaseStep}
-          addCost={addCost}
-          deleteCost={deleteCost}
-          costs={invoice.client.costs}
-        />
-      )}
-      {step === 4 && (
         <ClientFacturationInfo
           nextPageFunction={increaseStep}
           previousPageFunction={decreaseStep}
@@ -181,13 +177,11 @@ const InvoiceCreation = () => {
           invoice={invoice}
         />
       )}
-      {step === 5 && (
+      {step === 4 && (
         <InvoiceConfirm
           invoice={invoice}
           supportList={invoice.client.support}
-          costList={invoice.client.costs}
           createOrder={createOrder}
-          handleChange={handleClientChange}
           returnFunction={decreaseStep}
           TVA_PERCENTAGE={TVA_PERCENTAGE}
         />
