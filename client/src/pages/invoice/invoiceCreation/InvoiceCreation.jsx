@@ -8,7 +8,6 @@ import InvoiceConfirm from "./invoiceConfirm/InvoiceConfirm";
 import axios from "axios";
 import "./invoice.css";
 import LoadingScreen from "./LoadingScreen";
-import InvoiceCostsStep from "./invoiceCostsStep/InvoiceCostsStep";
 
 const InvoiceCreation = () => {
   const [step, setStep] = useState(1);
@@ -33,7 +32,6 @@ const InvoiceCreation = () => {
       totalPrice: 0,
       support: [],
       signature: null,
-      costs: [], 
     },
   });
 
@@ -76,16 +74,6 @@ const InvoiceCreation = () => {
     handleClientChange("support", [...invoice.client.support, newSupport]);
   };
   
-  const addCost = (description, amount) => {
-    const newCost = { description, amount: parseFloat(amount) || 0 };
-    handleClientChange("costs", [...invoice.client.costs, newCost]);
-  };
-
-  const deleteCost = (index) => {
-    const newCosts = invoice.client.costs.filter((_, i) => i !== index);
-    handleClientChange("costs", newCosts);
-  };
-
   const createOrder = async () => {
     increaseStep(); 
     setLoading(true);
@@ -154,12 +142,12 @@ const InvoiceCreation = () => {
 
   return (
     <div className="flex gap-2 mt-8">
-      {step === 6 && <LoadingScreen loading={loading} />} 
+      {step === 5 && <LoadingScreen loading={loading} />} 
       
-      {step < 5 && (
+      {step < 4 && (
         <div className="flex flex-col w-[50%] max-w-[450px] min-w-[450px] gap-2 overflow-hidden">
           <InvoiceCreationStepFollow step={step} />
-          {step > 1 && <InvoiceSummary supportList={invoice.client.support} costList={invoice.client.costs} />}
+          {step > 1 && <InvoiceSummary supportList={invoice.client.support} />}
         </div>
       )}
       
@@ -182,15 +170,6 @@ const InvoiceCreation = () => {
         />
       )}
       {step === 3 && (
-        <InvoiceCostsStep
-          nextPageFunction={increaseStep}
-          previousPageFunction={decreaseStep}
-          addCost={addCost}
-          deleteCost={deleteCost}
-          costs={invoice.client.costs}
-        />
-      )}
-      {step === 4 && (
         <ClientFacturationInfo
           nextPageFunction={increaseStep}
           previousPageFunction={decreaseStep}
@@ -198,11 +177,10 @@ const InvoiceCreation = () => {
           invoice={invoice}
         />
       )}
-      {step === 5 && (
+      {step === 4 && (
         <InvoiceConfirm
           invoice={invoice}
           supportList={invoice.client.support}
-          costList={invoice.client.costs}
           createOrder={createOrder}
           handleChange={handleClientChange}
           returnFunction={decreaseStep}

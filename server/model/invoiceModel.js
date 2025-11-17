@@ -15,17 +15,6 @@ const SupportSchema = new Schema({
   },
 });
 
-const CostSchema = new Schema({
-  description: {
-    type: String,
-    required: true,
-  },
-  amount: {
-    type: Number,
-    required: true,
-  }
-});
-
 const invoiceShema = new mongoose.Schema({
   client: {
     type: Schema.Types.ObjectId,
@@ -78,10 +67,6 @@ const invoiceShema = new mongoose.Schema({
     required: true,
     default: 0.2
   },
-  costs: {
-    type: [CostSchema],
-    default: []
-  }
 });
 
 let Invoice = mongoose.model("Facture", invoiceShema);

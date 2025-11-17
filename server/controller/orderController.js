@@ -86,11 +86,10 @@ export const createOrder = async (req, res) => {
       signature: randomImageName,
       signatureData: req.body.invoice.client.signature,
       tva: tvaRate,
-      costs: client.costs || [],
     });
     
     await createOrderPdf(
-      { ...client, support: supports, costs: client.costs },
+      { ...client, support: supports },
       res,
       maxOrderNumber + 1,
       tvaRate,
@@ -247,7 +246,6 @@ export const validateOrder = async (req, res) => {
         totalPrice: orderData.totalPrice,
         tva: orderData.tva,
         status: "unpaid",
-        costs: orderData.costs || [],
       });
       
       await newInvoice.save();
@@ -299,7 +297,6 @@ export const updateOrder = async (req, res) => {
       items = [],
       tva,
       status,
-      costs,
     } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -367,7 +364,6 @@ export const updateOrder = async (req, res) => {
     if (secondAddress !== undefined) updatePayload.secondAddress = secondAddress;
     if (postalCode !== undefined) updatePayload.postalCode = postalCode;
     if (city !== undefined) updatePayload.city = city;
-    if (Array.isArray(costs)) updatePayload.costs = costs;
     if (typeof status === "string") updatePayload.status = status;
 
     const updatedOrder = await Order.findByIdAndUpdate(
