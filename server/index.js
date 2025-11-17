@@ -20,6 +20,7 @@ import { router as magazineRouter } from "./routes/magazineRoute.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import googleCalendarRouter from "./routes/googleCalendarRoute.js";
 import chargeRouter from "./routes/chargeRoute.js";
+import signatureRouter from "./routes/signatureRoute.js";
 //import nodemailer from "nodemailer";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,6 +59,7 @@ app.use("/api/order", orderRouter);
 app.use("/api/magazine", magazineRouter);
 app.use("/api/google", googleCalendarRouter);
 app.use("/api/charge", chargeRouter);
+app.use("/api/signature", signatureRouter);
 
 
 app.listen(process.env.PORT, () => {

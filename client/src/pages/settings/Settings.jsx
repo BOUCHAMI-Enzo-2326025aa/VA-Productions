@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { User, Lock, Save, Eye, EyeOff } from "lucide-react";
+import { User, Lock, Save, Eye, EyeOff, PenTool } from "lucide-react";
+import SignatureCanvas from "react-signature-canvas";
 
 const Settings = () => {
   const [user, setUser] = useState(null);
@@ -24,6 +25,11 @@ const Settings = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // État pour la signature (admin uniquement)
+  const signaturePadRef = useRef(null);
+  const [signatureData, setSignatureData] = useState(null);
+  const [signatureLoading, setSignatureLoading] = useState(false);
+
   useEffect(() => {
     // Récupérer les informations utilisateur depuis localStorage
     const userString = localStorage.getItem("user");
@@ -34,6 +40,11 @@ const Settings = () => {
         nom: userData.user?.nom || "",
         prenom: userData.user?.prenom || "",
       });
+
+      // Si l'utilisateur est admin, récupérer la signature
+      if (userData.user?.role === "admin") {
+        fetchSignature();
+      }
     }
   }, []);
 
@@ -42,6 +53,57 @@ const Settings = () => {
     setTimeout(() => {
       setSnackbar({ open: false, type: "", message: "" });
     }, 3000);
+  };
+
+  const fetchSignature = async () => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_HOST}/api/signature`
+      );
+      if (response.data.success) {
+        setSignatureData(response.data.signature);
+      }
+    } catch (error) {
+      // Pas de signature enregistrée, c'est normal
+      console.log("Aucune signature enregistrée");
+    }
+  };
+
+  const clearSignature = () => {
+    if (signaturePadRef.current) {
+      signaturePadRef.current.clear();
+      setSignatureData(null);
+    }
+  };
+
+  const handleSignatureSave = async () => {
+    if (signaturePadRef.current && signaturePadRef.current.isEmpty()) {
+      showSnackbar("error", "Veuillez dessiner une signature");
+      return;
+    }
+
+    setSignatureLoading(true);
+
+    try {
+      const signatureDataURL = signaturePadRef.current.toDataURL();
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_HOST}/api/signature`,
+        { signatureData: signatureDataURL }
+      );
+
+      if (response.data.success) {
+        setSignatureData(signatureDataURL);
+        showSnackbar("success", response.data.message);
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'enregistrement de la signature:", error);
+      showSnackbar(
+        "error",
+        error.response?.data?.message || "Erreur lors de l'enregistrement de la signature"
+      );
+    } finally {
+      setSignatureLoading(false);
+    }
   };
 
   const handleProfileSubmit = async (e) => {
@@ -312,6 +374,72 @@ const Settings = () => {
           </form>
         </div>
       </div>
+
+      {/* Section Signature (Admin uniquement) */}
+      {user?.user?.role === "admin" && (
+        <div className="mt-6">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <PenTool className="text-[#3F3F3F]" size={24} />
+              <div>
+                <h2 className="text-xl font-semibold">Signature de l'entreprise</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Cette signature sera automatiquement utilisée pour tous les bons de commande
+                </p>
+              </div>
+            </div>
+
+            {/* Affichage de la signature existante */}
+            {signatureData && (
+              <div className="mb-4">
+                <label className="block font-semibold mb-2">Signature actuelle</label>
+                <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                  <img 
+                    src={signatureData} 
+                    alt="Signature actuelle" 
+                    className="max-h-40 mx-auto"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Canvas pour dessiner la signature */}
+            <div className="space-y-4">
+              <label className="block font-semibold">
+                {signatureData ? "Modifier la signature" : "Créer une signature"}
+              </label>
+              <div className="border border-gray-300 rounded-lg bg-white">
+                <SignatureCanvas
+                  ref={signaturePadRef}
+                  penColor="black"
+                  canvasProps={{
+                    className: "w-full h-40 rounded-lg",
+                  }}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={clearSignature}
+                  className="flex-1 bg-gray-500 text-white py-2 rounded-lg font-semibold hover:bg-gray-600 transition"
+                >
+                  Effacer
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignatureSave}
+                  disabled={signatureLoading}
+                  className="flex-1 bg-[#3F3F3F] text-white py-2 rounded-lg font-semibold hover:bg-opacity-80 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Save size={18} />
+                  {signatureLoading ? "Enregistrement..." : "Enregistrer la signature"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

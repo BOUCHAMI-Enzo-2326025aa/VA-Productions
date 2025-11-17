@@ -1,5 +1,4 @@
-import { useEffect, useState, useRef } from "react";
-import SignatureCanvas from "react-signature-canvas";
+import { useEffect, useState } from "react";
 import InfoComponent from "./sectionTitle/InfoComponent";
 import SectionTitle from "./sectionTitle/SectionTitle";
 import InvoiceButton from "../../component/InvoiceButton";
@@ -12,11 +11,9 @@ const InvoiceConfirm = ({
   createOrder,
   returnFunction,
   TVA_PERCENTAGE,
-  handleChange,
 }) => {
   const [totalSupports, setTotalSupports] = useState(0);
   const [totalCosts, setTotalCosts] = useState(0);
-  const signaturePadRef = useRef(null);
 
   useEffect(() => {
     const newTotalSupports = supportList.reduce((sum, s) => sum + (s.price || 0), 0);
@@ -25,18 +22,7 @@ const InvoiceConfirm = ({
     setTotalCosts(newTotalCosts);
   }, [supportList, costList]);
 
-  const clearSignature = () => {
-    if (signaturePadRef.current) {
-      signaturePadRef.current.clear();
-      handleChange("signature", null);
-    }
-  };
-
   const handleConfirmOrder = () => {
-    if (signaturePadRef.current && signaturePadRef.current.isEmpty()) {
-      alert("Veuillez signer avant de confirmer la commande.");
-      return;
-    }
     createOrder();
   };
 
@@ -76,32 +62,10 @@ const InvoiceConfirm = ({
           <InfoComponent name={"ADRESSE 1"} value={invoice.client.address1} />
           <InfoComponent name={"ADRESSE 2"} value={invoice.client.address2} />
         </div>
-        <SectionTitle title={"Signature"} className={"mt-10"} 
-        svg={
-          <svg
-              xmlns="http://www.w3.org/2000/svg"
-              height="24px"
-              viewBox="0 -960 960 960"
-              width="24px"
-              fill="#5f6368"
-            >
-              <path d="m499-287 335-335-52-52-335 335 52 52Zm-261 87q-100-5-149-42T40-349q0-65 53.5-105.5T242-503q39-3 58.5-12.5T320-542q0-26-29.5-39T193-600l7-80q103 8 151.5 41.5T400-542q0 53-38.5 83T248-423q-64 5-96 23.5T120-349q0 35 28 50.5t94 18.5l-4 80Zm280 7L353-358l382-382q20-20 47.5-20t47.5 20l70 70q20 20 20 47.5T900-575L518-193Zm-159 33q-17 4-30-9t-9-30l33-159 165 165-159 33Z" />
-            </svg>
-        }
-        />
-        <div className="mt-4 w-full ">
-          <SignatureCanvas
-            ref={signaturePadRef}
-            penColor="black"
-            onEnd={() => handleChange("signature", signaturePadRef.current.toDataURL())}
-            canvasProps={{ className: "border border-gray-300 rounded w-full h-40" }}
-          />
-          <InvoiceButton
-            value={"Effacer"}
-            className={" py-3 mt-1 !w-full "}
-            primary={false}
-            onClickFunction={clearSignature}
-          />
+
+        <div className="mt-8 text-center text-sm text-gray-600">
+          <p className="font-semibold">La signature de l'entreprise sera automatiquement ajoutée au bon de commande.</p>
+          <p className="mt-1 opacity-70">Les administrateurs peuvent la modifier dans les paramètres.</p>
         </div>
       </div>
 
