@@ -164,7 +164,7 @@ const InvoiceDisplay = () => {
         />
 
         <InvoiceButton
-          value={"En retard"}
+          value={"Impayés"}
           className={`!h-full !py-0 text-sm w-[170px] ${showOverdueOnly ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-600'}`}
           onClickFunction={fetchOverdueInvoices}
         />
