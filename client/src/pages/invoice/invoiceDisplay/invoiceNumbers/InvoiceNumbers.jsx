@@ -16,7 +16,7 @@ const InvoiceNumbers = ({ invoices, isLoading }) => {
     const overdue = { price: 0, count: 0 };
 
     invoices.forEach((invoice) => {
-      if (!invoice.totalPrice) return;
+      if (typeof invoice.totalPrice !== 'number') return;
       total.price += invoice.totalPrice;
       total.count += 1;
 
