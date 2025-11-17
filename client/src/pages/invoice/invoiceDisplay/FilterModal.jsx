@@ -11,6 +11,7 @@ const FilterModal = ({
   filterInvoiceAction,
   deleteFilter,
   clientList,
+  magazineList,
 }) => {
   const handleCheckboxChange = (status, e) => {
     const newStatus = e.target.checked
@@ -29,7 +30,7 @@ const FilterModal = ({
 
       <div className="mt-6 flex w-full gap-4">
         <FilterInput title="Type de support">
-          <MultiSelectComponent filter={filter} setFilter={setFilter} />
+          <MultiSelectComponent filter={filter} setFilter={setFilter} magazineList={magazineList} />
         </FilterInput>
         <FilterInput title="Client">
           <MultiSelect
