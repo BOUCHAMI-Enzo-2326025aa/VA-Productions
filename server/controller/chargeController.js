@@ -6,12 +6,13 @@ const parseAmount = (value, field) => {
     return 0;
   }
 
-  const parsed = Number.parseInt(value, 10);
+  const cleaned = String(value).replace(/\s/g, "").replace(/,/g, ".");
+  const parsed = Number.parseFloat(cleaned);
   if (!Number.isFinite(parsed) || parsed < 0) {
     throw new Error(`Le champ ${field} doit être un nombre positif.`);
   }
 
-  return parsed;
+  return Math.round(parsed * 100) / 100;
 };
 
 const normalizeType = (body, fallback = false) => {
