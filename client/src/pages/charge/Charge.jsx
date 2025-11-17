@@ -21,7 +21,12 @@ const createEmptyRow = (mode) => ({
 });
 
 const parseAmount = (value) => {
-  const num = Number.parseInt(value, 10);
+  if (value === undefined || value === null || value === "") {
+    return 0;
+  }
+
+  const cleaned = String(value).replace(/\s/g, "").replace(/,/g, ".");
+  const num = Number.parseFloat(cleaned);
   return Number.isFinite(num) ? num : 0;
 };
 
@@ -154,8 +159,8 @@ const Charge = () => {
   };
 
   const handleNumberChange = (index, field, value) => {
-    const cleaned = value.replace(/[^0-9-]/g, "");
-    updateRowAtIndex(index, { [field]: cleaned });
+    const sanitized = value.replace(/[^\d,.-]/g, "");
+    updateRowAtIndex(index, { [field]: sanitized });
   };
 
   const handleAddRow = () => {
@@ -551,8 +556,8 @@ const Charge = () => {
                   <td></td>
                   <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                     {totalResultat.toLocaleString("fr-FR", {
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
                     })}
                   </td>
                   <td></td>
@@ -566,14 +571,14 @@ const Charge = () => {
                     <td></td>
                     <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                       {totalPrecedent.toLocaleString("fr-FR", {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
                       })}
                     </td>
                     <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                       {totalPrevu.toLocaleString("fr-FR", {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
                       })}
                     </td>
                     <td></td>
@@ -586,8 +591,8 @@ const Charge = () => {
                     <td></td>
                     <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                       {resultTotal.toLocaleString("fr-FR", {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
                       })}
                     </td>
                     <td></td>
@@ -602,8 +607,8 @@ const Charge = () => {
                       className={`px-4 py-3 text-right text-sm font-semibold ${controleClass}`}
                     >
                       {controle.toLocaleString("fr-FR", {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
                       })}
                     </td>
                     <td></td>
@@ -618,8 +623,8 @@ const Charge = () => {
                       className={`px-4 py-3 text-right text-sm font-semibold ${ecartClass}`}
                     >
                       {ecart.toLocaleString("fr-FR", {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
                       })}
                     </td>
                     <td></td>
