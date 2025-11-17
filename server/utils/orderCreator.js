@@ -155,33 +155,6 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
   generateTableRow(doc, currentPosition, "", "", "SOUS-TOTAL (C.A.)", formatPrice(subTotalSupports) + " €");
   currentPosition += 25;
 
-  if (client.costs && client.costs.length > 0) {
-    const totalCosts = client.costs.reduce((sum, cost) => sum + toNumber(cost.amount), 0);
-    const netRevenue = subTotalSupports - totalCosts;
-
-    doc.font("Helvetica-Bold").text("FRAIS ASSOCIÉS", 50, currentPosition);
-    currentPosition += 15;
-    generateHr(doc, currentPosition);
-    currentPosition += 10;
-
-    doc.font("Helvetica");
-    client.costs.forEach((cost) => {
-      const description = cost?.description || cost?.label || cost?.name || "";
-      const amount = toNumber(cost?.amount);
-      generateTableRow(doc, currentPosition, description, "", "", `-${formatPrice(amount)} €`);
-      currentPosition += 20;
-    });
-    generateHr(doc, currentPosition);
-    currentPosition += 10;
-
-    doc.font("Helvetica-Bold");
-    generateTableRow(doc, currentPosition, "", "", "TOTAL FRAIS", `-${formatPrice(totalCosts)} €`);
-    currentPosition += 25;
-    
-    generateTableRow(doc, currentPosition, "", "", "BÉNÉFICE (HT)", `${formatPrice(netRevenue)} €`);
-    currentPosition += 25;
-  }
-
   const tvaRate = toNumber(tva);
   const tvaAmount = subTotalSupports * tvaRate;
   const totalTTC = subTotalSupports + tvaAmount;

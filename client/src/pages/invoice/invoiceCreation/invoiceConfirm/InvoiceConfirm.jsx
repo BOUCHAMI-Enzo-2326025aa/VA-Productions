@@ -7,20 +7,16 @@ import InvoiceSummary from "../invoiceSummary/InvoiceSummary";
 const InvoiceConfirm = ({
   invoice,
   supportList,
-  costList,
   createOrder,
   returnFunction,
   TVA_PERCENTAGE,
 }) => {
   const [totalSupports, setTotalSupports] = useState(0);
-  const [totalCosts, setTotalCosts] = useState(0);
 
   useEffect(() => {
     const newTotalSupports = supportList.reduce((sum, s) => sum + (s.price || 0), 0);
-    const newTotalCosts = costList.reduce((sum, c) => sum + (c.amount || 0), 0);
     setTotalSupports(newTotalSupports);
-    setTotalCosts(newTotalCosts);
-  }, [supportList, costList]);
+  }, [supportList]);
 
   const handleConfirmOrder = () => {
     createOrder();
@@ -28,7 +24,6 @@ const InvoiceConfirm = ({
 
   const tvaAmount = totalSupports * TVA_PERCENTAGE;
   const totalToPay = totalSupports + tvaAmount;
-  const netRevenue = totalSupports - totalCosts;
 
   return (
     <div className="bg-white w-full h-full py-8 px-9 rounded-md flex min-h-[600px] page-appear-animation">
@@ -79,7 +74,7 @@ const InvoiceConfirm = ({
             </svg>
           }
           />
-        <InvoiceSummary supportList={supportList} costList={costList} />
+        <InvoiceSummary supportList={supportList} />
 
         <div className="flex flex-col text-[#3F3F3F] w-full justify-end h-full items-end mt-5">
           <table className="w-full text-right">
@@ -87,16 +82,6 @@ const InvoiceConfirm = ({
               <tr>
                 <td className="opacity-70 pr-4">SOUS-TOTAL (C.A.)</td>
                 <td className="font-semibold">{totalSupports.toFixed(2)} €</td>
-              </tr>
-              {totalCosts > 0 && (
-                <tr className="text-red-600">
-                  <td className="opacity-70 pr-4">TOTAL DES FRAIS</td>
-                  <td className="font-semibold">- {totalCosts.toFixed(2)} €</td>
-                </tr>
-              )}
-              <tr className="border-t mt-2 pt-2">
-                <td className="opacity-70 pr-4 pt-2 font-bold">BÉNÉFICE (HT)</td>
-                <td className="font-bold pt-2">{netRevenue.toFixed(2)} €</td>
               </tr>
               <tr className="text-gray-500">
                 <td className="opacity-70 pr-4 pt-4">TAUX DE T.V.A</td>
