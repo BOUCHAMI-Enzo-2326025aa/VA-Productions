@@ -100,7 +100,7 @@ const Navbar = ({ isOpen, closeNavbar }) => {
                   />
                   <PageLink
                     link={"/admin/charge"}
-                    text={"Saisie des charges"}
+                    text={"Comptabilité"}
                     icon={chargeSvg}
                   />
                   <PageLink
