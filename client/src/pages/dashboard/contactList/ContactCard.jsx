@@ -1,4 +1,4 @@
-import { getHour } from "../../../utils/formatDate";
+import { getDayMonth } from "../../../utils/formatDate";
 
 const ContactCard = ({ name, phoneNumber, lastSeen, isLast, description }) => {
   return (
@@ -24,7 +24,7 @@ const ContactCard = ({ name, phoneNumber, lastSeen, isLast, description }) => {
         </p>
       </div>
       <div className="self-end ml-auto opacity-50 max-[850px]:text-xs">
-        {getHour(lastSeen)}
+        {getDayMonth(lastSeen)}
       </div>
     </div>
   );

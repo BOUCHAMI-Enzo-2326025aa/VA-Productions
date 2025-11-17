@@ -57,12 +57,12 @@ const Navbar = ({ isOpen, closeNavbar }) => {
             icon={dashboardSvg}
           />
           <PageLink link={"/contacts"} text={"Contacts"} icon={contactSvg} />
+          <PageLink link={"/order"} text={"Commandes"} icon={oderSvg} />
           <PageLink
             link={"/invoice"}
             text={"Facturations"}
             icon={facturationSvg}
           />
-          <PageLink link={"/order"} text={"Commandes"} icon={oderSvg} />
           <PageLink
             link={"/calendrier"}
             text={"Calendrier"}
