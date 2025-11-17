@@ -25,6 +25,15 @@ const chargeSchema = new mongoose.Schema(
       default: 0,
       min: [0, "Le montant prévu ne peut pas être négatif."],
     },
+    montantResultat: {
+      type: Number,
+      default: 0,
+      min: [0, "Le montant ne peut pas être négatif."],
+    },
+    isResultAccount: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
