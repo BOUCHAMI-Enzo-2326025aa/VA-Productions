@@ -4,11 +4,18 @@ import { Trash2 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import refreshIcon from "../../assets/SaveIcon.svg";
 
-const emptyRow = () => ({
+const VIEW_OPTIONS = {
+  CHARGES: "charges",
+  RESULT: "result",
+};
+
+const createEmptyRow = (mode) => ({
   compte: "",
   nom: "",
   montantPrecedent: "0",
   montantPrevu: "0",
+  montantResultat: "0",
+  type: mode,
   isDirty: true,
   isNew: true,
 });
@@ -30,16 +37,25 @@ const mapCharge = (charge) => ({
     typeof charge.montantPrevu === "number"
       ? String(charge.montantPrevu)
       : charge.montantPrevu ?? "0",
+  montantResultat:
+    typeof charge.montantResultat === "number"
+      ? String(charge.montantResultat)
+      : charge.montantResultat ?? "0",
+  type: charge.isResultAccount ? VIEW_OPTIONS.RESULT : VIEW_OPTIONS.CHARGES,
   isDirty: false,
   isNew: false,
 });
 
 const Charge = () => {
   const { isAdmin } = useAuth();
+  const [view, setView] = useState(VIEW_OPTIONS.CHARGES);
   const [charges, setCharges] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [savingRowId, setSavingRowId] = useState(null);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
+  const [resultTotal, setResultTotal] = useState(0);
+
+  const isResultView = view === VIEW_OPTIONS.RESULT;
 
   const showFeedback = (type, message) => {
     setFeedback({ type, message });
@@ -48,16 +64,52 @@ const Charge = () => {
     }
   };
 
-  const fetchCharges = async () => {
+  const fetchData = async (selectedView = view) => {
     setIsLoading(true);
     try {
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_API_HOST}/api/charge`
-      );
-      const mapped = Array.isArray(data?.charges)
-        ? data.charges.map(mapCharge)
+      const requests = [
+        axios.get(`${import.meta.env.VITE_API_HOST}/api/charge`, {
+          params: { type: selectedView },
+        }),
+      ];
+
+      if (selectedView !== VIEW_OPTIONS.RESULT) {
+        requests.push(
+          axios.get(`${import.meta.env.VITE_API_HOST}/api/charge`, {
+            params: { type: VIEW_OPTIONS.RESULT },
+          })
+        );
+      }
+
+      const responses = await Promise.all(requests);
+      const [currentResponse, resultResponse] = responses;
+
+      const currentData = Array.isArray(currentResponse?.data?.charges)
+        ? currentResponse.data.charges.map(mapCharge)
         : [];
-      setCharges(mapped);
+
+      setCharges(
+        currentData.filter((item) => item.type === selectedView)
+      );
+
+      let computedResultTotal = 0;
+
+      if (selectedView === VIEW_OPTIONS.RESULT) {
+        computedResultTotal = currentData.reduce(
+          (sum, row) => sum + parseAmount(row.montantResultat),
+          0
+        );
+      } else if (resultResponse) {
+        const resultData = Array.isArray(resultResponse?.data?.charges)
+          ? resultResponse.data.charges.map(mapCharge)
+          : [];
+        computedResultTotal = resultData.reduce(
+          (sum, row) => sum + parseAmount(row.montantResultat),
+          0
+        );
+      }
+
+      setResultTotal(computedResultTotal);
     } catch (error) {
       console.error("Erreur lors du chargement des charges:", error);
       showFeedback(
@@ -71,11 +123,12 @@ const Charge = () => {
 
   useEffect(() => {
     if (isAdmin) {
-      fetchCharges();
+      fetchData(view);
     } else {
       setIsLoading(false);
     }
-  }, [isAdmin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, view]);
 
   const updateRowAtIndex = (index, updates) => {
     setCharges((prev) =>
@@ -106,7 +159,7 @@ const Charge = () => {
   };
 
   const handleAddRow = () => {
-    setCharges((prev) => [...prev, emptyRow()]);
+    setCharges((prev) => [...prev, createEmptyRow(view)]);
   };
 
   const validateRow = (row) => {
@@ -116,6 +169,21 @@ const Charge = () => {
 
     if (!row.nom.trim()) {
       return "Le nom du compte est obligatoire.";
+    }
+
+    const isResultRow = row.type === VIEW_OPTIONS.RESULT;
+
+    if (isResultRow && row.montantResultat === "") {
+      return "Le montant est obligatoire.";
+    }
+
+    if (!isResultRow) {
+      if (row.montantPrecedent === "") {
+        return "Le montant précédent est obligatoire.";
+      }
+      if (row.montantPrevu === "") {
+        return "Le montant prévu est obligatoire.";
+      }
     }
 
     return null;
@@ -129,37 +197,57 @@ const Charge = () => {
       return;
     }
 
+    const rowType = row.type || view;
+    const isResultRow = rowType === VIEW_OPTIONS.RESULT;
+
     const payload = {
       compte: row.compte,
       nom: row.nom.trim(),
-      montantPrecedent: parseAmount(row.montantPrecedent),
-      montantPrevu: parseAmount(row.montantPrevu),
+      type: rowType,
+      isResultAccount: isResultRow,
     };
+
+    if (isResultRow) {
+      payload.montantResultat = parseAmount(row.montantResultat);
+    } else {
+      payload.montantPrecedent = parseAmount(row.montantPrecedent);
+      payload.montantPrevu = parseAmount(row.montantPrevu);
+    }
 
     const tempId = row._id || `temp-${index}`;
     setSavingRowId(tempId);
 
     try {
+      const applySavedCharge = (savedCharge) => {
+        setCharges((prev) => {
+          const next = prev.map((item, i) => (i === index ? savedCharge : item));
+          if (view === VIEW_OPTIONS.RESULT) {
+            const newTotal = next.reduce(
+              (sum, item) => sum + parseAmount(item.montantResultat),
+              0
+            );
+            setResultTotal(newTotal);
+          }
+          return next;
+        });
+      };
+
       if (row.isNew || !row._id) {
         const { data } = await axios.post(
           `${import.meta.env.VITE_API_HOST}/api/charge`,
           payload
         );
         const savedCharge = mapCharge(data.charge);
-        setCharges((prev) =>
-          prev.map((item, i) => (i === index ? savedCharge : item))
-        );
+        applySavedCharge(savedCharge);
       } else {
         const { data } = await axios.put(
           `${import.meta.env.VITE_API_HOST}/api/charge/${row._id}`,
           payload
         );
         const savedCharge = mapCharge(data.charge);
-        setCharges((prev) =>
-          prev.map((item, i) => (i === index ? savedCharge : item))
-        );
+        applySavedCharge(savedCharge);
       }
-      showFeedback("success", "Charge enregistrée avec succès.");
+      showFeedback("success", "Ligne enregistrée avec succès.");
     } catch (error) {
       console.error("Erreur lors de l'enregistrement de la charge:", error);
       showFeedback(
@@ -174,8 +262,22 @@ const Charge = () => {
   const handleRemoveRow = async (index) => {
     const row = charges[index];
 
+    const removeRowFromState = () => {
+      setCharges((prev) => {
+        const next = prev.filter((_, i) => i !== index);
+        if (view === VIEW_OPTIONS.RESULT) {
+          const newTotal = next.reduce(
+            (sum, item) => sum + parseAmount(item.montantResultat),
+            0
+          );
+          setResultTotal(newTotal);
+        }
+        return next;
+      });
+    };
+
     if (!row._id) {
-      setCharges((prev) => prev.filter((_, i) => i !== index));
+      removeRowFromState();
       return;
     }
 
@@ -184,8 +286,8 @@ const Charge = () => {
       await axios.delete(
         `${import.meta.env.VITE_API_HOST}/api/charge/${row._id}`
       );
-      setCharges((prev) => prev.filter((_, i) => i !== index));
-      showFeedback("success", "Charge supprimée avec succès.");
+      removeRowFromState();
+      showFeedback("success", "Ligne supprimée avec succès.");
     } catch (error) {
       console.error("Erreur lors de la suppression de la charge:", error);
       showFeedback(
@@ -197,22 +299,61 @@ const Charge = () => {
     }
   };
 
-  const totalPrecedent = useMemo(
-    () => charges.reduce((sum, row) => sum + parseAmount(row.montantPrecedent), 0),
-    [charges]
-  );
+  const totalPrecedent = useMemo(() => {
+    if (isResultView) {
+      return 0;
+    }
+    return charges.reduce(
+      (sum, row) => sum + parseAmount(row.montantPrecedent),
+      0
+    );
+  }, [charges, isResultView]);
 
-  const totalPrevu = useMemo(
-    () => charges.reduce((sum, row) => sum + parseAmount(row.montantPrevu), 0),
-    [charges]
-  );
+  const totalPrevu = useMemo(() => {
+    if (isResultView) {
+      return 0;
+    }
+    return charges.reduce((sum, row) => sum + parseAmount(row.montantPrevu), 0);
+  }, [charges, isResultView]);
+
+  const totalResultat = useMemo(() => {
+    if (!isResultView) {
+      return 0;
+    }
+    return charges.reduce(
+      (sum, row) => sum + parseAmount(row.montantResultat),
+      0
+    );
+  }, [charges, isResultView]);
 
   const ecart = useMemo(
-    () => totalPrevu - totalPrecedent,
-    [totalPrecedent, totalPrevu]
+    () => (isResultView ? 0 : totalPrevu - totalPrecedent),
+    [isResultView, totalPrecedent, totalPrevu]
   );
 
-  const ecartClass = ecart > 0 ? "text-red-500" : ecart < 0 ? "text-green-600" : "text-gray-600";
+  const ecartClass = !isResultView
+    ? ecart < 0
+      ? "text-green-600"
+      : ecart > 0
+      ? "text-red-500"
+      : "text-gray-600"
+    : "text-gray-600";
+
+  const controle = useMemo(
+    () => (isResultView ? 0 : resultTotal - totalPrecedent),
+    [isResultView, resultTotal, totalPrecedent]
+  );
+
+  const controleClass = controle > 0
+    ? "text-red-500"
+    : controle < 0
+    ? "text-green-600"
+    : "text-gray-600";
+
+  const columnCount = isResultView ? 4 : 5;
+  const viewDescription = isResultView
+    ? "Renseignez les montants du compte de résultat pour chaque compte."
+    : "Renseignez et ajustez les montants prévus pour chaque compte.";
 
   if (!isAdmin) {
     return (
@@ -236,10 +377,17 @@ const Charge = () => {
 
       <div className="flex justify-between items-center mt-10">
         <div>
-          <p className="font-bold text-lg leading-3">Saisie des charges</p>
-          <p className="opacity-80 mt-2">
-            Renseignez et ajustez les montants prévus pour chaque compte.
-          </p>
+          <div className="flex items-center gap-3">
+            <select
+              value={view}
+              onChange={(event) => setView(event.target.value)}
+              className="font-bold text-lg leading-3 text-[#3F3F3F] bg-transparent border-none focus:outline-none cursor-pointer"
+            >
+              <option value={VIEW_OPTIONS.CHARGES}>Saisie des charges</option>
+              <option value={VIEW_OPTIONS.RESULT}>Compte de résultat</option>
+            </select>
+          </div>
+          <p className="opacity-80 mt-2">{viewDescription}</p>
         </div>
         <button
           type="button"
@@ -260,12 +408,20 @@ const Charge = () => {
               <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-gray-500">
                 Nom du compte
               </th>
-              <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Montant précédent (€)
-              </th>
-              <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Montant prévu (€)
-              </th>
+              {isResultView ? (
+                <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-gray-500">
+                  Montant (€)
+                </th>
+              ) : (
+                <>
+                  <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-gray-500">
+                    Montant précédent (€)
+                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-gray-500">
+                    Montant prévu (€)
+                  </th>
+                </>
+              )}
               <th className="px-4 py-3 text-center text-sm font-semibold uppercase tracking-wide text-gray-500">
                 Actions
               </th>
@@ -275,19 +431,19 @@ const Charge = () => {
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={columnCount}
                   className="px-4 py-6 text-center text-sm text-gray-500 bg-white shadow-sm"
                 >
-                  Chargement des charges...
+                  Chargement des données...
                 </td>
               </tr>
             ) : charges.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={columnCount}
                   className="px-4 py-6 text-center text-sm text-gray-500 bg-white shadow-sm"
                 >
-                  Aucune ligne pour le moment. Ajoutez une charge pour commencer.
+                  Aucune ligne pour le moment. Ajoutez une entrée pour commencer.
                 </td>
               </tr>
             ) : (
@@ -313,24 +469,44 @@ const Charge = () => {
                       placeholder="Libellé du compte"
                     />
                   </td>
-                  <td className="px-4 py-3 align-middle text-right">
-                    <input
-                      type="number"
-                      value={row.montantPrecedent}
-                      onChange={(event) => handleNumberChange(index, "montantPrecedent", event.target.value)}
-                      className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-right focus:border-[#3F3F3F] focus:outline-none focus:ring-1 focus:ring-[#3F3F3F]"
-                      placeholder="0"
-                    />
-                  </td>
-                  <td className="px-4 py-3 align-middle text-right">
-                    <input
-                      type="number"
-                      value={row.montantPrevu}
-                      onChange={(event) => handleNumberChange(index, "montantPrevu", event.target.value)}
-                      className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-right focus:border-[#3F3F3F] focus:outline-none focus:ring-1 focus:ring-[#3F3F3F]"
-                      placeholder="0"
-                    />
-                  </td>
+                  {isResultView ? (
+                    <td className="px-4 py-3 align-middle text-right">
+                      <input
+                        type="number"
+                        value={row.montantResultat}
+                        onChange={(event) =>
+                          handleNumberChange(index, "montantResultat", event.target.value)
+                        }
+                        className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-right focus:border-[#3F3F3F] focus:outline-none focus:ring-1 focus:ring-[#3F3F3F]"
+                        placeholder="0"
+                      />
+                    </td>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 align-middle text-right">
+                        <input
+                          type="number"
+                          value={row.montantPrecedent}
+                          onChange={(event) =>
+                            handleNumberChange(index, "montantPrecedent", event.target.value)
+                          }
+                          className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-right focus:border-[#3F3F3F] focus:outline-none focus:ring-1 focus:ring-[#3F3F3F]"
+                          placeholder="0"
+                        />
+                      </td>
+                      <td className="px-4 py-3 align-middle text-right">
+                        <input
+                          type="number"
+                          value={row.montantPrevu}
+                          onChange={(event) =>
+                            handleNumberChange(index, "montantPrevu", event.target.value)
+                          }
+                          className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-right focus:border-[#3F3F3F] focus:outline-none focus:ring-1 focus:ring-[#3F3F3F]"
+                          placeholder="0"
+                        />
+                      </td>
+                    </>
+                  )}
                   <td className="px-4 py-3 align-middle text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button
@@ -338,7 +514,7 @@ const Charge = () => {
                         onClick={() => handleSaveRow(index)}
                         className="flex h-9 w-9 items-center justify-center rounded-md bg-green-500 transition hover:bg-green-600 disabled:cursor-not-allowed disabled:bg-green-300"
                         disabled={!row.isDirty || savingRowId === (row._id || `temp-${index}`)}
-                        aria-label="Enregistrer la charge"
+                        aria-label="Enregistrer la ligne"
                       >
                         {savingRowId === (row._id || `temp-${index}`) ? (
                           <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
@@ -351,7 +527,7 @@ const Charge = () => {
                         onClick={() => handleRemoveRow(index)}
                         className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed"
                         disabled={savingRowId === (row._id || `temp-${index}`)}
-                        aria-label="Supprimer la charge"
+                        aria-label="Supprimer la ligne"
                       >
                         {savingRowId === (row._id || `temp-${index}`) ? (
                           <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-r-transparent" />
@@ -367,39 +543,89 @@ const Charge = () => {
           </tbody>
           {charges.length > 0 && !isLoading && (
             <tfoot>
-              <tr className="bg-gray-50">
-                <td className="px-4 py-3 text-sm font-semibold text-gray-600">Total des saisies</td>
-                <td></td>
-                <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
-                  {totalPrecedent.toLocaleString("fr-FR", {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  })}
-                </td>
-                <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
-                  {totalPrevu.toLocaleString("fr-FR", {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  })}
-                </td>
-                <td></td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="px-4 py-3 text-sm font-semibold text-gray-600">
-                  Ecart exercice précédent / prévisionnel
-                </td>
-                <td></td>
-                <td></td>
-                <td
-                  className={`px-4 py-3 text-right text-sm font-semibold ${ecartClass}`}
-                >
-                  {ecart.toLocaleString("fr-FR", {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  })}
-                </td>
-                <td></td>
-              </tr>
+              {isResultView ? (
+                <tr className="bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-600">
+                    Total
+                  </td>
+                  <td></td>
+                  <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
+                    {totalResultat.toLocaleString("fr-FR", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    })}
+                  </td>
+                  <td></td>
+                </tr>
+              ) : (
+                <>
+                  <tr className="bg-gray-50">
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-600">
+                      Total des saisies
+                    </td>
+                    <td></td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
+                      {totalPrecedent.toLocaleString("fr-FR", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      })}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
+                      {totalPrevu.toLocaleString("fr-FR", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      })}
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-600">
+                      Montant issu du compte de résultat
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
+                      {resultTotal.toLocaleString("fr-FR", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      })}
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-600">
+                      Contrôle reste à saisir / trop saisi
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td
+                      className={`px-4 py-3 text-right text-sm font-semibold ${controleClass}`}
+                    >
+                      {controle.toLocaleString("fr-FR", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      })}
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-600">
+                      Ecart exercice en cours et précédent
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td
+                      className={`px-4 py-3 text-right text-sm font-semibold ${ecartClass}`}
+                    >
+                      {ecart.toLocaleString("fr-FR", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      })}
+                    </td>
+                    <td></td>
+                  </tr>
+                </>
+              )}
             </tfoot>
           )}
         </table>

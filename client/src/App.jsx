@@ -162,7 +162,7 @@ function App() {
             path="/admin/charge"
             element={
               <AdminRoute>
-                <Layout pathName={"Saisie des charges"}>
+                <Layout pathName={"Comptabilité"}>
                   <Charge />
                 </Layout>
               </AdminRoute>
