@@ -187,7 +187,6 @@ const InvoiceCreation = () => {
           supportList={invoice.client.support}
           costList={invoice.client.costs}
           createOrder={createOrder}
-          handleChange={handleClientChange}
           returnFunction={decreaseStep}
           TVA_PERCENTAGE={TVA_PERCENTAGE}
         />

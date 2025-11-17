@@ -1,5 +1,6 @@
 import Order from "../model/orderModel.js";
 import Invoice from "../model/invoiceModel.js";
+import Signature from "../model/signatureModel.js";
 import createOrderPdf, { createOrderPdfBuffer } from "../utils/orderCreator.js";
 import { writeFile } from "fs";
 import crypto from "crypto";
@@ -60,8 +61,18 @@ export const createOrder = async (req, res) => {
     const tva = req.body.tva.percentage;
     const { orderNumber: maxOrderNumber = 0 } = (await Order.findOne().sort({ orderNumber: -1 })) || {};
 
+    // Récupérer la signature stockée au lieu de celle envoyée par le client
+    const storedSignature = await Signature.findOne().sort({ updatedAt: -1 });
+    const signatureData = storedSignature?.signatureData || req.body.invoice.client.signature;
+
+    if (!signatureData) {
+      return res.status(400).json({ 
+        error: "Aucune signature disponible. Veuillez configurer la signature dans les paramètres." 
+      });
+    }
+
     const randomImageName = crypto.randomBytes(32).toString("hex");
-    saveSignature(req.body.invoice.client.signature, randomImageName);
+    saveSignature(signatureData, randomImageName);
 
     const supports = normaliseSupports(client.support);
     const tvaRate = toNumber(tva);
@@ -82,7 +93,7 @@ export const createOrder = async (req, res) => {
       city: client.city,
       status: "pending",
       signature: randomImageName,
-      signatureData: req.body.invoice.client.signature,
+      signatureData: signatureData,
       tva: tvaRate,
       costs: client.costs || [],
     });
