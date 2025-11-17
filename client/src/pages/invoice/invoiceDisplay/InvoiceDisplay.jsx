@@ -6,6 +6,7 @@ import axios from "axios";
 import FilterModal from "./FilterModal";
 
 const InvoiceDisplay = () => {
+  const [magazineList, setMagazineList] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [invoicesToShow, setInvoicesToShow] = useState([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -68,6 +69,16 @@ const InvoiceDisplay = () => {
     }
   };
 
+  const fetchAllMagazines = async () => {
+    try {
+      const response = await axios.get(import.meta.env.VITE_API_HOST + "/api/magazine/");
+      const magazineNames = response.data.magazines.map(mag => mag.nom);
+      setMagazineList(magazineNames);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des magazines :", error);
+    }
+  };
+
   const filterInvoices = () => {
     setIsFilterOpen(false);
     
@@ -122,6 +133,7 @@ const InvoiceDisplay = () => {
   useEffect(() => {
     fetchInvoices();
     fetchAllClients();
+    fetchAllMagazines();
   }, []);
 
   return (
@@ -162,6 +174,7 @@ const InvoiceDisplay = () => {
             filter={filter}
             setFilter={updateFilter}
             clientList={clientList}
+            magazineList={magazineList}
             filterInvoiceAction={filterInvoices}
             deleteFilter={deleteFilter}
           />
