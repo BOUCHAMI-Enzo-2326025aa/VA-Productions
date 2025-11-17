@@ -65,6 +65,8 @@ const FilterModal = ({
             checked={filter.status.includes("unpaid")}
           />
         </div>
+        
+        {/*
         <div className="flex items-center justify-between w-[100px]">
           En cours
           <input
@@ -73,8 +75,9 @@ const FilterModal = ({
             checked={filter.status.includes("progress")}
           />
         </div>
-      </FilterInput>
+        */}
 
+      </FilterInput>
       <div className="mt-auto flex gap-1 justify-end pt-10">
         <InvoiceButton
           primary={false}
