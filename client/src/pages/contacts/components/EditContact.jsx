@@ -169,11 +169,11 @@ const EditContact = ({ contact, closeModal, saveContact }) => {
 
   return (
     <div
-      className="absolute bg-black bg-opacity-50 w-full h-full z-[99] flex appearAnimation"
+      className="absolute bg-black bg-opacity-50 w-full h-full z-[99] flex appearAnimation items-center justify-center p-4"
       onClick={closeModal}
     >
       <div
-        className="bg-white px-10 py-7 min-w-[60%] w-[600px] rounded flex flex-col gap-2 h-fit"
+        className="bg-white px-6 py-7 w-full max-w-2xl rounded flex flex-col gap-2 h-auto max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div>
@@ -188,7 +188,7 @@ const EditContact = ({ contact, closeModal, saveContact }) => {
           value={contactCopy.company}
           onChange={(e) => handleChange("company", e.target.value)}
         />
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Input
             title={"Nom"}
             style={"w-full"}
@@ -268,23 +268,31 @@ const EditContact = ({ contact, closeModal, saveContact }) => {
             <div className="flex-1 flex flex-col gap-1">
               <label className="font-medium text-sm text-[#3F3F3F]">Jours</label>
               {errors.customDelaisDays && (
-                <p className="text-red-500 text-xs">{errors.customDelaisDays}</p>
+                <p className="text-red-500 text-xs">
+                  {errors.customDelaisDays}
+                </p>
               )}
               <input
                 className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
                 value={contactCopy.customDelaisDays || ""}
-                onChange={(e) => handleChange("customDelaisDays", e.target.value)}
+                onChange={(e) =>
+                  handleChange("customDelaisDays", e.target.value)
+                }
                 inputMode="numeric"
                 autoComplete="off"
                 placeholder="30"
               />
             </div>
             <div className="flex-1 flex flex-col gap-1">
-              <label className="font-medium text-sm text-[#3F3F3F]">Complément</label>
+              <label className="font-medium text-sm text-[#3F3F3F]">
+                Complément
+              </label>
               <select
                 className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
                 value={contactCopy.customDelaisSuffix || DEFAULT_SUFFIX}
-                onChange={(e) => handleChange("customDelaisSuffix", e.target.value)}
+                onChange={(e) =>
+                  handleChange("customDelaisSuffix", e.target.value)
+                }
               >
                 {suffixOptions.map((option) => (
                   <option key={option.value || "default"} value={option.value}>
