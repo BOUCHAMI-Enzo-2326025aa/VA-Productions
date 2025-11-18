@@ -1,0 +1,74 @@
+/* Styles pour les écrans de 1024px ou moins (tablettes et mobiles) */
+@media (max-width: 1024px) {
+  /* Conteneur de l'en-tête (sélecteur et bouton) */
+  .charge-header-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem; /* 16px */
+  }
+
+  /* Transformation du tableau principal en cartes */
+  .charge-table thead {
+    display: none; /* Cache les en-têtes du tableau */
+  }
+
+  .charge-table,
+  .charge-table tbody,
+  .charge-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .charge-table tbody tr {
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .charge-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0.25rem;
+    text-align: right;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .charge-table td:last-child {
+    border-bottom: none;
+    padding-top: 1rem;
+  }
+
+  /* Ajoute les labels avant chaque cellule de données */
+  .charge-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    text-align: left;
+    margin-right: 1rem;
+    opacity: 0.7;
+    white-space: nowrap;
+  }
+  
+  /* --- Correction pour le pied de page (tfoot) --- */
+  .charge-table tfoot tr {
+    display: block;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background-color: #f9fafb; /* bg-gray-50 */
+    border-radius: 0.5rem;
+  }
+  
+  .charge-table tfoot td {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    padding: 0.5rem 0;
+  }
+
+  /* Cache les cellules vides dans le tfoot sur mobile */
+  .charge-table tfoot td:empty {
+    display: none;
+  }
+}

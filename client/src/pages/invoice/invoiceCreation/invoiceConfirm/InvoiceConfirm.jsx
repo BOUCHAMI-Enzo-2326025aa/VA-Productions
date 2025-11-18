@@ -26,8 +26,8 @@ const InvoiceConfirm = ({
   const totalToPay = totalSupports + tvaAmount;
 
   return (
-    <div className="bg-white w-full h-full py-8 px-9 rounded-md flex min-h-[600px] page-appear-animation">
-      <div className=" min-h-full mt-5 flex flex-col items-center px-10 w-full">
+    <div className="bg-white w-full h-full py-8 px-4 sm:px-9 rounded-md flex flex-col lg:flex-row min-h-[600px] page-appear-animation">
+      <div className="min-h-full mt-5 flex flex-col items-center px-4 sm:px-10 w-full lg:w-1/2">
         <div className="relative h-fit w-fit">
           <svg className="fill-[#30d72d] size-24" viewBox="0 -960 960 960">
             <path d="m424-296 282-282-56-56-226 226-114-114-56 56 170 170Zm56 216q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z" />
@@ -35,7 +35,7 @@ const InvoiceConfirm = ({
           <span className="size-32 bg-[#30d72d] absolute top-[50%] left-[50%] rounded-full opacity-10 -translate-x-[50%] -translate-y-[50%]"></span>
         </div>
         <p className="text-xl mt-8 text-[#3F3F3F] font-semibold">Confirmation de la commande</p>
-        <p className="opacity-50 text-[#3F3F3F] text-sm mb-10">Confirmer que tous les éléments indiqués soient corrects</p>
+        <p className="opacity-50 text-[#3F3F3F] text-sm mb-10 text-center">Confirmez que tous les éléments indiqués sont corrects</p>
         <SectionTitle title={"Informations client"} 
         svg={
           <svg
@@ -64,13 +64,13 @@ const InvoiceConfirm = ({
         </div>
       </div>
 
-      <div className="w-full min-h-full flex flex-col border-l-2 border-opacity-[0.05] border-black items-start px-6 py-6">
+      <div className="w-full lg:w-1/2 min-h-full flex flex-col border-t-2 border-opacity-[0.05] border-black lg:border-l-2 lg:border-t-0 items-start px-4 sm:px-6 py-6 mt-6 lg:mt-0">
         <SectionTitle title={"Informations de facturation"} svg={
           <svg
               className="fill-[#3F3F3F] size-[24px]"
               viewBox="0 -960 960 960"
             >
-              <path d="M240-80q-50 0-85-35t-35-85v-120h120v-560l60 60 60-60 60 60 60-60 60 60 60-60 60 60 60-60 60 60v680q0 50-35 85t-85 35H240Zm480-80q17 0 28.5-11.5T760-200v-560H320v440h360v120q0 17-11.5 28.5T720-160ZM360-600v-80h240v80H360Zm0 120v-80h240v80H360Zm320-120q-17 0-28.5-11.5T640-640q0-17 11.5-28.5T680-680q17 0 28.5 11.5T720-640q0 17-11.5 28.5T680-600Zm0 120q-17 0-28.5-11.5T640-520q0-17 11.5-28.5T680-560q17 0 28.5 11.5T720-520q0 17-11.5 28.5T680-480Z" />
+              <path d="M240-80q-50 0-85-35t-35-85v-120h120v-560l60 60 60-60 60 60 60-60 60 60 60-60 60 60 60-60 60 60v680q0 50-35 85t-85 35H240Zm480-80q17 0 28.5-11.5T760-200v-560H320v440h360v120q0 17 11.5 28.5T720-160ZM360-600v-80h240v80H360Zm0 120v-80h240v80H360Zm320-120q-17 0-28.5-11.5T640-640q0-17 11.5-28.5T680-680q17 0 28.5 11.5T720-640q0 17-11.5 28.5T680-600Zm0 120q-17 0-28.5-11.5T640-520q0-17 11.5-28.5T680-560q17 0 28.5 11.5T720-520q0 17-11.5 28.5T680-480Z" />
             </svg>
           }
           />
@@ -97,7 +97,7 @@ const InvoiceConfirm = ({
               </tr>
             </tbody>
           </table>
-          <div className="flex gap-2 mt-5">
+          <div className="flex flex-col md:flex-row gap-2 mt-5 w-full md:w-auto">
             <InvoiceButton
               value={"Retour"}
               primary={false}
