@@ -41,3 +41,69 @@
 .appear-animation {
   animation: appearAnimation 0.5s ease-out forwards;
 }
+
+/* Styles pour les écrans de 1024px ou moins (tablettes et mobiles) */
+@media (max-width: 1024px) {
+  /* Conteneur des statistiques */
+  .invoice-stats-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem; /* 8px */
+  }
+
+  /* Chaque carte de statistique prend toute la largeur */
+  .invoice-stats-container > div {
+    width: 100%;
+  }
+
+  /* Conteneur des actions (recherche, filtre) */
+  .invoice-actions-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem; /* 12px */
+  }
+
+  /* Transformation du tableau en liste de cartes */
+  .invoice-table thead {
+    display: none; /* Cache les en-têtes du tableau */
+  }
+
+  .invoice-table, .invoice-table tbody, .invoice-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .invoice-table tr {
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  .invoice-table tr:nth-child(2n) {
+    background-color: #ffffff; /* Surcharge pour avoir un fond blanc uni */
+  }
+
+  .invoice-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    text-align: right;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .invoice-table td:last-child {
+    border-bottom: none;
+  }
+
+  /* Ajoute les labels avant chaque cellule de données */
+  .invoice-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    text-align: left;
+    margin-right: 1rem;
+    opacity: 0.7;
+  }
+}

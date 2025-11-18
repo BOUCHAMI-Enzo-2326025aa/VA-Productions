@@ -141,11 +141,11 @@ const InvoiceCreation = () => {
   const decreaseStep = () => setStep(step - 1);
 
   return (
-    <div className="flex gap-2 mt-8">
+    <div className="flex flex-col lg:flex-row gap-4 mt-8">
       {step === 4 && <LoadingScreen loading={loading} />} 
       
       {step < 3 && (
-        <div className="flex flex-col w-[50%] max-w-[450px] min-w-[450px] gap-2 overflow-hidden">
+        <div className="flex flex-col w-full lg:w-[50%] lg:max-w-[450px] lg:min-w-[450px] gap-2 overflow-hidden">
           <InvoiceCreationStepFollow step={step} />
           {step > 1 && <InvoiceSummary supportList={invoice.client.support} />}
         </div>

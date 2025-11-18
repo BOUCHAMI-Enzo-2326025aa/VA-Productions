@@ -3,6 +3,7 @@ import axios from "axios";
 import { Trash2 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import refreshIcon from "../../assets/SaveIcon.svg";
+import "./Charge.css"; // Importer le nouveau fichier CSS
 
 const VIEW_OPTIONS = {
   CHARGES: "charges",
@@ -132,7 +133,6 @@ const Charge = () => {
     } else {
       setIsLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, view]);
 
   const updateRowAtIndex = (index, updates) => {
@@ -380,7 +380,7 @@ const Charge = () => {
         </div>
       )}
 
-      <div className="flex justify-between items-center mt-10">
+      <div className="flex justify-between items-center mt-10 charge-header-container">
         <div>
           <div className="flex items-center gap-3">
             <select
@@ -404,7 +404,7 @@ const Charge = () => {
       </div>
 
       <div className="mt-8 overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-y-2">
+        <table className="min-w-full border-separate border-spacing-y-2 charge-table">
           <thead>
             <tr className="bg-white shadow-sm">
               <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-gray-500">
@@ -453,8 +453,8 @@ const Charge = () => {
               </tr>
             ) : (
               charges.map((row, index) => (
-                <tr key={row._id || `nouveau-${index}`} className="bg-white shadow-sm">
-                  <td className="px-4 py-3 align-middle">
+                <tr key={row._id || `nouveau-${index}`}>
+                  <td data-label="Compte">
                     <input
                       type="text"
                       inputMode="numeric"
@@ -465,7 +465,7 @@ const Charge = () => {
                       placeholder="601000"
                     />
                   </td>
-                  <td className="px-4 py-3 align-middle">
+                  <td data-label="Nom">
                     <input
                       type="text"
                       value={row.nom}
@@ -475,7 +475,7 @@ const Charge = () => {
                     />
                   </td>
                   {isResultView ? (
-                    <td className="px-4 py-3 align-middle text-right">
+                    <td data-label="Montant (€)">
                       <input
                         type="number"
                         value={row.montantResultat}
@@ -488,7 +488,7 @@ const Charge = () => {
                     </td>
                   ) : (
                     <>
-                      <td className="px-4 py-3 align-middle text-right">
+                      <td data-label="Montant précédent (€)">
                         <input
                           type="number"
                           value={row.montantPrecedent}
@@ -499,7 +499,7 @@ const Charge = () => {
                           placeholder="0"
                         />
                       </td>
-                      <td className="px-4 py-3 align-middle text-right">
+                      <td data-label="Montant prévu (€)">
                         <input
                           type="number"
                           value={row.montantPrevu}
@@ -512,7 +512,7 @@ const Charge = () => {
                       </td>
                     </>
                   )}
-                  <td className="px-4 py-3 align-middle text-center">
+                  <td data-label="Actions">
                     <div className="flex items-center justify-center gap-2">
                       <button
                         type="button"
@@ -550,82 +550,78 @@ const Charge = () => {
             <tfoot>
               {isResultView ? (
                 <tr className="bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-semibold text-gray-600">
+                  <td data-label="Total" className="px-4 py-3 text-sm font-semibold text-gray-600">
                     Total
                   </td>
                   <td></td>
-                  <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
+                  <td data-label="Total Montant" className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                     {totalResultat.toLocaleString("fr-FR", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    })}
+                    })} €
                   </td>
                   <td></td>
                 </tr>
               ) : (
                 <>
                   <tr className="bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-600">
+                    <td data-label="Total des saisies" className="px-4 py-3 text-sm font-semibold text-gray-600">
                       Total des saisies
                     </td>
                     <td></td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
+                    <td data-label="Total Précédent" className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                       {totalPrecedent.toLocaleString("fr-FR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })}
+                      })} €
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
+                    <td data-label="Total Prévu" className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                       {totalPrevu.toLocaleString("fr-FR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })}
+                      })} €
                     </td>
                     <td></td>
                   </tr>
                   <tr className="bg-white">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-600">
+                    <td data-label="Montant compte de résultat" className="px-4 py-3 text-sm font-semibold text-gray-600">
                       Montant issu du compte de résultat
                     </td>
                     <td></td>
                     <td></td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
+                    <td data-label="Montant Résultat" className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                       {resultTotal.toLocaleString("fr-FR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })}
+                      })} €
                     </td>
                     <td></td>
                   </tr>
                   <tr className="bg-white">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-600">
+                    <td data-label="Contrôle" className="px-4 py-3 text-sm font-semibold text-gray-600">
                       Contrôle reste à saisir / trop saisi
                     </td>
                     <td></td>
                     <td></td>
-                    <td
-                      className={`px-4 py-3 text-right text-sm font-semibold ${controleClass}`}
-                    >
+                    <td data-label="Contrôle Montant" className={`px-4 py-3 text-right text-sm font-semibold ${controleClass}`}>
                       {controle.toLocaleString("fr-FR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })}
+                      })} €
                     </td>
                     <td></td>
                   </tr>
                   <tr className="bg-white">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-600">
+                    <td data-label="Écart N/N-1" className="px-4 py-3 text-sm font-semibold text-gray-600">
                       Ecart exercice en cours et précédent
                     </td>
                     <td></td>
                     <td></td>
-                    <td
-                      className={`px-4 py-3 text-right text-sm font-semibold ${ecartClass}`}
-                    >
+                    <td data-label="Écart Montant" className={`px-4 py-3 text-right text-sm font-semibold ${ecartClass}`}>
                       {ecart.toLocaleString("fr-FR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })}
+                      })} €
                     </td>
                     <td></td>
                   </tr>

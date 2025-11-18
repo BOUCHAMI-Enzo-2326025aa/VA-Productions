@@ -11,39 +11,28 @@ const Calendrier = () => {
   const [isEventsLoading, setIsEventsLoading] = useState(false);
   const [googleTokens, setGoogleTokens] = useState(null);
 
-  // Fonction utilitaire pour extraire l'heure au format HH:mm
   const extractTime = (dateTimeString) => {
     if (!dateTimeString) return "";
-    // Si c'est déjà au format HH:mm, on retourne tel quel
     if (/^\d{2}:\d{2}$/.test(dateTimeString)) {
       return dateTimeString;
     }
-    // Si c'est un format ISO (2026-01-17T14:13), on extrait l'heure
     if (dateTimeString.includes('T')) {
       return dateTimeString.split('T')[1].substring(0, 5);
     }
     return dateTimeString;
   };
 
-  // Fonction utilitaire pour extraire la date au format YYYY-MM-DD
   const extractDate = (dateTimeString) => {
     if (!dateTimeString) return null;
-    
-    // Si c'est un format ISO (2026-01-17T14:13), on extrait la date
     if (dateTimeString.includes('T')) {
       return dateTimeString.split('T')[0];
     }
-    
-    // Si c'est déjà au format YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateTimeString)) {
       return dateTimeString;
     }
-    
-    // Si c'est juste une heure (HH:mm), pas de date disponible
     if (/^\d{2}:\d{2}$/.test(dateTimeString)) {
       return null;
     }
-    
     return null;
   };
 
@@ -108,30 +97,25 @@ const Calendrier = () => {
         const data = await response.json();
 
         const eventsByDate = data.reduce((acc, event) => {
-          // Vérifier que startTime existe
           if (!event.startTime) {
             console.warn("⚠️ Événement sans startTime ignoré:", event);
             return acc;
           }
 
-          // Extraire la date depuis startTime (format ISO: "2026-01-17T14:13")
           const date = extractDate(event.startTime);
           
-          // Ignorer les événements sans date valide (anciens événements avec juste l'heure)
           if (!date) {
             console.warn("⚠️ Événement avec date invalide ignoré (format ancien):", event);
             return acc;
           }
 
-          // Initialiser le tableau pour cette date si nécessaire
           if (!acc[date]) {
             acc[date] = [];
           }
 
-          // Vérifier que la date est future ou aujourd'hui
           const eventDateTime = new Date(event.startTime);
           const today = new Date();
-          today.setHours(0, 0, 0, 0); // Réinitialiser à minuit pour comparer juste la date
+          today.setHours(0, 0, 0, 0);
           
           if (!isNaN(eventDateTime.getTime()) && eventDateTime >= today) {
             acc[date].push(event);
@@ -159,8 +143,6 @@ const Calendrier = () => {
   }, []);
 
   const handleCreateEvent = (savedEvent) => {
-    // L'événement est déjà sauvegardé en BD par le composant Button
-    // On le met juste à jour dans le state local
     const eventDate = extractDate(savedEvent.startTime);
 
     setEvents((prevEvents) => {
@@ -172,7 +154,6 @@ const Calendrier = () => {
       return updatedEvents;
     });
 
-    // Si connecté à Google Calendar, synchroniser aussi
     if (isAuthenticated) {
       addEventToGoogleCalendar(savedEvent);
     }
@@ -247,11 +228,9 @@ const Calendrier = () => {
   };
 
   const handleEditEvent = (updatedEvent) => {
-    // Mettre à jour l'événement dans le state local
     setEvents((prevEvents) => {
       const newEvents = { ...prevEvents };
       
-      // Trouver l'ancienne date et la nouvelle date
       const oldDate = extractDate(
         Object.values(newEvents)
           .flat()
@@ -259,9 +238,7 @@ const Calendrier = () => {
       );
       const newDate = extractDate(updatedEvent.startTime);
 
-      // Si la date a changé, on doit déplacer l'événement
       if (oldDate && oldDate !== newDate) {
-        // Supprimer de l'ancienne date
         if (newEvents[oldDate]) {
           newEvents[oldDate] = newEvents[oldDate].filter(
             (e) => e._id !== updatedEvent._id
@@ -271,13 +248,11 @@ const Calendrier = () => {
           }
         }
 
-        // Ajouter à la nouvelle date
         if (!newEvents[newDate]) {
           newEvents[newDate] = [];
         }
         newEvents[newDate].push(updatedEvent);
       } else {
-        // Même date, juste mettre à jour l'événement
         const dateKey = newDate || oldDate;
         if (newEvents[dateKey]) {
           newEvents[dateKey] = newEvents[dateKey].map((e) =>
@@ -337,31 +312,29 @@ const Calendrier = () => {
     }
   };
 
-
-
   return (
     <div className="bg-[#E8E9EB] w-full py-6">
       <div>
-        <h1 className="font-inter text-[#3F3F3F] text-[40px] font-[700]">
+        <h1 className="font-inter text-[#3F3F3F] text-3xl md:text-4xl font-bold">
           Calendrier
         </h1>
-        <p className="font-inter text-[#3F3F3F] text-[20px] font-[500] opacity-70">
+        <p className="font-inter text-[#3F3F3F] text-lg md:text-xl font-medium opacity-70">
           Retrouvez les prochains rendez-vous et appels
         </p>
       </div>
 
-      <div className="w-full flex justify-end mb-6 items-center gap-1">
+      <div className="w-full flex justify-end mb-6 items-center gap-2 calendar-actions-container">
         {!isAuthenticated ? (
           <button
             onClick={handleSignIn}
-            className="border-[3px] bg-[#0072e1] font-medium flex items-center gap-2 px-12 py-3 rounded-md"
+            className="border-[3px] bg-[#0072e1] font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md"
           >
             Connexion Google Calendar
           </button>
         ) : (
           <button
             onClick={handleSignOut}
-            className=" bg-red-500 font-medium flex items-center gap-2 px-12 py-3 rounded-md"
+            className=" bg-red-500 font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md"
           >
             Déconnexion
           </button>
@@ -370,7 +343,7 @@ const Calendrier = () => {
         {isAuthenticated && (
           <button
             onClick={importAllEventsToGoogle}
-            className="bg-green-500 font-medium flex items-center gap-2 px-12 py-3 rounded-md"
+            className="bg-green-500 font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md"
           >
             Importer tous les événements
           </button>

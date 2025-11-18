@@ -66,12 +66,10 @@ const Order = () => {
         { responseType: "blob" }
       );
 
-  // récupération du nom de fichier depuis l'en-tête Content-Disposition
       const contentDisposition =
         response.headers["content-disposition"] ||
         response.headers["Content-Disposition"];
-    // privilégie orderNumber pour le nom de fichier
-    let filename = orderNumber ? `commande-${orderNumber}.pdf` : `commande-${id}.pdf`;
+      let filename = orderNumber ? `commande-${orderNumber}.pdf` : `commande-${id}.pdf`;
       if (contentDisposition) {
         const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?"?([^";]*)"?/i);
         if (match && match[1]) {
@@ -79,12 +77,10 @@ const Order = () => {
         }
       }
 
-  const blob = new Blob([response.data], { type: "application/pdf" });
-  const url = window.URL.createObjectURL(blob);
-  // Ouvrir le PDF dans un nouvel onglet pour prévisualisation 
-  window.open(url, "_blank");
-  // Révoquer l'URL après un court délai pour laisser le navigateur charger le PDF
-  setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
     } catch (error) {
       console.error("Erreur lors du téléchargement du PDF:", error);
     }
@@ -129,7 +125,7 @@ const Order = () => {
         validés)
       </p>
 
-      <div className="flex justify-between w-full items-center ">
+      <div className="flex justify-between w-full items-center order-actions-container">
         <ChangeStatusButton
           statusToShow={statusToShow}
           setStatusToShow={setStatusToShow}
@@ -148,7 +144,7 @@ const Order = () => {
         </div>
       </div>
 
-      <div className="flex items-start mt-5 gap-3">
+      <div className="flex items-start mt-5 gap-3 order-content-wrapper">
         <div className="bg-white min-h-fit w-[50%] rounded-lg px-6 py-6 flex flex-col gap-2">
           {ordersToShow.map((order, index) => (
             <OrderItem

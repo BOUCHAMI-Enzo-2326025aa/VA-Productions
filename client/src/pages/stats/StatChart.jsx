@@ -17,28 +17,15 @@ import {
 export function StatChart({ invoices, colorList }) {
   const [chartData, setChartData] = useState([]);
   const [supportList, setSupportList] = useState([]);
-  const [visibleSupports, setVisibleSupports] = useState({}); // État pour suivre les supports visibles
+  const [visibleSupports, setVisibleSupports] = useState({});
 
   const transformData = () => {
     const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December",
     ];
 
-    const data = months.map((month) => ({
-      month,
-    }));
-
+    const data = months.map((month) => ({ month }));
     const tempSupportList = [];
 
     invoices.forEach((invoice) => {
@@ -72,7 +59,6 @@ export function StatChart({ invoices, colorList }) {
 
     setChartData(data);
 
-    // Initialiser tous les supports comme visibles
     setVisibleSupports(
       tempSupportList.reduce((acc, support) => {
         acc[support] = true;
@@ -87,16 +73,14 @@ export function StatChart({ invoices, colorList }) {
     }
   }, [invoices]);
 
-  // Générer dynamiquement la configuration des couleurs pour chaque magazine
   const chartConfig = supportList.reduce((config, support, index) => {
     config[support] = {
-      label: support.charAt(0).toUpperCase() + support.slice(1), // Capitaliser le nom
+      label: support.charAt(0).toUpperCase() + support.slice(1),
       color: colorList[index % colorList.length],
     };
     return config;
   }, {});
 
-  // Fonction pour basculer la visibilité d'un support
   const toggleSupportVisibility = (support) => {
     setVisibleSupports((prev) => ({
       ...prev,
@@ -105,7 +89,7 @@ export function StatChart({ invoices, colorList }) {
   };
 
   return (
-    <Card className="!w-[65%]">
+    <Card className="w-full lg:!w-[65%]">
       <CardHeader>
         <CardTitle>Revenu de chaque support</CardTitle>
         <CardDescription>12 Derniers mois</CardDescription>
@@ -115,10 +99,7 @@ export function StatChart({ invoices, colorList }) {
           <LineChart
             accessibilityLayer
             data={chartData}
-            margin={{
-              left: 12,
-              right: 12,
-            }}
+            margin={{ left: 12, right: 12 }}
           >
             <CartesianGrid vertical={false} />
             <XAxis
@@ -130,7 +111,6 @@ export function StatChart({ invoices, colorList }) {
             />
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
 
-            {/* Render Line for visible supports */}
             {supportList.map(
               (support, index) =>
                 visibleSupports[support] && (
@@ -150,7 +130,7 @@ export function StatChart({ invoices, colorList }) {
       </CardContent>
 
       <CardFooter>
-        <div className="flex justify-evenly w-full">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 w-full">
           {supportList.map((support, index) => (
             <div
               key={support}
@@ -161,9 +141,7 @@ export function StatChart({ invoices, colorList }) {
             >
               <span
                 className="w-6 h-2 rounded"
-                style={{
-                  backgroundColor: colorList[index] || "#000",
-                }}
+                style={{ backgroundColor: colorList[index] || "#000" }}
               />
               <span>{chartConfig[support]?.label || support}</span>
             </div>
