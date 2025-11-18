@@ -3,7 +3,7 @@ import axios from "axios";
 import { Trash2 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import refreshIcon from "../../assets/SaveIcon.svg";
-import "./Charge.css"; // Importer le nouveau fichier CSS
+import "./Charge.css";
 
 const VIEW_OPTIONS = {
   CHARGES: "charges",
@@ -60,6 +60,13 @@ const Charge = () => {
   const [savingRowId, setSavingRowId] = useState(null);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
   const [resultTotal, setResultTotal] = useState(0);
+  
+  // État pour la modal de confirmation de suppression
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    rowIndex: null,
+    rowName: "",
+  });
 
   const isResultView = view === VIEW_OPTIONS.RESULT;
 
@@ -283,6 +290,7 @@ const Charge = () => {
 
     if (!row._id) {
       removeRowFromState();
+      setDeleteConfirm({ isOpen: false, rowIndex: null, rowName: "" });
       return;
     }
 
@@ -301,7 +309,21 @@ const Charge = () => {
       );
     } finally {
       setSavingRowId(null);
+      setDeleteConfirm({ isOpen: false, rowIndex: null, rowName: "" });
     }
+  };
+
+  const openDeleteConfirm = (index) => {
+    const row = charges[index];
+    setDeleteConfirm({
+      isOpen: true,
+      rowIndex: index,
+      rowName: row.nom || `Ligne ${index + 1}`,
+    });
+  };
+
+  const closeDeleteConfirm = () => {
+    setDeleteConfirm({ isOpen: false, rowIndex: null, rowName: "" });
   };
 
   const totalPrecedent = useMemo(() => {
@@ -529,7 +551,7 @@ const Charge = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleRemoveRow(index)}
+                        onClick={() => openDeleteConfirm(index)}
                         className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed"
                         disabled={savingRowId === (row._id || `temp-${index}`)}
                         aria-label="Supprimer la ligne"
@@ -631,6 +653,43 @@ const Charge = () => {
           )}
         </table>
       </div>
+
+      {/* Modal de confirmation de suppression */}
+      {deleteConfirm.isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={closeDeleteConfirm}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Confirmer la suppression
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer la ligne "{deleteConfirm.rowName}" ?
+              Cette action est irréversible.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={closeDeleteConfirm}
+                className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRemoveRow(deleteConfirm.rowIndex)}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
