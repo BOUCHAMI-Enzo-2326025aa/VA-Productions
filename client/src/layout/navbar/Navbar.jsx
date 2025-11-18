@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import logo from "../../assets/va-production-logo.png";
 import PageLink from "./PageLink";
 import dashboardSvg from "../../assets/dashboard-icon.svg";
@@ -16,7 +16,17 @@ import useAuth from "../../hooks/useAuth";
 
 const Navbar = ({ isOpen, closeNavbar }) => {
   const { isAdmin } = useAuth();
-  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
+  
+  // Récupérer l'état du menu depuis localStorage au chargement
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(() => {
+    const saved = localStorage.getItem("adminMenuOpen");
+    return saved === "true";
+  });
+
+  // Sauvegarder l'état dans localStorage à chaque changement
+  useEffect(() => {
+    localStorage.setItem("adminMenuOpen", isAdminMenuOpen);
+  }, [isAdminMenuOpen]);
 
   const toggleAdminMenu = () => {
     setIsAdminMenuOpen((prev) => !prev);
