@@ -21,26 +21,26 @@ const CreateUser = ({ closeCreationPage, fetchUser }) => {
 
   return (
     <div
-      className="absolute w-full h-screen top-0 left-0 creation-user-bg bg-black bg-opacity-70 flex justify-center items-center "
+      className="absolute w-full h-screen top-0 left-0 creation-user-bg bg-black bg-opacity-70 flex justify-center items-center p-4 z-50"
       onClick={closeCreationPage}
     >
       <div
-        className="bg-white px-12 py-12 rounded min-w-[700px] creation-user-form-appear"
+        className="bg-white px-6 py-8 md:px-12 md:py-12 rounded-lg w-full max-w-lg creation-user-form-appear"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="font-bold text-lg">Création d'un utilisateur</p>
-        <p className="opacity-70">
+        <p className="font-bold text-lg md:text-xl">Création d'un utilisateur</p>
+        <p className="opacity-70 text-sm md:text-base">
           Saisissez toutes les informations relatives au nouvel utilisateur
         </p>
 
-        <div className="flex mt-4 gap-1">
+        <div className="flex mt-4 gap-1 items-center">
           <svg className="size-6 fill-[#3F3F3F]" viewBox="0 -960 960 960">
             <path d="M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z" />
           </svg>
           <p>Profil</p>
         </div>
 
-        <div className="flex gap-2 w-full mt-4">
+        <div className="flex flex-col md:flex-row gap-2 w-full mt-4">
           <Input
             title="Nom"
             value={nom}

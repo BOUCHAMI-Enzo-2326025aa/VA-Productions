@@ -49,3 +49,48 @@
 .role-selection {
   border-right: 16px solid transparent;
 }
+
+/* Styles pour les écrans de 768px ou moins (mobiles) */
+@media (max-width: 768px) {
+  .user-table thead {
+    display: none; /* Cache les en-têtes du tableau sur mobile */
+  }
+
+  .user-table,
+  .user-table tbody,
+  .user-table tr,
+  .user-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .user-table tr {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .user-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0.25rem;
+    text-align: right;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .user-table td:last-child {
+    border-bottom: none;
+  }
+
+  /* Ajoute un label avant chaque donnée de cellule */
+  .user-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    text-align: left;
+    margin-right: 1rem;
+    opacity: 0.7;
+  }
+}

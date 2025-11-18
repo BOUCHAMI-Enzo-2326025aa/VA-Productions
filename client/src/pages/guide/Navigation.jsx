@@ -2,7 +2,7 @@ import React from "react";
 
 const Navigation = () => {
   return (
-    <div className=" flex flex-col  w-fit gap-2 fixed right-[10%] top-48">
+    <div className="hidden lg:flex flex-col w-fit gap-2 fixed right-[10%] top-48">
       <a
         href="#stats"
         className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"

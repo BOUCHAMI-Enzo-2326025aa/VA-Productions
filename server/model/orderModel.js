@@ -23,7 +23,7 @@ const OrderSchema = new Schema({
   client: {
     type: Schema.Types.ObjectId,
     required: true,
-    ref: "Client",
+    ref: "Contact",
   },
   compagnyName  : {
     type: String,
@@ -32,6 +32,7 @@ const OrderSchema = new Schema({
   orderNumber: {
     type: Number,
     required: true,
+    unique: true,
   },
   date: {
     type: Date,
@@ -73,16 +74,19 @@ const OrderSchema = new Schema({
     required: false,
   },
   status: {
-  type: String,
-  enum: ["pending", "validated", "cancel"], 
-  default: "pending",
-},
+    type: String,
+    enum: ["pending", "validated", "cancel"], 
+    default: "pending",
+  },
   tva: {
     type: Number,
     required: true,
     default: 0.2,
+  },
+  delaisPaie: { 
+    type: String,
+    default: "comptant",
   }
-  
 });
 
 const Order = mongoose.model("Order", OrderSchema);

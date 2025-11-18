@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Upload, Trash2, Edit2, Plus, X } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import ConfirmModal from "../../components/ConfirmModal";
+import "./Magazine.css"; // Importer le nouveau fichier CSS
 
 const Magazine = () => {
   const { isAdmin } = useAuth();
@@ -233,10 +234,10 @@ const Magazine = () => {
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-center mt-10">
+      <div className="flex justify-between items-center mt-10 magazine-header-container">
         <div>
-          <p className="font-bold text-lg leading-3">Gestion des Magazines</p>
-          <p className="opacity-80 mt-2">
+          <p className="font-bold text-lg md:text-xl leading-3">Gestion des Magazines</p>
+          <p className="opacity-80 mt-2 text-sm md:text-base">
             Créez et gérez les magazines disponibles
           </p>
         </div>
@@ -335,7 +336,6 @@ const Magazine = () => {
                   Image de couverture *
                 </label>
                 
-                {/* Bouton pour uploader depuis le PC */}
                 <div className="mb-3">
                   <label className="w-full cursor-pointer">
                     <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
@@ -355,14 +355,12 @@ const Magazine = () => {
                   </label>
                 </div>
 
-                {/* OU séparateur */}
                 <div className="flex items-center gap-3 my-3">
                   <div className="flex-1 h-px bg-gray-300"></div>
                   <span className="text-sm text-gray-500 font-medium">OU</span>
                   <div className="flex-1 h-px bg-gray-300"></div>
                 </div>
 
-                {/* Champ URL */}
                 <input
                   type="text"
                   value={formData.image}
@@ -376,7 +374,6 @@ const Magazine = () => {
                   placeholder="Ou entrez l'URL de l'image"
                 />
 
-                {/* Aperçu de l'image */}
                 {(formData.image || formData.imageFile) && (
                   <div className="mt-3">
                     <p className="text-sm opacity-70 mb-2">Aperçu :</p>
@@ -416,7 +413,6 @@ const Magazine = () => {
         </div>
       )}
 
-      {/* Modal de confirmation de suppression */}
       <ConfirmModal
         open={deleteModal.open}
         title="Supprimer le magazine"

@@ -51,7 +51,7 @@ const Stats = () => {
     { label: "Date de Facture", key: "date_facture" },
     { label: "Statut du Paiement", key: "statut_paiement" },
     { label: "Nom du Support", key: "support_nom" },
-  { label: "Encart", key: "support_encart" },
+    { label: "Encart", key: "support_encart" },
     { label: "Prix du Support (€)", key: "support_prix" },
     { label: "Montant Total de la Facture (€)", key: "montant_total_facture" },
   ];
@@ -64,7 +64,7 @@ const Stats = () => {
       date_facture: new Date(invoice.date).toLocaleDateString("fr-FR"),
       statut_paiement: invoice.status === 'paid' ? 'Payé' : 'Non Payé',
       support_nom: support.supportName,
-  support_encart: support.name,
+      support_encart: support.name,
       support_prix: support.price,
       montant_total_facture: invoice.totalPrice
     }))
@@ -76,12 +76,14 @@ const Stats = () => {
 
     return (
     <div className="mb-10">
-      <div className="flex justify-between items-center mt-10">
+      <div className="flex flex-col items-start gap-4 md:flex-row md:justify-between md:items-center mt-10">
         <div>
           <p className="font-bold text-lg text-[#3F3F3F] leading-3">
             Statistiques des supports
           </p>
-          <p className="text-[#3F3F3F] opacity-80">Statistiques des supports</p>
+          <p className="text-[#3F3F3F] opacity-80 mt-2">
+            Statistiques des supports
+          </p>
         </div>
 
         {invoices.length > 0 && (
@@ -89,7 +91,7 @@ const Stats = () => {
             data={csvData}
             headers={csvHeaders}
             filename={"export-statistiques-va-production.csv"}
-            className="bg-[#3F3F3F] text-white font-semibold py-2 px-4 rounded hover:bg-opacity-80 transition-all"
+            className="bg-[#3F3F3F] text-white font-semibold py-2 px-4 rounded hover:bg-opacity-80 transition-all w-full md:w-auto text-center"
             target="_blank"
             separator={";"} 
           >
@@ -98,7 +100,7 @@ const Stats = () => {
         )}
       </div>
 
-      <div className="flex mt-4 gap-3">
+      <div className="flex flex-col lg:flex-row mt-4 gap-3">
         <StatChart invoices={invoices} colorList={colorList} />
         <PieChartStats invoices={invoices} colorList={colorList} />
       </div>

@@ -11,12 +11,12 @@ const Guide = () => {
         download="Guide d'utilisation.pdf"
         target="_blank"
         rel="noopener noreferrer"
-        className="bg-blue-500 text-white px-4 py-2 rounded w-fit"
+        className="bg-blue-500 text-white px-4 py-2 rounded w-fit self-center md:self-start"
       >
         Télécharger le Guide PDF
       </a>
-      <div className="flex justify-between relative">
-        <div className="w-[50%]">
+      <div className="flex flex-col lg:flex-row justify-between relative">
+        <div className="w-full lg:w-[50%]">
           <Section className="mt-16" name="dashboard">
             <Title texte="I - Dashboard" />
             <Paragraph>

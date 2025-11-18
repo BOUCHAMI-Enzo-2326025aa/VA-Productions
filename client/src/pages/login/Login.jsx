@@ -21,10 +21,8 @@ const Login = () => {
     return regex.test(password);
   };
 
-  // Fonction de validation du mot de passe
-   const loginUser = async () => {
+  const loginUser = async () => {
     setErrorMessage(null);
-    // Si le mot de passe ne respecte pas le format, on bloque la connexion.
     if (!validatePassword(password)) {
       setErrorMessage(
         "Format de mot de passe invalide.\nIl doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole."
@@ -41,9 +39,6 @@ const Login = () => {
       })
       .then((response) => {
         setLoginSuccessfull(true);
-
-        console.log("Réponse du serveur au login :", response.data);
-        
         localStorage.setItem("user", JSON.stringify(response.data));
         location.replace("/dashboard");
       })
@@ -58,21 +53,23 @@ const Login = () => {
   };
 
   return (
-    <div className="flex w-screen justify-center gap-[200px] min-h-screen mt-48 ">
-  <div className={`flex flex-col font-inter text-sm min-w-[400px] relative ${errorMessage ? 'pt-20' : ''}`}>
+    <div className="relative flex w-full min-h-screen items-center justify-center overflow-x-hidden p-4 md:gap-16 lg:gap-32">
+      <img className="w-48 h-fit absolute left-6 top-6 md:left-12 md:top-12" src={va_logo} alt="V.A Productions Logo" />
+
+      <div className={`w-full max-w-md flex flex-col font-inter text-sm md:min-w-[400px] ${errorMessage ? 'pt-20' : ''}`}>
         {errorMessage && <ErrorMessage message={errorMessage} />}
         {loginSuccessfull && (
-          <p className="bg-green-400 px-6 py-1 w-96">Connecté avec succès</p>
+          <p className="bg-green-400 px-6 py-1 w-full">Connecté avec succès</p>
         )}
 
         {/* HEADER */}
-        <div className="font-bold text-5xl">
+        <div className="font-bold text-4xl md:text-5xl">
           <p className="text-[#3F3F3F]">Bienvenue chez</p>
-          <p className="text-white bg-[#3F3F3F] w-fit px-3 py-1">
+          <p className="text-white bg-[#3F3F3F] w-fit px-3 py-1 mt-1">
             V.A Productions
           </p>
         </div>
-        <p className="max-w-[450px] mt-5 opacity-70">
+        <p className="max-w-md mt-5 opacity-70">
           Découvrez tous les outils liés à la prospection et facturation pour
           faciliter la prise de contact et de commande
         </p>
@@ -87,7 +84,7 @@ const Login = () => {
             <input
               required
               onChange={(e) => setUsername(e.target.value)}
-              className="border-[#3F3F3F] border-[0.75px] border-opacity-15 max-w-[500px] py-[10px] rounded-[5px] px-2"
+              className="border-[#3F3F3F] border-[0.75px] border-opacity-15 w-full py-[10px] rounded-[5px] px-2 mt-1"
             />
           </label>
 
@@ -102,45 +99,42 @@ const Login = () => {
                 }}
                 onBlur={() => setPasswordError("")}
                 type={showPassword ? "text" : "password"}
-                className="border-[#3F3F3F] border-[0.75px] border-opacity-15 max-w-[500px] py-[10px] rounded-[5px] px-2 pr-10 w-full"
+                className="border-[#3F3F3F] border-[0.75px] border-opacity-15 w-full py-[10px] rounded-[5px] px-2 pr-10 mt-1"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 mt-0.5 -translate-y-1/2 text-gray-500 hover:text-gray-700"
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
             {passwordError && (
-              <p className="text-[#3F3F3F] opacity-70 text-sm mt-1 whitespace-pre-line font-inter">{passwordError}</p>
+              <p className="login-instruction-text">{passwordError}</p>
             )}
           </label>
 
           {/* BUTTONS */}
-          <div className="flex flex-col w-full gap-2">
-            {/* <a className="text-right opacity-50 hover:opacity-100 transition-all cursor-pointer">
-              Première connexion
-            </a> */}
+          <div className="flex flex-col w-full gap-2 mt-2">
             <button
               className="bg-button w-full py-[14px] active:scale-95 rounded-[5px] text-white flex justify-center items-center"
               onClick={loginUser}
               type="submit"
             >
-              {loading && <img className="size-6" src={loading_gif} />}
+              {loading && <img className="size-6" src={loading_gif} alt="Chargement" />}
               {!loading && <p>Se connecter</p>}
             </button>
             <button
-              className="w-full border-[#5C89E0] active:scale-95 text-[#5C89E0] hover:text-white hover:bg-[#5C89E0] transition-all border-2  py-3 rounded-[5px]"
-              onClick={loginUser}
+              className="w-full border-[#5C89E0] active:scale-95 text-[#5C89E0] hover:text-white hover:bg-[#5C89E0] transition-all border-2 py-3 rounded-[5px]"
+              onClick={() => { /* Logique du mot de passe oublié ici */ }}
             >
-              Mot de passe oublié?
+              Mot de passe oublié ?
             </button>
           </div>
         </form>
       </div>
-      <img className="w-fit h-fit" src={magazine_img} />
-      <img className="w-48 h-fit absolute left-12 top-12" src={va_logo} />
+      <img className="hidden md:block h-fit w-fit max-w-md lg:max-w-lg" src={magazine_img} alt="Magazines" />
+      
       <span className="triangle absolute -bottom-60 right-40 blur-md -rotate-45 opacity-70"></span>
       <span className="triangle absolute -top-32 -right-64 scale-75 blur-md rotate-[25deg] opacity-50"></span>
       <span className="w-96 h-96 bg-[#295CC046] -left-32 -bottom-52 absolute rounded-full blur-md rotate-[25deg] opacity-50"></span>

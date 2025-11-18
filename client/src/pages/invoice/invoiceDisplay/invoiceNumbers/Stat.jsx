@@ -1,9 +1,9 @@
 import Skeleton from "../../../../components/Skeleton.jsx";
 import formatPrice from "../../../../utils/formatPrice.js";
 
-const Stat = ({ icon, title, value, subtitle, loading }) => {
+const Stat = ({ icon, title, value, subtitle, loading,  bgColor = "bg-[#1B1B14]" }) => {
   return (
-    <div className="bg-[#1B1B14] w-[320px] px-6 py-4 rounded-lg">
+    <div className={`${bgColor} w-[320px] px-6 py-4 rounded-lg`}>
       <div className="flex items-center gap-2">
         <p className="text-md text-white opacity-80">{title}</p>
       </div>
