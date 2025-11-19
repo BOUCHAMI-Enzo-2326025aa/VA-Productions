@@ -70,6 +70,14 @@ const invoiceShema = new mongoose.Schema({
   delaisPaie: { 
     type: String,
     default: "comptant"
+  },
+  eInvoiceStatus: {
+    type: String,
+    enum: ['pending', 'processing', 'sent', 'rejected', 'validated'], 
+    default: 'pending'
+  },
+  eInvoiceTransactionId: { 
+    type: String, 
   }
 });
 
