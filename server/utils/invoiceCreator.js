@@ -3,58 +3,48 @@ import path from "path";
 import PDFDocument from "pdfkit";
 import Contact from "../model/contactModel.js";
 
+export function createVisualPdfBuffer(facture, contact) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50, autoFirstPage: true });
+    const chunks = [];
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    try {
+      generateHeader(doc, facture, facture.number);
+      generateInvoiceTable(doc, facture, facture.tva, contact);
+      doc.end();
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
 async function createInvoice(facture, res, number, tva = 0.2) {
   const invoicesDir = "./invoices";
-
-  // Crée le répertoire s'il n'existe pas
   if (!fs.existsSync(invoicesDir)) {
     fs.mkdirSync(invoicesDir);
   }
-
-  const fileName = `${number}_${
-    facture?.entreprise?.toUpperCase() || "facture"}.pdf`;
+  const fileName = `${number}_${facture?.entreprise?.toUpperCase() || "facture"}.pdf`;
   const filePath = path.join(invoicesDir, fileName);
 
-  const doc = new PDFDocument({ margin: 50 });
-
-  // Crée un flux d'écriture et le transforme en Promise
-  const writeStream = fs.createWriteStream(filePath);
-  const streamFinished = new Promise((resolve, reject) => {
-    writeStream.on("finish", resolve);
-    writeStream.on("error", reject);
-  });
-
-  doc.pipe(writeStream);
-
-  // Génération du contenu du PDF
-  generateHeader(doc, facture, number);
-  generateInvoiceTable(doc, facture, tva);
-
-  doc.end();
-  await streamFinished;
+  const contact = await Contact.findById(facture.client);
+  const pdfBuffer = await createVisualPdfBuffer(facture, contact);
+  fs.writeFileSync(filePath, pdfBuffer);
 
   if (res) {
     res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Cache-Control", "no-store");
-    res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
-
-    res.download(filePath, fileName, (err) => {
-      if (err) {
-        console.error("Erreur lors de l'envoi du fichier PDF :", err);
-        if (!res.headersSent) {
-          res.status(500).send("Erreur lors de l'envoi du fichier PDF.");
-        }
-      } else {
-        console.log("Fichier envoyé avec succès :", fileName);
-      }
+    res.download(filePath, (err) => {
+      if (err) console.error("Erreur d'envoi PDF :", err);
     });
   } else {
     console.log(`Fichier PDF de facture généré et sauvegardé : ${fileName}`);
   }
 }
 
-function generateHeader(doc, facture, number) {
+export function generateHeader(doc, facture, number) {
   const currentDate = new Date(facture.date);
   const formattedDate = currentDate.toLocaleDateString("fr-FR");
   doc
@@ -111,13 +101,12 @@ function generateHeader(doc, facture, number) {
     .text("POUR :", 400, 170);
 }
 
-function generateInvoiceTable(doc, facture, tva) {
+export function generateInvoiceTable(doc, facture, tva) {
   if (facture?.supportList.length > 0) {
     let i;
     const invoiceTableTop = 300;
 
     doc.font("Helvetica-Bold");
-    // Colonnes: Encart / Support / N° support / Prix Unitaire / Montant
     generateTableRow(
       doc,
       invoiceTableTop,
@@ -263,7 +252,6 @@ function generateInvoiceTable(doc, facture, tva) {
 }
 
 function formatPrice(value) {
-  // Arrondir au centième pour éviter les erreurs de précision en virgule flottante
   const numericValue = Number(value ?? 0);
   const safeValue = Number.isFinite(numericValue) ? numericValue : 0;
   const rounded = Math.round((safeValue + Number.EPSILON) * 100) / 100;
