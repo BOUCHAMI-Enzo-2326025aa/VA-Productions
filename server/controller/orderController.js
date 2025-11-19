@@ -166,6 +166,9 @@ export const getOrderPdf = async (req, res) => {
     const items = normaliseSupports(order.items);
     const rate = toNumber(order.tva || 0.2);
 
+    const signatureData =
+      order.signatureData || (await Signature.findOne().sort({ updatedAt: -1 }))?.signatureData || null;
+
     const clientForPdf = {
       compagnyName: order.compagnyName,
       address1: order.firstAddress,
@@ -173,7 +176,7 @@ export const getOrderPdf = async (req, res) => {
       postalCode: order.postalCode,
       city: order.city,
       support: items,
-      signatureData: order.signatureData, 
+      signatureData,
       delaisPaie: order.delaisPaie,
     };
 
@@ -182,7 +185,8 @@ export const getOrderPdf = async (req, res) => {
       clientForPdf,
       order.orderNumber,
       rate,
-      order.signatureData
+      signatureData,
+      order.signature
     );
 
     const filename = `commande-${order.orderNumber}.pdf`;
