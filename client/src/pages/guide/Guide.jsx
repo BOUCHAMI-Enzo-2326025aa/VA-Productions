@@ -34,7 +34,7 @@ const Guide = () => {
             </Paragraph>
           </Section>
 
-          <Section className="mt-16">
+          <Section className="mt-16" name="gestion-contacts">
             <Title texte="II - Gestion des contacts" />
             <Paragraph>
               <p>
@@ -65,7 +65,7 @@ const Guide = () => {
             </Paragraph>
           </Section>
 
-          <Section className="mt-16">
+          <Section className="mt-16" name="gestion-rendezvous">
             <Title texte="III - Gestion des rendez-vous" />
             <Paragraph>
               <p>
@@ -97,7 +97,7 @@ const Guide = () => {
             </Paragraph>
           </Section>
 
-          <Section className="mt-16">
+          <Section className="mt-16" name="gestion-factures">
             <Title texte="IV - Gestion des factures" />
             <Paragraph>
               <p>
@@ -124,7 +124,7 @@ const Guide = () => {
             </Paragraph>
           </Section>
 
-          <Section className="mt-16">
+          <Section className="mt-16" name="gestion-commandes">
             <Title texte="V - Gestion des commandes" />
             <Paragraph>
               <p>
@@ -161,7 +161,7 @@ const Guide = () => {
             </Paragraph>
           </Section>
 
-          <Section className="mt-16">
+          <Section className="mt-16" name="gestion-utilisateurs">
             <Title texte="VI - Gestion des utilisateurs" />
             <Paragraph>
               <p>
