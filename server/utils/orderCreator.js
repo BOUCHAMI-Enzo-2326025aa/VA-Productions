@@ -12,7 +12,7 @@ const toNumber = (value) => {
   return 0;
 };
 
-function createOrderPdf(client, res, number, tva, signatureData = null, signatureFileName) {
+async function createOrderPdf(client, res, number, tva, signatureData = null, signatureFileName) {
   const invoicesDir = "./orders";
   if (!fs.existsSync(invoicesDir)) {
     fs.mkdirSync(invoicesDir);
@@ -35,12 +35,17 @@ function createOrderPdf(client, res, number, tva, signatureData = null, signatur
   doc.end();
   await streamFinished;
 
-  if (res) { 
+  if (res) {
     res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
     res.download(filePath, fileName, (err) => {
-      if (err) console.error("Erreur d'envoi PDF :", err);
+      if (err) {
+        console.error("Erreur d'envoi PDF :", err);
+        if (!res.headersSent) {
+          res.status(500).send("Erreur lors de l'envoi du PDF.");
+        }
+      }
     });
   }
 }
