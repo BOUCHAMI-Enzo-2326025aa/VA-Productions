@@ -6,31 +6,39 @@ const InvoiceNumbers = ({ invoices, isLoading }) => {
     total: { price: 0, count: 0 },
     validated: { price: 0, count: 0 },
     waiting: { price: 0, count: 0 },
+    overdue: { price: 0, count: 0 },
   });
 
   useEffect(() => {
     const total = { price: 0, count: 0 };
     const validated = { price: 0, count: 0 };
     const waiting = { price: 0, count: 0 };
+    const overdue = { price: 0, count: 0 };
 
     invoices.forEach((invoice) => {
-      if (!invoice.totalPrice) return;
+      if (typeof invoice.totalPrice !== 'number') return;
       total.price += invoice.totalPrice;
       total.count += 1;
+
       if (invoice.status === "paid") {
         validated.price += invoice.totalPrice;
         validated.count += 1;
       } else {
-        waiting.price += invoice.totalPrice;
-        waiting.count += 1;
+        if (invoice.isOverdue) {
+          overdue.price += invoice.totalPrice;
+          overdue.count += 1;
+        } else {
+          waiting.price += invoice.totalPrice;
+          waiting.count += 1;
+        }
       }
     });
 
-    setInvoiceStat({ total, validated, waiting });
+    setInvoiceStat({ total, validated, waiting, overdue });
   }, [invoices]);
 
   return (
-    <div className=" text-[#3F3F3F] flex  mt-10 rounded w-fit gap-2">
+    <div className=" text-[#3F3F3F] flex flex-wrap mt-10 rounded w-full gap-2"> 
       <Stat
         title={"Factures totales"}
         value={invoiceStats.total.price}
@@ -63,6 +71,13 @@ const InvoiceNumbers = ({ invoices, isLoading }) => {
           </svg>
         }
         loading={isLoading}
+      />
+       <Stat
+        title={"Impayés"}
+        value={invoiceStats.overdue.price}
+        subtitle={invoiceStats.overdue.count + " Factures au total"}
+        loading={isLoading}
+        bgColor="bg-red-800" 
       />
     </div>
   );

@@ -15,7 +15,7 @@ const CardFacture = ({ fileName, supportList, price, date }) => {
   return (
     <div className="flex flex-col py-2">
       <p className="text-[#3F3F3F] text-sm font-semibold">{formattedDate}</p>
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col items-start sm:flex-row sm:justify-between sm:items-center">
         <div className="flex p-[10px] border border-l-[#3F3F3F] border-opacity-60 border-t-0 border-r-0 border-b-0 ml-2 gap-2 items-center">
           <div className="bg-[#FF6969] px-2 py-2 rounded-[5px] w-fit">
             <svg
@@ -33,7 +33,7 @@ const CardFacture = ({ fileName, supportList, price, date }) => {
             </p>
           </div>
         </div>
-        <p className="text-[#3F3F3F] text-[16px]">{totalTTC + "€"} </p>
+        <p className="text-[#3F3F3F] text-[16px] mt-2 sm:mt-0 ml-2 sm:ml-0">{totalTTC + "€"} </p>
       </div>
     </div>
   );

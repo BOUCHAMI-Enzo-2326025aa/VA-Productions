@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import logo from "../../assets/va-production-logo.png";
 import PageLink from "./PageLink";
 import dashboardSvg from "../../assets/dashboard-icon.svg";
@@ -16,7 +16,15 @@ import useAuth from "../../hooks/useAuth";
 
 const Navbar = ({ isOpen, closeNavbar }) => {
   const { isAdmin } = useAuth();
-  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
+  
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(() => {
+    const saved = localStorage.getItem("adminMenuOpen");
+    return saved === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("adminMenuOpen", isAdminMenuOpen);
+  }, [isAdminMenuOpen]);
 
   const toggleAdminMenu = () => {
     setIsAdminMenuOpen((prev) => !prev);
@@ -55,18 +63,31 @@ const Navbar = ({ isOpen, closeNavbar }) => {
             link={"/dashboard"}
             text={"Dashboard"}
             icon={dashboardSvg}
+            closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
           />
-          <PageLink link={"/contacts"} text={"Contacts"} icon={contactSvg} />
+          <PageLink 
+            link={"/contacts"} 
+            text={"Contacts"} 
+            icon={contactSvg} 
+            closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
+          />
+          <PageLink 
+            link={"/order"} 
+            text={"Commandes"} 
+            icon={oderSvg} 
+            closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
+          />
           <PageLink
             link={"/invoice"}
             text={"Facturations"}
             icon={facturationSvg}
+            closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
           />
-          <PageLink link={"/order"} text={"Commandes"} icon={oderSvg} />
           <PageLink
             link={"/calendrier"}
             text={"Calendrier"}
             icon={calendrierSvg}
+            closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
           />
         </div>
 
@@ -97,21 +118,25 @@ const Navbar = ({ isOpen, closeNavbar }) => {
                     link={"/admin/user"}
                     text={"Gestion Utilisateur"}
                     icon={manageUserSvg}
+                    closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
                   />
                   <PageLink
                     link={"/admin/charge"}
                     text={"Comptabilité"}
                     icon={chargeSvg}
+                    closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
                   />
                   <PageLink
                     link={"/admin/magazine"}
                     text={"Magazines"}
                     icon={contactSvg}
+                    closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
                   />
                   <PageLink
                     link={"/admin/stats"}
                     text={"Statistiques"}
                     icon={statsSvg}
+                    closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
                   />
                 </div>
               )}

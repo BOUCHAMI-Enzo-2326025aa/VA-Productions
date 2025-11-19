@@ -67,6 +67,10 @@ const invoiceShema = new mongoose.Schema({
     required: true,
     default: 0.2
   },
+  delaisPaie: { 
+    type: String,
+    default: "comptant"
+  }
 });
 
 let Invoice = mongoose.model("Facture", invoiceShema);

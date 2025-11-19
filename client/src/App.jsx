@@ -6,7 +6,6 @@ import Contact from "./pages/contacts/Contact";
 import Layout from "./layout/Layout";
 import Login from "./pages/login/Login";
 import ManageUser from "./pages/createUser/ManageUser";
-import CreateUser from "./pages/createUser/ManageUser";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import AdminRoute from "./auth/AdminRoute";
 import axios from "axios";

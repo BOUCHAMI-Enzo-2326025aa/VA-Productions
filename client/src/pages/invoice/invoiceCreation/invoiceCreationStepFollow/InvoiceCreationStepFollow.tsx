@@ -25,17 +25,9 @@ const InvoiceCreationStepFollow = ({ step }: { step: number }) => {
           isLastStep={false}
         />
         <InvoiceStep
-          title={"Information de facturation"}
-          subtitle={
-            "Saisissez toutes les informations relatives au client et à la facture "
-          }
-          isComplete={step > 4}
-          isLastStep={false}
-        />
-        <InvoiceStep
           title={"Confirmation de la facture"}
           subtitle={""}
-          isComplete={step > 5}
+          isComplete={step > 3}
           isLastStep={true}
         />
       </div>

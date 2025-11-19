@@ -20,30 +20,29 @@ function createOrderPdf(client, res, number, tva, signatureData = null, signatur
   const fileName = `${number}_${client?.compagnyName?.toUpperCase() || "COMMANDE"}.pdf`;
   const filePath = path.join(invoicesDir, fileName);
 
-  let doc = new PDFDocument({ margin: 50 });
+  const doc = new PDFDocument({ margin: 50 });
   const writeStream = fs.createWriteStream(filePath);
-  writeStream.on("error", (err) => console.error("Erreur d'écriture PDF :", err));
-
+  
+  const streamFinished = new Promise((resolve, reject) => {
+    writeStream.on("finish", resolve);
+    writeStream.on("error", reject);
+  });
+  
   doc.pipe(writeStream);
+  
   generateHeader(doc, client, number);
   generateInvoiceTable(doc, client, tva, signatureData, signatureFileName);
   doc.end();
+  await streamFinished;
 
-  writeStream.on("finish", () => {
+  if (res) { 
     res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
     res.download(filePath, fileName, (err) => {
-      if (err) {
-        console.error("Erreur d'envoi PDF :", err);
-        if (!res.headersSent) {
-          res.status(500).send("Erreur lors de l'envoi du PDF.");
-        }
-      } else {
-        console.log("Fichier envoyé avec succès :", fileName);
-      }
+      if (err) console.error("Erreur d'envoi PDF :", err);
     });
-  });
+  }
 }
 
 function generateHeader(doc, client, number) {

@@ -59,6 +59,17 @@ export const createOrder = async (req, res) => {
     const tva = req.body.tva.percentage;
     const { orderNumber: maxOrderNumber = 0 } = (await Order.findOne().sort({ orderNumber: -1 })) || {};
 
+    let finalDelaisPaie = client.delaisPaie;
+    if (client.delaisPaie === "autre") {
+      const days = (client.customDelaisDays || "").trim();
+      const suffix = (client.customDelaisSuffix || "").trim();
+      if (days) {
+        finalDelaisPaie = `${days} jours${suffix ? ` ${suffix}` : ""}`;
+      } else {
+        finalDelaisPaie = "comptant";
+      }
+    }
+
     // Récupérer la signature stockée au lieu de celle envoyée par le client
     const storedSignature = await Signature.findOne().sort({ updatedAt: -1 });
     const signatureData = storedSignature?.signatureData || req.body.invoice.client.signature;
@@ -89,10 +100,11 @@ export const createOrder = async (req, res) => {
       status: "pending",
       signatureData: signatureData,
       tva: tvaRate,
+      delaisPaie: finalDelaisPaie,
     });
     
     await createOrderPdf(
-      { ...client, support: supports },
+      { ...client, support: supports, delaisPaie: finalDelaisPaie },
       res,
       maxOrderNumber + 1,
       tvaRate,
@@ -206,7 +218,7 @@ export const validateOrder = async (req, res) => {
         model: 'Contact'  
       });
 
-      if (!orderData || !orderData.client) {
+      if (!orderData) {
         console.warn(`Commande ${orderItem._id} ou contact associé introuvable, ignorée.`);
         continue;
       }
@@ -214,9 +226,9 @@ export const validateOrder = async (req, res) => {
       currentInvoiceNumber++;
 
       const newInvoice = new Invoice({
-        client: orderData.client._id,
+        client: orderData.client ? orderData.client._id : orderData.client,
         number: currentInvoiceNumber,
-        date: new Date(),
+        date: orderData.date,
         entreprise: orderData.compagnyName,
         firstAddress: orderData.firstAddress,
         secondAddress: orderData.secondAddress,
@@ -226,6 +238,7 @@ export const validateOrder = async (req, res) => {
         totalPrice: orderData.totalPrice,
         tva: orderData.tva,
         status: "unpaid",
+        delaisPaie: orderData.delaisPaie,
       });
       
       await newInvoice.save();
@@ -235,7 +248,7 @@ export const validateOrder = async (req, res) => {
       
       const pdfData = {
         ...newInvoice.toObject(),
-        delaisPaie: orderData.client.delaisPaie
+        delaisPaie: orderData.delaisPaie
       };
 
       createInvoice(pdfData, null, newInvoice.number, newInvoice.tva)
