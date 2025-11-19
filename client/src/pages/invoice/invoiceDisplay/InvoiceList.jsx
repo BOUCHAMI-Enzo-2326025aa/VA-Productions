@@ -107,7 +107,6 @@ const InvoiceList = ({ invoices, setInvoices }) => {
               <tr 
                 key={invoice._id} 
                 className="text-center font-medium text-sm"
-                className="text-center font-medium text-sm"
               >
                 <td data-label="N° Facture" className="cursor-pointer text-[#3399CC]">
                   {invoice.number.toString().padStart(5, "0") + "-" + invoice.entreprise.toUpperCase()}
