@@ -13,7 +13,7 @@ const SupportRevenu = ({ supportName, image, invoices }) => {
   if (invoicesFiltered.length === 0) return <></>;
 
   return (
-    <div className="rounded border-2 min-w-[300px] p-2">
+    <div className="rounded border-2 w-full sm:w-60 md:w-72 p-2">
       <img
         className="w-full h-36 object-cover rounded "
         src={image}
