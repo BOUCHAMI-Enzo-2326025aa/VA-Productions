@@ -4,10 +4,6 @@ import Signature from "../model/signatureModel.js";
 import Contact from "../model/contactModel.js";
 import createOrderPdf, { createOrderPdfBuffer } from "../utils/orderCreator.js";
 import createInvoice from "../utils/invoiceCreator.js";
-import { writeFile } from "fs";
-import crypto from "crypto";
-import path from "path";
-import fs from "fs";
 
 const toNumber = (value) => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -74,18 +70,14 @@ export const createOrder = async (req, res) => {
       }
     }
 
-    // Récupérer la signature stockée au lieu de celle envoyée par le client
-    const storedSignature = await Signature.findOne().sort({ updatedAt: -1 });
-    const signatureData = storedSignature?.signatureData || req.body.invoice.client.signature;
+    const latestSignature = await Signature.findOne().sort({ updatedAt: -1 });
+    const signatureData = latestSignature?.signatureData;
 
     if (!signatureData) {
-      return res.status(400).json({ 
-        error: "Aucune signature disponible. Veuillez configurer la signature dans les paramètres." 
+      return res.status(400).json({
+        error: "Aucune signature disponible. Veuillez configurer la signature dans les paramètres."
       });
     }
-
-    const randomImageName = crypto.randomBytes(32).toString("hex");
-    saveSignature(signatureData, randomImageName);
 
     const supports = normaliseSupports(client.support);
     const tvaRate = toNumber(tva);
@@ -105,8 +97,6 @@ export const createOrder = async (req, res) => {
       postalCode: client.postalCode,
       city: client.city,
       status: "pending",
-      signature: randomImageName,
-      signatureData: signatureData,
       tva: tvaRate,
       delaisPaie: finalDelaisPaie,
     });
@@ -116,7 +106,7 @@ export const createOrder = async (req, res) => {
       res,
       maxOrderNumber + 1,
       tvaRate,
-      randomImageName
+      signatureData
     );
     
   } catch (error) {
@@ -174,6 +164,15 @@ export const getOrderPdf = async (req, res) => {
     const items = normaliseSupports(order.items);
     const rate = toNumber(order.tva || 0.2);
 
+    const latestSignature = await Signature.findOne().sort({ updatedAt: -1 });
+    const signatureData = latestSignature?.signatureData || order.signatureData || null;
+
+    if (!signatureData) {
+      return res.status(400).json({
+        error: "Aucune signature disponible. Veuillez configurer la signature dans les paramètres."
+      });
+    }
+
     const clientForPdf = {
       compagnyName: order.compagnyName,
       address1: order.firstAddress,
@@ -181,8 +180,7 @@ export const getOrderPdf = async (req, res) => {
       postalCode: order.postalCode,
       city: order.city,
       support: items,
-      signature: order.signature,
-      signatureData: order.signatureData, 
+      signatureData,
       delaisPaie: order.delaisPaie,
     };
 
@@ -191,6 +189,7 @@ export const getOrderPdf = async (req, res) => {
       clientForPdf,
       order.orderNumber,
       rate,
+      signatureData,
       order.signature
     );
 
@@ -207,33 +206,6 @@ export const getOrderPdf = async (req, res) => {
   } catch (error) {
     console.error("Erreur dans getOrderPdf:", error);
     return res.status(500).json({ error: "Erreur lors de la génération du PDF", details: error.message });
-  }
-};
-
-const saveSignature = (signature, imageName) => {
-  try {
-    if (!signature) {
-      console.log("Aucune signature fournie pour la commande — skip saveSignature");
-      return;
-    }
-
-    const invoicesDir = path.resolve(process.cwd(), "invoices");
-    if (!fs.existsSync(invoicesDir)) {
-      fs.mkdirSync(invoicesDir, { recursive: true });
-      console.log("Dossier invoices créé :", invoicesDir);
-    }
-
-    const base64Data = signature.replace(/^data:image\/png;base64,/, "");
-    const filePath = path.join(invoicesDir, `${imageName}.png`);
-    fs.writeFile(filePath, base64Data, "base64", function (err) {
-      if (err) {
-        console.error("Erreur en sauvegardant la signature :", err);
-      } else {
-        console.log("Signature sauvegardée :", filePath);
-      }
-    });
-  } catch (e) {
-    console.error("saveSignature exception :", e);
   }
 };
 

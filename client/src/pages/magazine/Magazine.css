@@ -1,0 +1,15 @@
+/* Styles pour les écrans de 768px ou moins (mobiles) */
+@media (max-width: 768px) {
+  /* Conteneur de l'en-tête (titre et bouton) */
+  .magazine-header-container {
+    flex-direction: column;
+    align-items: stretch; /* Les éléments prennent toute la largeur */
+    gap: 1rem; /* Espace entre le titre et le bouton */
+  }
+
+  /* Le bouton prend toute la largeur sur mobile */
+  .magazine-header-container button {
+    width: 100%;
+    justify-content: center; /* Centre l'icône et le texte */
+  }
+}

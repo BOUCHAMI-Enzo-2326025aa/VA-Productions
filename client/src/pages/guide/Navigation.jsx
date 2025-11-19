@@ -2,31 +2,49 @@ import React from "react";
 
 const Navigation = () => {
   return (
-    <div className=" flex flex-col  w-fit gap-2 fixed right-[10%] top-48">
+    <div className="hidden lg:flex flex-col w-fit gap-2 fixed right-[10%] top-48">
       <a
-        href="#stats"
+        href="#dashboard"
         className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
       >
         I - Le Dashboard
       </a>
-      <p className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit">
+      <a
+        href="#gestion-contacts"
+        className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
+      >
         II - Gestion des contacts
-      </p>
-      <p className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit">
-        III - Gestion des rendez vous
-      </p>
-      <p className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit">
+      </a>
+      <a
+        href="#gestion-rendezvous"
+        className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
+      >
+        III - Gestion des rendez-vous
+      </a>
+      <a
+        href="#gestion-factures"
+        className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
+      >
         IV - Gestion des factures
-      </p>
-      <p className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit">
+      </a>
+      <a
+        href="#gestion-commandes"
+        className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
+      >
         V - Les bons de commande
-      </p>
-      <p className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit">
-        VI - Gestions des utilisateurs
-      </p>
-      <p className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit">
+      </a>
+      <a
+        href="#gestion-utilisateurs"
+        className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
+      >
+        VI - Gestion des utilisateurs
+      </a>
+      <a
+        href="#stats"
+        className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
+      >
         VII - Statistiques
-      </p>
+      </a>
     </div>
   );
 };

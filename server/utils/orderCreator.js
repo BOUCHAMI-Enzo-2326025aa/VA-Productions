@@ -12,7 +12,7 @@ const toNumber = (value) => {
   return 0;
 };
 
-async function createOrderPdf(client, res, number, tva, randomImageName) {
+async function createOrderPdf(client, res, number, tva, signatureData = null, signatureFileName) {
   const invoicesDir = "./orders";
   if (!fs.existsSync(invoicesDir)) {
     fs.mkdirSync(invoicesDir);
@@ -31,17 +31,21 @@ async function createOrderPdf(client, res, number, tva, randomImageName) {
   doc.pipe(writeStream);
   
   generateHeader(doc, client, number);
-  generateInvoiceTable(doc, client, tva, randomImageName);
-  
+  generateInvoiceTable(doc, client, tva, signatureData, signatureFileName);
   doc.end();
   await streamFinished;
 
-  if (res) { 
+  if (res) {
     res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
     res.download(filePath, fileName, (err) => {
-      if (err) console.error("Erreur d'envoi PDF :", err);
+      if (err) {
+        console.error("Erreur d'envoi PDF :", err);
+        if (!res.headersSent) {
+          res.status(500).send("Erreur lors de l'envoi du PDF.");
+        }
+      }
     });
   }
 }
@@ -103,7 +107,7 @@ function generateHeader(doc, client, number) {
     .text("POUR :", 400, 170);
 }
 
-function generateInvoiceTable(doc, client, tva, randomImageName) {
+function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName) {
   const invoiceTableTop = 330; 
   let currentPosition = invoiceTableTop;
 
@@ -187,13 +191,45 @@ function generateInvoiceTable(doc, client, tva, randomImageName) {
   currentPosition += 40;
   
   doc.text("Signature", 100, currentPosition);
-  
-  const imgPath = path.join(process.cwd(), "invoices", `${randomImageName}.png`);
-  if (fs.existsSync(imgPath)) {
-    doc.image(imgPath, 50, currentPosition + 15, { width: 150 });
-  } else {
-    console.log("Fichier signature introuvable:", imgPath);
+
+  const signatureBuffer = getSignatureBuffer(signatureData, signatureFileName || client?.signature);
+  if (signatureBuffer) {
+    try {
+      doc.image(signatureBuffer, 50, currentPosition + 15, { width: 150 });
+    } catch (error) {
+      console.error("Impossible d'intégrer la signature dans le PDF:", error);
+    }
   }
+}
+
+function getSignatureBuffer(signatureData, fallbackFileName) {
+  if (typeof signatureData === "string" && signatureData.trim()) {
+    const cleaned = signatureData.startsWith("data:image")
+      ? signatureData.split(",")[1]
+      : signatureData;
+
+    try {
+      const buffer = Buffer.from(cleaned, "base64");
+      if (buffer.length > 0) {
+        return buffer;
+      }
+    } catch (error) {
+      console.error("Signature base64 invalide:", error);
+    }
+  }
+
+  if (typeof fallbackFileName === "string" && fallbackFileName.trim()) {
+    const imgPath = path.join(process.cwd(), "invoices", `${fallbackFileName}.png`);
+    if (fs.existsSync(imgPath)) {
+      try {
+        return fs.readFileSync(imgPath);
+      } catch (error) {
+        console.error("Impossible de lire la signature depuis le disque:", error);
+      }
+    }
+  }
+
+  return null;
 }
 
 function formatPrice(value) {
@@ -219,7 +255,7 @@ function generateHr(doc, y) {
   doc.strokeColor("#aaaaaa").lineWidth(1).moveTo(50, y).lineTo(550, y).stroke();
 }
 
-export function createOrderPdfBuffer(client, number, tva, randomImageName) {
+export function createOrderPdfBuffer(client, number, tva, signatureData = null, signatureFileName) {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({ margin: 50 });
@@ -233,7 +269,7 @@ export function createOrderPdfBuffer(client, number, tva, randomImageName) {
       doc.on("error", (err) => reject(err));
 
       generateHeader(doc, client, number);
-      generateInvoiceTable(doc, client, tva, randomImageName);
+      generateInvoiceTable(doc, client, tva, signatureData, signatureFileName);
       doc.end();
     } catch (e) {
       reject(e);
