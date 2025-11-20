@@ -45,9 +45,7 @@ export const createUser = async (req, res) => {
       <h1>Bienvenue chez V.A. Productions !</h1>
       <p>Bonjour ${prenom},</p>
       <p>Votre compte a été créé. Pour finaliser votre inscription et définir votre mot de passe, veuillez cliquer sur le lien ci-dessous :</p>
-      <a href="${verificationLink}">Cliquez ici pour vérifier votre compte</a>
-      <p>Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
-      <p>${verificationLink}</p>
+      <a href="${verificationLink}" style="display: inline-block; padding: 12px 24px; background-color: #3F3F3F; color: white; text-decoration: none; border-radius: 5px; margin: 16px 0;">Vérifier mon compte</a>
       <p>Merci,</p>
       <p>L'équipe V.A. Productions</p>
     `;
