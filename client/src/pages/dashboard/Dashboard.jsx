@@ -3,17 +3,14 @@ import LinkList from "./linkList/LinkList";
 import ContactList from "./contactList/ContactList";
 import FactureList from "./factureList/FactureList";
 import { ClientChart } from "./clientChart/ClientChart";
-import WelcomeAnimation from "./welcomeAnimation/WelcomeAnimation";
 import useAuth from "../../hooks/useAuth";
 
 const Dashboard = () => {
   const [isOpen, setIsOpen] = useState(true);
-  const alreadyConnected = localStorage.getItem("alreadyConnected");
   const { user } = useAuth();
 
   return (
     <>
-      {!alreadyConnected && <WelcomeAnimation />}
       <div className="flex flex-col pt-3">
         <p className="font-inter text-[#3F3F3F] text-[40px] font-[700] max-[680px]:text-2xl">
           Bonjour{user?.prenom ? `, ${user.prenom}` : ""}
