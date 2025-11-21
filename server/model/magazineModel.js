@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const magazineSchema = mongoose.Schema({
+const magazineSchema = new mongoose.Schema({
   nom: {
     type: String,
     required: true,
@@ -11,21 +11,14 @@ const magazineSchema = mongoose.Schema({
     type: String,
     required: true,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
+  type: {
+    type: String,
+    required: true,
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
+}, {
+  timestamps: true,
 });
 
-// Middleware pour mettre à jour automatiquement updatedAt avant chaque modification
-magazineSchema.pre("save", function (next) {
-  this.updatedAt = Date.now();
-  next();
-});
 
 const Magazine = mongoose.model("Magazine", magazineSchema);
 

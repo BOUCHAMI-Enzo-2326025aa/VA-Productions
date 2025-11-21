@@ -36,23 +36,25 @@ export const getMagazineById = async (req, res) => {
 // Créer un nouveau magazine
 export const createMagazine = async (req, res) => {
   try {
-    const { nom } = req.body;
+    //Récupérer le champ "type"
+    const { nom, type } = req.body;
     
-    // L'image peut venir soit d'un upload (req.file) soit d'une URL base64 (req.body.image)
     let imageData;
     
     if (req.file) {
-      // Si un fichier a été uploadé, le convertir en base64
       const base64Image = req.file.buffer.toString('base64');
       imageData = `data:${req.file.mimetype};base64,${base64Image}`;
     } else if (req.body.image) {
-      // Si une image base64 a été fournie directement
       imageData = req.body.image;
     } else {
       return res.status(400).json({ erreur: "Une image est requise" });
     }
     
-    // Vérifier si un magazine avec ce nom existe déjà
+    //Vérifier que le type est bien présent
+    if (!type || !type.trim()) {
+      return res.status(400).json({ erreur: "Le type du magazine est obligatoire." });
+    }
+    
     const existingMagazine = await Magazine.findOne({ 
       nom: { $regex: new RegExp(`^${nom}$`, 'i') } 
     });
@@ -64,6 +66,7 @@ export const createMagazine = async (req, res) => {
     const magazine = await Magazine.create({
       nom,
       image: imageData,
+      type, // Ajouter le type à la création
     });
     
     res.status(201).json({ magazine });
@@ -77,15 +80,14 @@ export const createMagazine = async (req, res) => {
 export const updateMagazine = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nom } = req.body;
+    //Récupérer le champ "type"
+    const { nom, type } = req.body;
     
-    // Récupérer le magazine existant
     const existingMag = await Magazine.findById(id);
     if (!existingMag) {
       return res.status(404).json({ erreur: "Magazine non trouvé" });
     }
     
-    // Vérifier si un autre magazine avec ce nom existe déjà
     const trimmedName = typeof nom === "string" ? nom.trim() : nom;
 
     if (trimmedName) {
@@ -99,20 +101,17 @@ export const updateMagazine = async (req, res) => {
       }
     }
     
+    //Préparer les données de mise à jour en incluant le type
     const updatedData = {};
     if (trimmedName) updatedData.nom = trimmedName;
+    if (type) updatedData.type = type; // Ajout du type
     
-    // Gérer l'image
     if (req.file) {
-      // Un nouveau fichier a été uploadé, le convertir en base64
       const base64Image = req.file.buffer.toString('base64');
       updatedData.image = `data:${req.file.mimetype};base64,${base64Image}`;
     } else if (req.body.image) {
-      // Une nouvelle image base64 a été fournie
       updatedData.image = req.body.image;
     }
-    
-    updatedData.updatedAt = Date.now();
     
     const magazine = await Magazine.findByIdAndUpdate(
       id,
@@ -127,36 +126,18 @@ export const updateMagazine = async (req, res) => {
       await Promise.all([
         Order.updateMany(
           { "items.supportName": oldName },
-          {
-            $set: {
-              "items.$[item].supportName": newName,
-            },
-          },
-          {
-            arrayFilters: [{ "item.supportName": oldName }],
-          }
+          { $set: { "items.$[item].supportName": newName } },
+          { arrayFilters: [{ "item.supportName": oldName }] }
         ),
         Order.updateMany(
           { "supportList.supportName": oldName },
-          {
-            $set: {
-              "supportList.$[support].supportName": newName,
-            },
-          },
-          {
-            arrayFilters: [{ "support.supportName": oldName }],
-          }
+          { $set: { "supportList.$[support].supportName": newName } },
+          { arrayFilters: [{ "support.supportName": oldName }] }
         ),
         Invoice.updateMany(
           { "supportList.supportName": oldName },
-          {
-            $set: {
-              "supportList.$[support].supportName": newName,
-            },
-          },
-          {
-            arrayFilters: [{ "support.supportName": oldName }],
-          }
+          { $set: { "supportList.$[support].supportName": newName } },
+          { arrayFilters: [{ "support.supportName": oldName }] }
         ),
       ]);
     }
@@ -174,12 +155,10 @@ export const deleteMagazine = async (req, res) => {
     const { id } = req.params;
     const { adminPassword } = req.body;
     
-    // Vérifier que le mot de passe admin est fourni
     if (!adminPassword) {
       return res.status(400).json({ erreur: "Le mot de passe administrateur est requis" });
     }
     
-    // Vérifier le mot de passe de l'admin
     const token = req.headers.authorization;
     if (!token) {
       return res.status(401).json({ erreur: "Token manquant" });
@@ -212,8 +191,6 @@ export const deleteMagazine = async (req, res) => {
     if (!magazine) {
       return res.status(404).json({ erreur: "Magazine non trouvé" });
     }
-    
-    // L'image est stockée en base64 dans MongoDB, pas besoin de la supprimer séparément
     
     res.status(200).json({ message: "Magazine supprimé avec succès" });
   } catch (error) {
