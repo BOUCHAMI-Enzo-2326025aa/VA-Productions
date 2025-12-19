@@ -11,18 +11,19 @@ import {
 } from "../controller/userController.js";
 import { authorize } from "../middleware/auth.js";
 import { Roles } from "../utils/Roles.js";
+import { validateLogin, validateCreateUser } from "../middleware/validation.js";
 
 export const router = express.Router();
 
 router.get("/", authorize(Roles.Admin), getAllUser);
 
-router.post("/create", authorize(Roles.Admin), createUser);
+router.post("/create", authorize(Roles.Admin), validateCreateUser, createUser);
 
 router.put("/:userId/role", authorize(Roles.Admin), updateUserRole);
 
 router.delete("/:userId", authorize(Roles.Admin), deleteUser);
 
-router.post("/login", loginUser);
+router.post("/login", validateLogin, loginUser);
 
 router.post("/verify", verifyUser);
 
