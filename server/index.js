@@ -40,8 +40,21 @@ app.get("/invoices/:filename", (req, res) => {
   });
 });
 
+const allowedOrigins = [
+  process.env.FRONT_LINK,    // L'URL de votre site en production
+  'http://localhost:5173',   // L'URL de votre client en local
+  'http://localhost:5174'    // J'ajoute l'autre port au cas où il changerait
+];
+
 app.use(cors({
-  origin: process.env.FRONT_LINK,
+  origin: function (origin, callback) {
+    // autoriser les requêtes sans origine (comme Postman) ou si l'origine est dans la liste
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Non autorisé par la politique CORS'));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   credentials: true, 
 }));
