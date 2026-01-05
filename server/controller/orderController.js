@@ -1,6 +1,5 @@
 import Order from "../model/orderModel.js";
 import Invoice from "../model/invoiceModel.js";
-import Signature from "../model/signatureModel.js";
 import Contact from "../model/contactModel.js";
 import createOrderPdf, { createOrderPdfBuffer } from "../utils/orderCreator.js";
 import createInvoice from "../utils/invoiceCreator.js";
@@ -59,6 +58,13 @@ export const createOrder = async (req, res) => {
     const tva = req.body.tva.percentage;
     const { orderNumber: maxOrderNumber = 0 } = (await Order.findOne().sort({ orderNumber: -1 })) || {};
 
+    const signatureData = client?.signatureData || client?.signature;
+    if (typeof signatureData !== "string" || !signatureData.trim()) {
+      return res.status(400).json({
+        error: "Signature client manquante. Veuillez signer avant de créer le bon de commande.",
+      });
+    }
+
     let finalDelaisPaie = client.delaisPaie;
     if (client.delaisPaie === "autre") {
       const days = (client.customDelaisDays || "").trim();
@@ -68,15 +74,6 @@ export const createOrder = async (req, res) => {
       } else {
         finalDelaisPaie = "comptant";
       }
-    }
-
-    const latestSignature = await Signature.findOne().sort({ updatedAt: -1 });
-    const signatureData = latestSignature?.signatureData;
-
-    if (!signatureData) {
-      return res.status(400).json({
-        error: "Aucune signature disponible. Veuillez configurer la signature dans les paramètres."
-      });
     }
 
     const supports = normaliseSupports(client.support);
@@ -99,6 +96,7 @@ export const createOrder = async (req, res) => {
       status: "pending",
       tva: tvaRate,
       delaisPaie: finalDelaisPaie,
+      signatureData,
     });
     
     await createOrderPdf(
@@ -164,14 +162,7 @@ export const getOrderPdf = async (req, res) => {
     const items = normaliseSupports(order.items);
     const rate = toNumber(order.tva || 0.2);
 
-    const latestSignature = await Signature.findOne().sort({ updatedAt: -1 });
-    const signatureData = latestSignature?.signatureData || order.signatureData || null;
-
-    if (!signatureData) {
-      return res.status(400).json({
-        error: "Aucune signature disponible. Veuillez configurer la signature dans les paramètres."
-      });
-    }
+    const signatureData = order.signatureData || null;
 
     const clientForPdf = {
       compagnyName: order.compagnyName,

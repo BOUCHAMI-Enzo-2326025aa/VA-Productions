@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import InfoComponent from "./sectionTitle/InfoComponent";
 import SectionTitle from "./sectionTitle/SectionTitle";
 import InvoiceButton from "../../component/InvoiceButton";
 import InvoiceSummary from "../invoiceSummary/InvoiceSummary";
+import SignatureCanvas from "react-signature-canvas";
 
 const InvoiceConfirm = ({
   invoice,
@@ -12,6 +13,8 @@ const InvoiceConfirm = ({
   TVA_PERCENTAGE,
 }) => {
   const [totalSupports, setTotalSupports] = useState(0);
+  const signaturePadRef = useRef(null);
+  const [signatureError, setSignatureError] = useState(false);
 
   useEffect(() => {
     const newTotalSupports = supportList.reduce((sum, s) => sum + (s.price || 0), 0);
@@ -19,7 +22,19 @@ const InvoiceConfirm = ({
   }, [supportList]);
 
   const handleConfirmOrder = () => {
-    createOrder();
+    if (signaturePadRef.current?.isEmpty?.()) {
+      setSignatureError(true);
+      return;
+    }
+
+    const signatureDataURL = signaturePadRef.current?.toDataURL?.();
+    if (!signatureDataURL) {
+      setSignatureError(true);
+      return;
+    }
+
+    setSignatureError(false);
+    createOrder(signatureDataURL);
   };
 
   const tvaAmount = totalSupports * TVA_PERCENTAGE;
@@ -58,9 +73,40 @@ const InvoiceConfirm = ({
           <InfoComponent name={"ADRESSE 2"} value={invoice.client.address2} />
         </div>
 
-        <div className="mt-8 text-center text-sm text-gray-600">
-          <p className="font-semibold">La signature de l'entreprise sera automatiquement ajoutée au bon de commande.</p>
-          <p className="mt-1 opacity-70">Les administrateurs peuvent la modifier dans les paramètres.</p>
+        <div className="mt-8 w-full text-sm text-[#3F3F3F]">
+          <p className="font-semibold">Signature du client (obligatoire)</p>
+          <p className="mt-1 opacity-70">
+            Le client doit signer avant la création du bon de commande.
+          </p>
+
+          <div className={`mt-3 border rounded-lg bg-white ${signatureError ? "border-red-500" : "border-gray-300"}`}>
+            <SignatureCanvas
+              ref={signaturePadRef}
+              penColor="black"
+              canvasProps={{
+                className: "w-full h-40 rounded-lg",
+              }}
+            />
+          </div>
+
+          {signatureError && (
+            <p className="text-red-600 text-xs mt-2 font-semibold">
+              Veuillez signer avant de confirmer.
+            </p>
+          )}
+
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => {
+                signaturePadRef.current?.clear?.();
+                setSignatureError(false);
+              }}
+              className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-[#3F3F3F] font-semibold"
+            >
+              Effacer la signature
+            </button>
+          </div>
         </div>
       </div>
 
