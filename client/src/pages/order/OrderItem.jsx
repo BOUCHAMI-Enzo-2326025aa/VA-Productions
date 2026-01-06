@@ -1,4 +1,5 @@
 import { useMemo, useRef } from "react";
+import { AlertTriangle, Eye, Pencil } from "lucide-react";
 import { formatDateSlash } from "../../utils/formatDate.js";
 
 const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder, onEdit, uploadSignedPdf }) => {
@@ -29,6 +30,33 @@ const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder, onEdit
           />
         )}
         <p className="font-semibold text-lg">COMMANDE-{order.orderNumber}</p>
+
+        {order.status?.toLowerCase?.() === "pending" && order.isSigned === false && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  uploadSignedPdf?.(order._id, file);
+                }
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              className="ml-auto text-red-600 text-sm font-semibold cursor-pointer whitespace-nowrap"
+              onClick={() => fileInputRef.current?.click?.()}
+              title="Ajouter le PDF du bon signé"
+              aria-label="Ajouter le PDF du bon signé"
+            >
+              <AlertTriangle className="size-5" />
+            </button>
+          </>
+        )}
       </div>
 
       <table className="order-item-table w-full mt-3">
@@ -53,42 +81,20 @@ const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder, onEdit
           type="button"
           className="text-blue-400 mt-5 text-sm font-semibold cursor-pointer"
           onClick={() => fetchCommandPdf(order._id, order.orderNumber)}
+          title="Voir le bon de commande"
+          aria-label="Voir le bon de commande"
         >
-          Voir le bon de commande
+          <Eye className="size-5" />
         </button>
-
-        {order.status?.toLowerCase?.() === "pending" && order.isSigned === false && (
-          <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  uploadSignedPdf?.(order._id, file);
-                }
-                e.target.value = "";
-              }}
-            />
-            <button
-              type="button"
-              className="text-red-600 mt-5 text-sm font-semibold cursor-pointer"
-              onClick={() => fileInputRef.current?.click?.()}
-              title="Ajouter le PDF du bon signé"
-            >
-              Attention bon non signé
-            </button>
-          </>
-        )}
 
         <button
           type="button"
           className="text-blue-400 mt-5 text-sm font-semibold cursor-pointer"
           onClick={() => onEdit?.(order)}
+          title="Modifier"
+          aria-label="Modifier"
         >
-          Modifier
+          <Pencil className="size-5" />
         </button>
       </div>
     </div>
