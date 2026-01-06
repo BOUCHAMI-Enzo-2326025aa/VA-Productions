@@ -70,6 +70,19 @@ const normaliseSupports = (supports = []) =>
       })
     : [];
 
+const isOrderSignedForInvoicing = (order) => {
+  const hasSignatureData =
+    typeof order?.signatureData === "string" && order.signatureData.trim().length > 0;
+  const hasSignedPdfPath =
+    typeof order?.signedPdfPath === "string" && order.signedPdfPath.trim().length > 0;
+
+  if (order?.signLater === true) {
+    return hasSignatureData || hasSignedPdfPath;
+  }
+
+  return true;
+};
+
 const withComputedTotal = (orderDoc) => {
   const order = typeof orderDoc.toObject === "function" ? orderDoc.toObject() : orderDoc;
   const items = normaliseSupports(order.items);
@@ -315,19 +328,45 @@ export const validateOrder = async (req, res) => {
   const { orders } = req.body;
   try {
     const createdInvoices = [];
+    const blockedOrders = [];
     const lastInvoice = await Invoice.findOne().sort({ number: -1 });
     let currentInvoiceNumber = lastInvoice ? lastInvoice.number : 0;
 
+    const orderDatas = [];
     for (const orderItem of orders) {
       const orderData = await Order.findById(orderItem._id).populate({
-        path: 'client',   
-        model: 'Contact'  
+        path: "client",
+        model: "Contact",
       });
 
       if (!orderData) {
-        console.warn(`Commande ${orderItem._id} ou contact associé introuvable, ignorée.`);
+        console.warn(
+          `Commande ${orderItem._id} ou contact associé introuvable, ignorée.`
+        );
         continue;
       }
+
+      if (!isOrderSignedForInvoicing(orderData)) {
+        blockedOrders.push({
+          _id: orderData._id,
+          orderNumber: orderData.orderNumber,
+          compagnyName: orderData.compagnyName,
+        });
+        continue;
+      }
+
+      orderDatas.push(orderData);
+    }
+
+    if (blockedOrders.length > 0) {
+      return res.status(400).json({
+        error:
+          "Certaines commandes ne sont pas signées. Veuillez ajouter le bon signé avant de les mettre en facturation.",
+        blockedOrders,
+      });
+    }
+
+    for (const orderData of orderDatas) {
       
       currentInvoiceNumber++;
 

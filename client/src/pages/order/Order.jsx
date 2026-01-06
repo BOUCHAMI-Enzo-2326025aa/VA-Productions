@@ -17,6 +17,7 @@ const Order = () => {
   const [selectedOrder, setSelectedOrder] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
   const [orderBeingEdited, setOrderBeingEdited] = useState(null);
 
@@ -112,15 +113,34 @@ const Order = () => {
   };
 
   const validateOrder = async () => {
+    setValidationError("");
     setIsValidating("pending");
-    await axios
-      .post(import.meta.env.VITE_API_HOST + "/api/order/validate", {
+    try {
+      await axios.post(import.meta.env.VITE_API_HOST + "/api/order/validate", {
         orders: selectedOrder,
-      })
-      .then((response) => {
-        fetchOrders();
-        setIsValidating("finished");
       });
+      await fetchOrders();
+      setIsValidating("finished");
+    } catch (error) {
+      const apiError = error?.response?.data?.error;
+      const blockedOrders = error?.response?.data?.blockedOrders;
+      const blockedNumbers = Array.isArray(blockedOrders)
+        ? blockedOrders
+            .map((o) => o?.orderNumber)
+            .filter((n) => n !== undefined && n !== null)
+        : [];
+
+      const details = blockedNumbers.length
+        ? `N° de Commandes non signées : ${blockedNumbers.join(", ")}`
+        : "";
+
+      const message = apiError
+        ? `${apiError}${details ? `\n${details}` : ""}`
+        : "Erreur lors de la validation des commandes.";
+
+      setValidationError(message);
+      setIsValidating("error");
+    }
   };
 
   const cancelOrder = async () => {
@@ -142,7 +162,16 @@ const Order = () => {
 
   return (
     <div className="text-[#3F3F3F]">
-      {isValidating != false && <OrderValidationModal loading={isValidating} />}
+      {isValidating != false && (
+        <OrderValidationModal
+          loading={isValidating}
+          error={validationError}
+          onClose={() => {
+            setIsValidating(false);
+            setValidationError("");
+          }}
+        />
+      )}
       {isCancelling != false && <OrderDeleteModal loading={isCancelling} />}
       <p className="font-semibold text-lg mt-10">Bon de commandes crées</p>
       <p className=" opacity-80">
