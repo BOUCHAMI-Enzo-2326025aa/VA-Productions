@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { formatDateSlash } from "../../utils/formatDate.js";
 
-const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder, onEdit }) => {
+const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder, onEdit, uploadSignedPdf }) => {
+  const fileInputRef = useRef(null);
   
   const totalDisplay = useMemo(() => {
     const total = typeof order.totalPrice === "number" ? order.totalPrice : Number(order.totalPrice) || 0;
@@ -55,6 +56,33 @@ const OrderItem = ({ order, fetchCommandPdf, handleSelect, selectedOrder, onEdit
         >
           Voir le bon de commande
         </button>
+
+        {order.status?.toLowerCase?.() === "pending" && order.isSigned === false && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  uploadSignedPdf?.(order._id, file);
+                }
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              className="text-red-600 mt-5 text-sm font-semibold cursor-pointer"
+              onClick={() => fileInputRef.current?.click?.()}
+              title="Ajouter le PDF du bon signé"
+            >
+              Attention bon non signé
+            </button>
+          </>
+        )}
+
         <button
           type="button"
           className="text-blue-400 mt-5 text-sm font-semibold cursor-pointer"

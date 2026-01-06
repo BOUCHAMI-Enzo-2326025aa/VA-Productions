@@ -86,6 +86,31 @@ const Order = () => {
     }
   };
 
+  const uploadSignedPdf = async (orderId, file) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      await axios.post(
+        `${import.meta.env.VITE_API_HOST}/api/order/${orderId}/signed-pdf`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      await fetchOrders();
+    } catch (error) {
+      console.error("Erreur lors de l'upload du bon signé:", error);
+      alert(
+        error?.response?.data?.error ||
+          "Erreur lors de l'upload du bon signé."
+      );
+    }
+  };
+
   const validateOrder = async () => {
     setIsValidating("pending");
     await axios
@@ -154,6 +179,7 @@ const Order = () => {
               handleSelect={handleSelect}
               selectedOrder={selectedOrder}
               onEdit={setOrderBeingEdited}
+              uploadSignedPdf={uploadSignedPdf}
             />
           ))}
         </div>
