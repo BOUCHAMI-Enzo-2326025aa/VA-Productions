@@ -25,8 +25,6 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
   const siretRegex = /^[0-9]{14}$/;
   const requiredFieldMessages = {
     company: "Le nom de l'entreprise est requis.",
-    name: "Le nom du contact est requis.",
-    surname: "Le prénom du contact est requis.",
     siret: "Le numéro de SIRET est requis.",
     numTVA: "Le numéro de TVA est requis.",
   };
@@ -76,10 +74,7 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
       case "name":
       case "surname":
         if (!value.trim()) {
-          setErrors((prevErrors) => ({
-            ...prevErrors,
-            [name]: requiredFieldMessages[name],
-          }));
+          setErrors((prevErrors) => ({ ...prevErrors, [name]: null }));
           break;
         }
         if (value && !nameRegex.test(value)) {
@@ -290,7 +285,6 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    required
                   />
                 </div>
               </div>
@@ -311,7 +305,6 @@ const ModalContact = ({ handleCloseModal, fetchContact, isModalOpen }) => {
                     name="surname"
                     value={formData.surname}
                     onChange={handleChange}
-                    required
                   />
                 </div>
               </div>
