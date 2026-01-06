@@ -125,7 +125,9 @@ const ClientInformationsStep = ({
         >
           <option value="" disabled selected hidden>Choisir un contact</option>
           {contactList.map((contact) => (
-            <option key={contact._id} value={contact._id}>{contact.name} {contact.surname}</option>
+            <option key={contact._id} value={contact._id}>
+              {contact.company || `${contact.name || ""} ${contact.surname || ""}`.trim() || "-"}
+            </option>
           ))}
         </select>
 
