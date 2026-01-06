@@ -233,8 +233,8 @@ const FOOTER_BANK_LINES = [
 ];
 
 const FOOTER_CLAUSE_TEXT =
-  "CLAUSE DE RÉSERVE DE PROPRIÉTÉ : Conformément à la loi 80.335 du 12 mai 1980, nous réservons la propriété des produitset marchandises, objets des présents débits, jusqu'au paiement de l'intégralité du prix et de sesaccessoires. En cas de non paiement\n" +
-  "total ou partiel du prix del'échéance pour quelquecause quecesoit, deconvention expresse, nous nous réservons lafaculté, sans formalités, dereprendre matériellement possession deces produits ou marchandisesàvos frais, risqueset périls. Pénalité deretard : 3 fois letaux d'intérêt légalaprès dateéchéance. Escompte pour règlementanticipé: 0% (sauf condition particulière définie dans les conditions derèglement) Le montant del'indemnitéforfaitaire pour frais derecouvrement prévueen douzièmealinéa del'articleL441-6 est fixéà 40 Eurosen matièrecommerciale.";
+  "CLAUSE DE RÉSERVE DE PROPRIÉTÉ : Conformément à la loi 80.335 du 12 mai 1980, nous réservons la propriété des produits et marchandises, objets des présents débits, jusqu'au paiement de l'intégralité du prix et de ses accessoires. En cas de non paiement\n" +
+  "total ou partiel du prix de l'échéance pour quelque cause que ce soit, de convention expresse, nous nous réservons la faculté, sans formalités, de reprendre matériellement possession de ces produits ou marchandises à vos frais, risques et périls. Pénalité de retard : 3 fois le taux d'intérêt légal après date échéance. Escompte pour règlement anticipé: 0% (sauf condition particulière définie dans les conditions de règlement) Le montant de l'indemnité forfaitaire pour frais de recouvrement prévue en douzième alinéa de l'article L441-6 est fixé à 40 Euros en matière commerciale.";
 
 const FOOTER_BOTTOM_PADDING = 30;
 
