@@ -5,6 +5,7 @@ import {
   getOrderPdf,
   getOrdersByEntreprise,
   generateOrder,
+  uploadSignedOrderPdf,
   validateOrder,
   cancelOrder,
   updateOrder,
@@ -20,6 +21,7 @@ router.get("/", authorize(Roles.All), getOrders);
 router.get("/:entreprise", authorize(Roles.All), getOrdersByEntreprise);
 router.post("/generate-order", authorize(Roles.All), generateOrder);
 router.get("/pdf/:id", authorize(Roles.All), getOrderPdf);
+router.post("/:id/signed-pdf", authorize(Roles.All), uploadSignedOrderPdf);
 router.post("/validate", authorize(Roles.All), validateOrder);
 router.post("/cancel", authorize(Roles.All), cancelOrder);
 router.put("/:id", authorize(Roles.All), updateOrder);

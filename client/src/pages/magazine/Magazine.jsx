@@ -19,14 +19,15 @@ const Magazine = () => {
     open: false, magazineId: null, magazineName: "", loading: false, error: "",
   });
 
-  // État du formulaire, prêt à recevoir le 'type' et 'customType'
   const [formData, setFormData] = useState({
     nom: "",
     type: "Magazine",
     customType: "",
     image: "",
-    imageFile: null,
   });
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [imageForCropper, setImageForCropper] = useState(null);
+  const [originalImage, setOriginalImage] = useState(null);
 
   const fetchMagazines = async () => {
     setIsLoading(true);
@@ -54,7 +55,7 @@ const Magazine = () => {
 
   const handleOpenCreateModal = () => {
     setEditingMagazine(null);
-    setFormData({ nom: "", type: "Magazine", customType: "", image: "", imageFile: null });
+    setFormData({ nom: "", type: "Magazine", customType: "", image: "" });
     setIsModalOpen(true);
   };
 
@@ -66,15 +67,16 @@ const Magazine = () => {
       type: isStandardType ? magazine.type : "Autre",
       customType: isStandardType ? "" : magazine.type,
       image: magazine.image,
-      imageFile: null,
     });
+    setOriginalImage(null); // Pas d'image originale en mode édition (l'image en BDD est déjà croppée)
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingMagazine(null);
-    setFormData({ nom: "", type: "Magazine", customType: "", image: "", imageFile: null });
+    setFormData({ nom: "", type: "Magazine", customType: "", image: "" });
+    setOriginalImage(null);
   };
 
   const handleImageFileChange = (e) => {
@@ -88,8 +90,22 @@ const Magazine = () => {
         showSnackbar("error", "L'image ne doit pas dépasser 5MB");
         return;
       }
-      setFormData({ ...formData, imageFile: file, image: "" });
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageData = e.target.result;
+        setOriginalImage(imageData);
+        setImageForCropper(imageData);
+        setIsCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedImage) => {
+    setFormData({ ...formData, image: croppedImage });
+    setIsCropperOpen(false);
+    setImageForCropper(null);
+    showSnackbar("success", "Image recadrée avec succès");
   };
 
   const handleSubmit = async (e) => {
@@ -102,32 +118,27 @@ const Magazine = () => {
       showSnackbar("error", "Veuillez préciser le type de magazine.");
       return;
     }
-    if (!formData.image.trim() && !formData.imageFile) {
+    if (!formData.image.trim()) {
       showSnackbar("error", "L'image du magazine est obligatoire");
       return;
     }
     const finalType = formData.type === 'Autre' ? formData.customType : formData.type;
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("nom", formData.nom);
-      formDataToSend.append("type", finalType);
-      if (formData.imageFile) {
-        formDataToSend.append("image", formData.imageFile);
-      } else if (formData.image) {
-        formDataToSend.append("image", formData.image);
-      }
+      const payload = {
+        nom: formData.nom,
+        type: finalType,
+        image: formData.image, // Envoyer l'image base64 directement
+      };
       if (editingMagazine) {
         await axios.put(
           `${import.meta.env.VITE_API_HOST}/api/magazine/${editingMagazine._id}`,
-          formDataToSend,
-          { headers: { "Content-Type": "multipart/form-data" } }
+          payload
         );
         showSnackbar("success", "Magazine modifié avec succès");
       } else {
         await axios.post(
           `${import.meta.env.VITE_API_HOST}/api/magazine/create`,
-          formDataToSend,
-          { headers: { "Content-Type": "multipart/form-data" } }
+          payload
         );
         showSnackbar("success", "Magazine créé avec succès");
       }
@@ -201,11 +212,11 @@ const Magazine = () => {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {magazines.map((magazine) => (
             <div key={magazine._id} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition">
-              <div className="relative h-48 bg-gray-200">
+              <div className="relative w-full aspect-square bg-gray-200">
                 <img
                   src={magazine.image || "https://via.placeholder.com/300x400?text=Image+Non+Disponible"}
                   alt={magazine.nom}
-                  className="w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover"
                   onError={(e) => { e.target.src = "https://via.placeholder.com/300x400?text=Image+Non+Disponible"; }}
                 />
               </div>
@@ -270,7 +281,7 @@ const Magazine = () => {
                   <label className="w-full cursor-pointer">
                     <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
                       <Upload size={20} className="text-gray-600" />
-                      <span className="text-sm font-medium text-gray-700">{formData.imageFile ? formData.imageFile.name : "Choisir une image depuis le PC"}</span>
+                      <span className="text-sm font-medium text-gray-700">Choisir une image depuis le PC</span>
                     </div>
                     <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
                   </label>
@@ -283,20 +294,36 @@ const Magazine = () => {
                 <input
                   type="text"
                   value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value, imageFile: null })}
-                  disabled={!!formData.imageFile}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${formData.imageFile ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ou entrez l'URL de l'image"
                 />
-                {(formData.image || formData.imageFile) && (
+                {(formData.image) && (
                   <div className="mt-3">
-                    <p className="text-sm opacity-70 mb-2">Aperçu :</p>
-                    <img
-                      src={formData.imageFile ? URL.createObjectURL(formData.imageFile) : formData.image}
-                      alt="Aperçu"
-                      className="w-full h-48 object-cover rounded border"
-                      onError={(e) => { e.target.src = "https://via.placeholder.com/300x400?text=Image+Non+Valide"; }}
-                    />
+                    <p className="text-sm opacity-70 mb-2">Aperçu (carré 224x224) :</p>
+                    <div className="flex justify-center">
+                      <div style={{ width: '100%', maxWidth: '14rem', aspectRatio: '1 / 1', overflow: 'hidden', flex: 'none' }}>
+                        <img
+                          src={formData.image}
+                          alt="Aperçu"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                          className="rounded border"
+                          onError={(e) => { e.target.src = "https://via.placeholder.com/224x224?text=Image+Non+Valide"; }}
+                        />
+                      </div>
+                    </div>
+                    {originalImage && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageForCropper(originalImage); // Utiliser l'image originale non-croppée
+                          setIsCropperOpen(true);
+                        }}
+                        className="mt-2 w-full bg-blue-500 text-white py-2 rounded font-medium hover:bg-blue-600 transition"
+                      >
+                        Recadrer l'image
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -320,6 +347,16 @@ const Magazine = () => {
         loading={deleteModal.loading}
         error={deleteModal.error}
       />
+      {isCropperOpen && imageForCropper && (
+        <ImageCropper
+          imageUrl={imageForCropper}
+          onCropComplete={handleCropComplete}
+          onClose={() => {
+            setIsCropperOpen(false);
+            setImageForCropper(null);
+          }}
+        />
+      )}
     </div>
   );
 };

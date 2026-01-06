@@ -72,6 +72,19 @@ const OrderSchema = new Schema({
   signatureData: {
     type: String, // Stocke la dataURI complète base64 de la signature
     required: false,
+    default: null,
+  },
+  signLater: {
+    type: Boolean,
+    default: false,
+  },
+  isSigned: {
+    type: Boolean,
+    default: false,
+  },
+  signedPdfPath: {
+    type: String,
+    default: null,
   },
   status: {
     type: String,

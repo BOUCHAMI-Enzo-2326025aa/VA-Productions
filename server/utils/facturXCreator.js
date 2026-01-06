@@ -36,7 +36,7 @@ export function createFacturXBuffer(invoice, contact) {
       doc.registerFont('Roboto-Bold', fontBoldPath);
       
       doc.addPage();
-      generateHeader(doc, invoice, invoice.number);
+      generateHeader(doc, invoice, invoice.number, contact);
       generateInvoiceTable(doc, invoice, invoice.tva, contact);
       
       doc.end();
