@@ -53,6 +53,11 @@ async function createOrderPdf(client, res, number, tva, signatureData = null, si
 function generateHeader(doc, client, number) {
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString("fr-FR");
+
+  const clientSiret = typeof client?.siret === "string" ? client.siret.trim() : "";
+  const clientVat = typeof client?.numTVA === "string" ? client.numTVA.trim() : "";
+  const shouldShowCompanyIds = Boolean(clientSiret && clientVat);
+
   doc
     .image("assets/Logo VA.jpg", 50, 50, { width: 150 })
     .font("Helvetica")
@@ -90,6 +95,12 @@ function generateHeader(doc, client, number) {
       align: "left",
     })
     .text(client?.postalCode + " " + client?.city, 50, 245, {
+      align: "left",
+    })
+    .text(shouldShowCompanyIds ? `SIRET : ${clientSiret}` : "", 50, 260, {
+      align: "left",
+    })
+    .text(shouldShowCompanyIds ? `N° TVA : ${clientVat}` : "", 50, 270, {
       align: "left",
     })
     .font("Helvetica-Bold")

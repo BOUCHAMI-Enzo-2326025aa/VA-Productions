@@ -12,7 +12,7 @@ export function createVisualPdfBuffer(facture, contact) {
     doc.on('error', reject);
 
     try {
-      generateHeader(doc, facture, facture.number);
+      generateHeader(doc, facture, facture.number, contact);
       generateInvoiceTable(doc, facture, facture.tva, contact);
       doc.end();
     } catch (e) {
@@ -44,9 +44,14 @@ async function createInvoice(facture, res, number, tva = 0.2) {
   }
 }
 
-export function generateHeader(doc, facture, number) {
+export function generateHeader(doc, facture, number, contact = null) {
   const currentDate = new Date(facture.date);
   const formattedDate = currentDate.toLocaleDateString("fr-FR");
+
+  const clientSiret = typeof contact?.siret === "string" ? contact.siret.trim() : "";
+  const clientVat = typeof contact?.numTVA === "string" ? contact.numTVA.trim() : "";
+  const shouldShowCompanyIds = Boolean(clientSiret && clientVat);
+
   doc
     .image("assets/Logo VA.jpg", 50, 50, { width: 150 })
     .font("Helvetica")
@@ -86,6 +91,12 @@ export function generateHeader(doc, facture, number) {
     .text(facture?.postalCode + " " + facture?.city, 50, 245, {
       align: "left",
     })
+    .text(shouldShowCompanyIds ? `SIRET : ${clientSiret}` : "", 50, 260, {
+      align: "left",
+    })
+    .text(shouldShowCompanyIds ? `N° TVA : ${clientVat}` : "", 50, 270, {
+      align: "left",
+    })
     .font("Helvetica-Bold")
     .fontSize(25)
     .fillColor("#948a54")
@@ -101,7 +112,7 @@ export function generateHeader(doc, facture, number) {
     .text("POUR :", 400, 170);
 }
 
-export function generateInvoiceTable(doc, facture, tva) {
+export function generateInvoiceTable(doc, facture, tva, contact = null) {
   if (facture?.supportList.length > 0) {
     let i;
     const invoiceTableTop = 300;
