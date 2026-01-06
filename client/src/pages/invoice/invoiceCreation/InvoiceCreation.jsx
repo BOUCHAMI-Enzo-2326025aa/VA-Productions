@@ -74,7 +74,7 @@ const InvoiceCreation = () => {
     handleClientChange("support", [...invoice.client.support, newSupport]);
   };
   
-  const createOrder = async (signatureDataURL) => {
+  const createOrder = async (signatureDataURL, signLater = false) => {
     increaseStep(); 
     setLoading(true);
 
@@ -94,7 +94,8 @@ const InvoiceCreation = () => {
       ...invoice.client,
       totalPrice,
       delaisPaie: finalDelaisPaie,
-      signature: signatureDataURL ?? invoice.client.signature,
+      signLater,
+      signature: signLater ? null : (signatureDataURL ?? invoice.client.signature),
     };
 
     delete updatedClientData.customDelaisDays;

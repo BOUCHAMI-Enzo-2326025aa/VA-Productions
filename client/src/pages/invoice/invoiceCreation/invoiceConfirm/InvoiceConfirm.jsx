@@ -37,6 +37,11 @@ const InvoiceConfirm = ({
     createOrder(signatureDataURL);
   };
 
+  const handleSignLater = () => {
+    setSignatureError(false);
+    createOrder(null, true);
+  };
+
   const tvaAmount = totalSupports * TVA_PERCENTAGE;
   const totalToPay = totalSupports + tvaAmount;
 
@@ -74,9 +79,9 @@ const InvoiceConfirm = ({
         </div>
 
         <div className="mt-8 w-full text-sm text-[#3F3F3F]">
-          <p className="font-semibold">Signature du client (obligatoire)</p>
+          <p className="font-semibold">Signature du client (optionnelle)</p>
           <p className="mt-1 opacity-70">
-            Le client doit signer avant la création du bon de commande.
+            Vous pouvez signer maintenant ou choisir "Signer plus tard".
           </p>
 
           <div className={`mt-3 border rounded-lg bg-white ${signatureError ? "border-red-500" : "border-gray-300"}`}>
@@ -148,6 +153,11 @@ const InvoiceConfirm = ({
               value={"Retour"}
               primary={false}
               onClickFunction={returnFunction}
+            />
+            <InvoiceButton
+              value={"Signer plus tard"}
+              primary={false}
+              onClickFunction={handleSignLater}
             />
             <InvoiceButton
               value={"Confirmer la commande"}

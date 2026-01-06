@@ -3,6 +3,36 @@ import Invoice from "../model/invoiceModel.js";
 import Contact from "../model/contactModel.js";
 import createOrderPdf, { createOrderPdfBuffer } from "../utils/orderCreator.js";
 import createInvoice from "../utils/invoiceCreator.js";
+import Signature from "../model/signatureModel.js";
+import fs from "fs";
+import path from "path";
+import multer from "multer";
+
+const SIGNED_ORDER_DIR = path.join(process.cwd(), "uploads", "orders");
+if (!fs.existsSync(SIGNED_ORDER_DIR)) {
+  fs.mkdirSync(SIGNED_ORDER_DIR, { recursive: true });
+}
+
+const signedPdfStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, SIGNED_ORDER_DIR);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || "").toLowerCase() || ".pdf";
+    cb(null, `order-${req.params.id}-signed${ext}`);
+  },
+});
+
+const uploadSignedPdf = multer({
+  storage: signedPdfStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype !== "application/pdf") {
+      return cb(new Error("Seuls les fichiers PDF sont acceptés."));
+    }
+    cb(null, true);
+  },
+}).single("file");
 
 const toNumber = (value) => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -40,6 +70,19 @@ const normaliseSupports = (supports = []) =>
       })
     : [];
 
+const isOrderSignedForInvoicing = (order) => {
+  const hasSignatureData =
+    typeof order?.signatureData === "string" && order.signatureData.trim().length > 0;
+  const hasSignedPdfPath =
+    typeof order?.signedPdfPath === "string" && order.signedPdfPath.trim().length > 0;
+
+  if (order?.signLater === true) {
+    return hasSignatureData || hasSignedPdfPath;
+  }
+
+  return true;
+};
+
 const withComputedTotal = (orderDoc) => {
   const order = typeof orderDoc.toObject === "function" ? orderDoc.toObject() : orderDoc;
   const items = normaliseSupports(order.items);
@@ -49,7 +92,22 @@ const withComputedTotal = (orderDoc) => {
   const baseTotal = source.reduce((sum, item) => sum + item.price, 0);
   const computed = Math.round(baseTotal * (1 + tvaRate) * 100) / 100;
   const stored = toNumber(order.totalPrice);
-  return { ...order, items, supportList, tva: tvaRate, totalPrice: computed || stored };
+  const hasSignatureData =
+    typeof order.signatureData === "string" && order.signatureData.trim().length > 0;
+  const hasSignedPdfPath =
+    typeof order.signedPdfPath === "string" && order.signedPdfPath.trim().length > 0;
+  const inferredSigned =
+    order.signLater === true
+      ? hasSignatureData || hasSignedPdfPath
+      : true;
+  return {
+    ...order,
+    items,
+    supportList,
+    tva: tvaRate,
+    totalPrice: computed || stored,
+    isSigned: inferredSigned,
+  };
 };
 
 export const createOrder = async (req, res) => {
@@ -58,8 +116,12 @@ export const createOrder = async (req, res) => {
     const tva = req.body.tva.percentage;
     const { orderNumber: maxOrderNumber = 0 } = (await Order.findOne().sort({ orderNumber: -1 })) || {};
 
-    const signatureData = client?.signatureData || client?.signature;
-    if (typeof signatureData !== "string" || !signatureData.trim()) {
+    const signLater = !!client?.signLater;
+    const signatureDataRaw = client?.signatureData || client?.signature;
+    const signatureData =
+      typeof signatureDataRaw === "string" && signatureDataRaw.trim() ? signatureDataRaw.trim() : null;
+
+    if (!signLater && !signatureData) {
       return res.status(400).json({
         error: "Signature client manquante. Veuillez signer avant de créer le bon de commande.",
       });
@@ -96,7 +158,10 @@ export const createOrder = async (req, res) => {
       status: "pending",
       tva: tvaRate,
       delaisPaie: finalDelaisPaie,
-      signatureData,
+      signatureData: signLater ? null : signatureData,
+      signLater,
+      isSigned: !signLater && !!signatureData,
+      signedPdfPath: null,
     });
     
     await createOrderPdf(
@@ -104,13 +169,53 @@ export const createOrder = async (req, res) => {
       res,
       maxOrderNumber + 1,
       tvaRate,
-      signatureData
+      signLater ? null : signatureData
     );
     
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error.message });
   }
+};
+
+export const uploadSignedOrderPdf = (req, res) => {
+  uploadSignedPdf(req, res, async (err) => {
+    if (err) {
+      console.error("Erreur upload PDF signé:", err);
+      return res.status(400).json({ error: err.message || "Erreur upload" });
+    }
+
+    try {
+      const { id } = req.params;
+      if (!req.file) {
+        return res.status(400).json({ error: "Aucun fichier reçu." });
+      }
+
+      const relativePath = path.join("uploads", "orders", req.file.filename);
+
+      const updatedOrder = await Order.findByIdAndUpdate(
+        id,
+        {
+          $set: {
+            signedPdfPath: relativePath,
+            isSigned: true,
+          },
+        },
+        { new: true }
+      );
+
+      if (!updatedOrder) {
+        return res.status(404).json({ error: "Commande introuvable." });
+      }
+
+      return res
+        .status(200)
+        .json({ message: "Bon signé enregistré.", order: withComputedTotal(updatedOrder) });
+    } catch (e) {
+      console.error("Erreur en sauvegardant le bon signé:", e);
+      return res.status(500).json({ error: "Erreur lors de l'enregistrement du bon signé." });
+    }
+  });
 };
 
 export const getOrders = async (req, res) => {
@@ -159,10 +264,29 @@ export const getOrderPdf = async (req, res) => {
 
     console.log("Commande trouvée:", order.orderNumber, order.compagnyName);
 
+    if (typeof order.signedPdfPath === "string" && order.signedPdfPath.trim()) {
+      const absolutePdfPath = path.resolve(process.cwd(), order.signedPdfPath);
+      if (fs.existsSync(absolutePdfPath)) {
+        const filename = `commande-${order.orderNumber}-signee.pdf`;
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `inline; filename="${encodeURIComponent(filename)}"`
+        );
+        res.setHeader("Cache-Control", "no-store");
+        res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+        return fs.createReadStream(absolutePdfPath).pipe(res);
+      }
+    }
+
     const items = normaliseSupports(order.items);
     const rate = toNumber(order.tva || 0.2);
 
-    const signatureData = order.signatureData || null;
+    let signatureData = order.signatureData || null;
+    if (!signatureData && order.signLater !== true) {
+      const latestSignature = await Signature.findOne().sort({ updatedAt: -1 });
+      signatureData = latestSignature?.signatureData || null;
+    }
 
     const clientForPdf = {
       compagnyName: order.compagnyName,
@@ -204,19 +328,45 @@ export const validateOrder = async (req, res) => {
   const { orders } = req.body;
   try {
     const createdInvoices = [];
+    const blockedOrders = [];
     const lastInvoice = await Invoice.findOne().sort({ number: -1 });
     let currentInvoiceNumber = lastInvoice ? lastInvoice.number : 0;
 
+    const orderDatas = [];
     for (const orderItem of orders) {
       const orderData = await Order.findById(orderItem._id).populate({
-        path: 'client',   
-        model: 'Contact'  
+        path: "client",
+        model: "Contact",
       });
 
       if (!orderData) {
-        console.warn(`Commande ${orderItem._id} ou contact associé introuvable, ignorée.`);
+        console.warn(
+          `Commande ${orderItem._id} ou contact associé introuvable, ignorée.`
+        );
         continue;
       }
+
+      if (!isOrderSignedForInvoicing(orderData)) {
+        blockedOrders.push({
+          _id: orderData._id,
+          orderNumber: orderData.orderNumber,
+          compagnyName: orderData.compagnyName,
+        });
+        continue;
+      }
+
+      orderDatas.push(orderData);
+    }
+
+    if (blockedOrders.length > 0) {
+      return res.status(400).json({
+        error:
+          "Certaines commandes ne sont pas signées. Veuillez ajouter le bon signé avant de les mettre en facturation.",
+        blockedOrders,
+      });
+    }
+
+    for (const orderData of orderDatas) {
       
       currentInvoiceNumber++;
 
