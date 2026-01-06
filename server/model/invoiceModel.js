@@ -19,6 +19,7 @@ const invoiceShema = new mongoose.Schema({
   client: {
     type: Schema.Types.ObjectId,
     required: true,
+    ref: 'Contact'
   },
   entreprise: {
     type: String,
@@ -27,6 +28,7 @@ const invoiceShema = new mongoose.Schema({
   number: {
     type: Number,
     required: true,
+    unique: true
   },
   date: {
     type: Date,
@@ -64,6 +66,18 @@ const invoiceShema = new mongoose.Schema({
     type: Number,
     required: true,
     default: 0.2
+  },
+  delaisPaie: { 
+    type: String,
+    default: "comptant"
+  },
+  eInvoiceStatus: {
+    type: String,
+    enum: ['pending', 'processing', 'sent', 'rejected', 'validated'], 
+    default: 'pending'
+  },
+  eInvoiceTransactionId: { 
+    type: String, 
   }
 });
 

@@ -23,7 +23,7 @@ const OrderSchema = new Schema({
   client: {
     type: Schema.Types.ObjectId,
     required: true,
-    ref: "Client",
+    ref: "Contact",
   },
   compagnyName  : {
     type: String,
@@ -32,6 +32,7 @@ const OrderSchema = new Schema({
   orderNumber: {
     type: Number,
     required: true,
+    unique: true,
   },
   date: {
     type: Date,
@@ -40,6 +41,10 @@ const OrderSchema = new Schema({
   items: {
     type: [OrderItemSchema],
     required: true,
+  },
+  supportList: {
+    type: [OrderItemSchema],
+    default: undefined,
   },
   firstAddress: {
     type: String,
@@ -67,18 +72,34 @@ const OrderSchema = new Schema({
   signatureData: {
     type: String, // Stocke la dataURI complète base64 de la signature
     required: false,
+    default: null,
+  },
+  signLater: {
+    type: Boolean,
+    default: false,
+  },
+  isSigned: {
+    type: Boolean,
+    default: false,
+  },
+  signedPdfPath: {
+    type: String,
+    default: null,
   },
   status: {
     type: String,
-    enum: ["Pending", "Completed", "Cancelled"],
-    default: "Pending",
+    enum: ["pending", "validated", "cancel"], 
+    default: "pending",
   },
   tva: {
     type: Number,
     required: true,
     default: 0.2,
+  },
+  delaisPaie: { 
+    type: String,
+    default: "comptant",
   }
-  
 });
 
 const Order = mongoose.model("Order", OrderSchema);

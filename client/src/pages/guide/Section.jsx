@@ -2,7 +2,8 @@ import React from "react";
 
 const Section = ({ children, className, name }) => {
   return (
-    <div name={name} className={className + " flex flex-col gap-2"}>
+    // On remplace l'attribut "name" par "id" pour que les ancres fonctionnent
+    <div id={name} className={className + " flex flex-col gap-2"}>
       {children}
     </div>
   );

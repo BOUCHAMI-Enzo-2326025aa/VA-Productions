@@ -2,8 +2,8 @@ import React from "react";
 import CreationSectionTitle from "../../CreationSectionTitle";
 import InvoiceStep from "./InvoiceStep";
 
-const InvoiceCreationStepFollow = ({ step }) => {
-  return (
+const InvoiceCreationStepFollow = ({ step }: { step: number }) => {
+    return (
     <div className="bg-white w-full py-8 px-9 rounded-md max-h-fit">
       <CreationSectionTitle
         title={"Création d’une commande"}
@@ -25,17 +25,9 @@ const InvoiceCreationStepFollow = ({ step }) => {
           isLastStep={false}
         />
         <InvoiceStep
-          title={"Information de facturation"}
-          subtitle={
-            "Saisissez toutes les informations relatives au client et à la facture "
-          }
-          isComplete={step > 3}
-          isLastStep={false}
-        />
-        <InvoiceStep
           title={"Confirmation de la facture"}
           subtitle={""}
-          isComplete={step > 4}
+          isComplete={step > 3}
           isLastStep={true}
         />
       </div>

@@ -14,11 +14,22 @@
   );
 }
 
+/* Style pour ordinateur (votre style original) */
 .contact-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(450px, 0.5fr));
   gap: 5px;
 }
+
+/* Styles pour les écrans plus petits que 1024px (tablettes et mobiles) */
+@media (max-width: 1024px) {
+  .contact-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; /* 16px d'espace */
+  }
+}
+
 
 .bg-gradient-dark {
   position: absolute;

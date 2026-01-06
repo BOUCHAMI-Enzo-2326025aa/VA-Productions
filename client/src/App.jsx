@@ -6,7 +6,6 @@ import Contact from "./pages/contacts/Contact";
 import Layout from "./layout/Layout";
 import Login from "./pages/login/Login";
 import ManageUser from "./pages/createUser/ManageUser";
-import CreateUser from "./pages/createUser/ManageUser";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import AdminRoute from "./auth/AdminRoute";
 import axios from "axios";
@@ -19,6 +18,9 @@ import "@mantine/core/styles.css";
 import Order from "./pages/order/Order";
 import Guide from "./pages/guide/Guide";
 import Stats from "./pages/stats/Stats";
+import Magazine from "./pages/magazine/Magazine";
+import Charge from "./pages/charge/Charge";
+import Settings from "./pages/settings/Settings";
 
 function App() {
   const [userLoaded, setUserLoaded] = useState(false);
@@ -146,6 +148,26 @@ function App() {
             }
           />
           <Route
+            path="/admin/magazine"
+            element={
+              <AdminRoute>
+                <Layout pathName={"Magazines"}>
+                  <Magazine />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/charge"
+            element={
+              <AdminRoute>
+                <Layout pathName={"Comptabilité"}>
+                  <Charge />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
             path="/invoice/create"
             element={
               <ProtectedRoute>
@@ -171,6 +193,16 @@ function App() {
               <ProtectedRoute>
                 <Layout pathName={"Bons de Commande"}>
                   <Order />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Layout pathName={"Paramètres"}>
+                  <Settings />
                 </Layout>
               </ProtectedRoute>
             }

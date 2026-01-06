@@ -2,59 +2,52 @@ import fs from "fs";
 import path from "path";
 import PDFDocument from "pdfkit";
 
-function createOrderPdf(client, res, number, tva, randomImageName) {
-  console.log("createOrderPdf called - number:", number, "tva:", tva, "randomImageName:", randomImageName);
-  try {
-    console.log("client.support:", JSON.stringify(client?.support));
-  } catch (e) {
-    console.log("Could not stringify client.support", e);
+const toNumber = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const cleaned = value.replace(/\s/g, "").replace(",", ".");
+    const parsed = Number.parseFloat(cleaned);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
+  return 0;
+};
+
+async function createOrderPdf(client, res, number, tva, signatureData = null, signatureFileName) {
   const invoicesDir = "./orders";
   if (!fs.existsSync(invoicesDir)) {
     fs.mkdirSync(invoicesDir);
   }
-  const fileName = `${number}_${
-    client?.compagnyName?.toUpperCase() || "COMMANDE"
-  }.pdf`;
+  const fileName = `${number}_${client?.compagnyName?.toUpperCase() || "COMMANDE"}.pdf`;
   const filePath = path.join(invoicesDir, fileName);
 
-  let doc = new PDFDocument({ margin: 50 });
+  const doc = new PDFDocument({ margin: 50 });
   const writeStream = fs.createWriteStream(filePath);
-  writeStream.on("error", (err) => {
-    console.error("Erreur lors de l'écriture du fichier PDF :", err);
+  
+  const streamFinished = new Promise((resolve, reject) => {
+    writeStream.on("finish", resolve);
+    writeStream.on("error", reject);
   });
-
+  
   doc.pipe(writeStream);
-  generateHeader(doc, client, number); // Ajoutez vos autres fonctions de génération de PDF ici
-  generateInvoiceTable(doc, client, tva, randomImageName);
+  
+  generateHeader(doc, client, number);
+  generateInvoiceTable(doc, client, tva, signatureData, signatureFileName);
   doc.end();
+  await streamFinished;
 
-  // Envoi du fichier une fois qu'il est généré
-  writeStream.on("finish", () => {
-    res.removeHeader("Content-Disposition");
-    res.removeHeader("Content-Type");
-    res.removeHeader("Cache-Control");
-
-    // Définir manuellement les en-têtes avant d'envoyer le fichier
-    // Utiliser 'inline' pour permettre l'affichage dans le navigateur (preview)
-    res.setHeader(
-      "Content-Disposition",
-      `inline; filename="${encodeURIComponent(fileName)}"`
-    );
+  if (res) {
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Cache-Control", "no-store");
     res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
-
-    // Envoyer le fichier via res.download
     res.download(filePath, fileName, (err) => {
       if (err) {
-        console.error("Erreur lors de l'envoi du fichier PDF :", err);
-        res.status(500).send("Erreur lors de l'envoi du fichier PDF.");
-      } else {
-        console.log("Fichier envoyé avec succès :", fileName);
+        console.error("Erreur d'envoi PDF :", err);
+        if (!res.headersSent) {
+          res.status(500).send("Erreur lors de l'envoi du PDF.");
+        }
       }
     });
-  });
+  }
 }
 
 function generateHeader(doc, client, number) {
@@ -114,227 +107,171 @@ function generateHeader(doc, client, number) {
     .text("POUR :", 400, 170);
 }
 
-function generateInvoiceTable(doc, client, tva, randomImageName) {
-  if (client?.support.length > 0) {
-    let i;
-    const invoiceTableTop = 300;
+function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName) {
+  const invoiceTableTop = 330; 
+  let currentPosition = invoiceTableTop;
 
-    doc.font("Helvetica-Bold");
+  const supports = Array.isArray(client.support) ? client.support : [];
+  const normalisedSupports = supports.map((item) => {
+    const price = toNumber(item?.price);
+    const rawNumber = item?.supportNumber ?? item?.number ?? item?.quantity ?? "";
+    const supportNumber = typeof rawNumber === "string" && rawNumber.trim()
+      ? rawNumber.trim()
+      : Number.isFinite(Number(rawNumber))
+      ? String(rawNumber)
+      : "";
+    const rawSupportName = item?.supportName || item?.support || item?.support_label || "";
+    const rawName = item?.name || item?.encart || item?.description || "";
+    const supportName = typeof rawSupportName === "string" && rawSupportName.trim() ? rawSupportName.trim() : "-";
+    const name = typeof rawName === "string" && rawName.trim() ? rawName.trim() : "-";
+    return {
+      ...item,
+      price,
+      supportNumber,
+      supportName,
+      name,
+    };
+  });
+
+  doc.font("Helvetica-Bold");
+  generateTableRow(doc, currentPosition, "Encart", "Support", "N° support", "Montant");
+  currentPosition += 15;
+  generateHr(doc, currentPosition);
+  currentPosition += 10;
+  
+  doc.font("Helvetica");
+  const subTotalSupports = normalisedSupports.reduce((sum, item) => sum + item.price, 0);
+
+  normalisedSupports.forEach(item => {
     generateTableRow(
       doc,
-      invoiceTableTop,
-      "Encart",
-      "Support",
-      "Qté",
-      "",
-      "Montant"
+      currentPosition,
+      item.name,
+      item.supportName,
+      item.supportNumber || "-",
+      formatPrice(item.price) + " €"
     );
-    generateHr(doc, invoiceTableTop + 20);
-    doc.font("Helvetica");
+    currentPosition += 20;
+  });
+  generateHr(doc, currentPosition);
+  currentPosition += 10;
+  
+  generateTableRow(doc, currentPosition, "", "", "SOUS-TOTAL (C.A.)", formatPrice(subTotalSupports) + " €");
+  currentPosition += 25;
 
-    for (i = 0; i < client?.support.length; i++) {
-      const item = client?.support[i];
-      const position = invoiceTableTop + (i + 1) * 30;
-      generateTableRow(
-        doc,
-        position,
-        client?.support[i]?.name,
-        client?.support[i]?.supportName,
-        client?.support[i]?.supportNumber,
-        formatPrice(client?.support[i]?.price),
-        formatPrice(client?.support[i]?.price) + " €"
-      );
+  const tvaRate = toNumber(tva);
+  const tvaAmount = subTotalSupports * tvaRate;
+  const totalTTC = subTotalSupports + tvaAmount;
 
-      generateHr(doc, position + 20);
+  generateTableRow(doc, currentPosition, "", "", "T.V.A.", `${formatPrice(tvaAmount)} €`);
+  currentPosition += 20;
+
+  doc.font("Helvetica-Bold");
+  generateTableRow(doc, currentPosition, "", "", "TOTAL À PAYER (TTC)", `${formatPrice(totalTTC)} €`);
+  currentPosition += 40;
+
+  let paymentTermsText = "Total dû à réception de la commande."; 
+  if (client && client.delaisPaie) {
+    if (client.delaisPaie.toLowerCase() === 'comptant') {
+      paymentTermsText = "Total dû comptant à réception de la commande.";
+    } else {
+      paymentTermsText = `Total dû dans un délai de ${client.delaisPaie}.`;
     }
+  }
 
-    const subtotalPosition = invoiceTableTop + (i + 1) * 30;
-    let subTotal = 0;
-    for (i = 0; i < client?.support.length; i++) {
-      subTotal = subTotal + parseFloat(client?.support[i]?.price || 0);
-    }
-    const total = subTotal + subTotal * tva;
-    generateTableRow(
-      doc,
-      subtotalPosition,
-      "",
-      "",
-      "",
-      "SOUS-TOTAL",
-      formatPrice(parseFloat(subTotal)) + " €"
-    );
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .text("Veuillez rédiger tous les chèques à l'ordre de V.A. PRODUCTIONS.", 50, currentPosition)
+    .text(paymentTermsText, 50, currentPosition + 12)
+    .text("Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, currentPosition + 24);
+  currentPosition += 50;
+  
+  doc.font("Helvetica-Bold").fontSize(12).text("MERCI DE VOTRE CONFIANCE !", 50, currentPosition, { align: "center" });
+  currentPosition += 40;
+  
+  doc.text("Signature", 100, currentPosition);
 
-    const tvaPercentPosition = subtotalPosition + 20;
-    generateTableRow(
-      doc,
-      tvaPercentPosition,
-      "",
-      "",
-      "",
-      "TAUX DE T.V.A.",
-      tva * 100 + "%"
-    );
-
-    const tvaPosition = tvaPercentPosition + 20;
-    generateTableRow(
-      doc,
-      tvaPosition,
-      "",
-      "",
-      "",
-      "T.V.A.",
-      formatPrice(subTotal * tva) + " €"
-    );
-
-    const totalPosition = tvaPosition + 20;
-    doc.font("Helvetica-Bold");
-    generateTableRow(
-      doc,
-      totalPosition,
-      "",
-      "",
-      "",
-      "TOTAL",
-      formatPrice(total) + " €"
-    );
-    doc
-      .font("Helvetica")
-      .text(
-        "Veuillez rédiger tous les chèques à l'ordre de V.A. PRODUCTIONS.",
-        50,
-        totalPosition + 50,
-        { align: "left" }
-      )
-      .text(
-        "Total dû dans un délai de 15 jours. Comptes en souffrance soumis à des frais de service de 1 % par mois.",
-        50,
-        totalPosition + 60,
-        { align: "left" }
-      )
-      .font("Helvetica-Bold")
-      .text("MERCI DE VOTRE CONFIANCE !", 50, totalPosition + 100, {
-        align: "center",
-      })
-      .text("Signature", 100, totalPosition + 140);
-
-    // Inclure la signature depuis la dataURI stockée en base (priorité) ou depuis le fichier PNG
+  const signatureBuffer = getSignatureBuffer(signatureData, signatureFileName || client?.signature);
+  if (signatureBuffer) {
     try {
-      if (client.signatureData) {
-        // Utilise la dataURI base64 directement depuis la base de données
-        console.log("Utilisation de signatureData (dataURI) pour la signature");
-        doc.image(client.signatureData, 50, totalPosition + 150, { width: 150 });
-      } else if (randomImageName) {
-        // Fallback: cherche le fichier PNG sur disque (pour compatibilité anciennes commandes)
-        const imgPath = path.join(process.cwd(), "invoices", `${randomImageName}.png`);
-        if (fs.existsSync(imgPath)) {
-          console.log("Utilisation du fichier PNG pour la signature:", imgPath);
-          doc.image(imgPath, 50, totalPosition + 150, { width: 150 });
-        } else {
-          console.log("Signature image introuvable, saut de l'inclusion de l'image:", imgPath);
-        }
-      } else {
-        console.log("Aucune signature disponible (ni dataURI ni fichier)");
-      }
-    } catch (e) {
-      console.log("Erreur lors de la vérification/inclusion de la signature :", e);
-    }
-  } else {
-    doc
-      .font("Helvetica")
-      .text("Aucun support à facturer !", 50, 330, { align: "center" })
-      .text(
-        "Veuillez rédiger tous les chèques à l'ordre de V.A. PRODUCTIONS.",
-        50,
-        380,
-        { align: "left" }
-      )
-      .text(
-        "Total dû dans un délai de 15 jours. Comptes en souffrance soumis à des frais de service de 1 % par mois.",
-        50,
-        390,
-        { align: "left" }
-      )
-      .font("Helvetica-Bold")
-      .text("MERCI DE VOTRE CONFIANCE ! ", 50, 400, {
-        align: "center",
-      })
-      .text("Signature", 100, 140);
-
-    // Inclure la signature depuis la dataURI stockée en base (priorité) ou depuis le fichier PNG
-    try {
-      if (client.signatureData) {
-        console.log("Utilisation de signatureData (dataURI) pour la signature (section vide)");
-        doc.image(client.signatureData, 50, 450, { width: 150 });
-      } else if (randomImageName) {
-        const imgPath = path.join(process.cwd(), "invoices", `${randomImageName}.png`);
-        if (fs.existsSync(imgPath)) {
-          console.log("Utilisation du fichier PNG pour la signature (section vide):", imgPath);
-          doc.image(imgPath, 50, 450, { width: 150 });
-        } else {
-          console.log("Signature image introuvable (section vide), saut de l'inclusion de l'image:", imgPath);
-        }
-      } else {
-        console.log("Aucune signature disponible (section vide)");
-      }
-    } catch (e) {
-      console.log("Erreur lors de la vérification/inclusion de la signature (section vide):", e);
+      doc.image(signatureBuffer, 50, currentPosition + 15, { width: 150 });
+    } catch (error) {
+      console.error("Impossible d'intégrer la signature dans le PDF:", error);
     }
   }
 }
 
+function getSignatureBuffer(signatureData, fallbackFileName) {
+  if (typeof signatureData === "string" && signatureData.trim()) {
+    const cleaned = signatureData.startsWith("data:image")
+      ? signatureData.split(",")[1]
+      : signatureData;
+
+    try {
+      const buffer = Buffer.from(cleaned, "base64");
+      if (buffer.length > 0) {
+        return buffer;
+      }
+    } catch (error) {
+      console.error("Signature base64 invalide:", error);
+    }
+  }
+
+  if (typeof fallbackFileName === "string" && fallbackFileName.trim()) {
+    const imgPath = path.join(process.cwd(), "invoices", `${fallbackFileName}.png`);
+    if (fs.existsSync(imgPath)) {
+      try {
+        return fs.readFileSync(imgPath);
+      } catch (error) {
+        console.error("Impossible de lire la signature depuis le disque:", error);
+      }
+    }
+  }
+
+  return null;
+}
+
 function formatPrice(value) {
-  // Arrondir au centième pour éviter les erreurs de précision en virgule flottante
-  const numericValue = Number(value ?? 0);
-  const safeValue = Number.isFinite(numericValue) ? numericValue : 0;
-  const rounded = Math.round((safeValue + Number.EPSILON) * 100) / 100;
+  const numericValue = Number(value || 0);
   return new Intl.NumberFormat("fr-FR", {
     style: "decimal",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
-    .format(rounded)
-    .replace(/\s/g, "\u00A0");
+    .format(numericValue)
+    .replace(/\s/g, "");
 }
 
-function generateTableRow(doc, y, c1, c2, c3, c4, c5) {
-  doc
-    .fontSize(10)
-    .text(c1, 50, y)
-    .text(c2, 150, y)
-    .text(c3, 280, y, { width: 90, align: "right" })
-    .text(c4, 370, y, { width: 90, align: "right" })
-    .text(c5, 0, y, { align: "right" });
+function generateTableRow(doc, y, c1, c2, c3, c4) {
+  doc.fontSize(10)
+    .text(c1, 50, y, { width: 150 })   
+    .text(c2, 200, y, { width: 150 }) 
+    .text(c3, 300, y, { width: 150, align: "right" }) 
+    .text(c4, 450, y, { width: 100, align: "right" }); 
 }
 
 function generateHr(doc, y) {
   doc.strokeColor("#aaaaaa").lineWidth(1).moveTo(50, y).lineTo(550, y).stroke();
 }
 
-// Génère le PDF en mémoire et retourne un Buffer (utile pour hébergement sans système de fichiers persistant)
-export function createOrderPdfBuffer(client, number, tva, randomImageName) {
+export function createOrderPdfBuffer(client, number, tva, signatureData = null, signatureFileName) {
   return new Promise((resolve, reject) => {
     try {
-      console.log("createOrderPdfBuffer called - number:", number, "tva:", tva);
       const doc = new PDFDocument({ margin: 50 });
       const chunks = [];
       
       doc.on("data", (chunk) => chunks.push(chunk));
       doc.on("end", () => {
         const buffer = Buffer.concat(chunks);
-        console.log("PDF buffer generated, size:", buffer.length);
         resolve(buffer);
       });
-      doc.on("error", (err) => {
-        console.error("Erreur lors de la génération du PDF buffer:", err);
-        reject(err);
-      });
+      doc.on("error", (err) => reject(err));
 
-      // Génération du contenu du PDF
       generateHeader(doc, client, number);
-      generateInvoiceTable(doc, client, tva, randomImageName);
+      generateInvoiceTable(doc, client, tva, signatureData, signatureFileName);
       doc.end();
     } catch (e) {
-      console.error("Exception dans createOrderPdfBuffer:", e);
       reject(e);
     }
   });

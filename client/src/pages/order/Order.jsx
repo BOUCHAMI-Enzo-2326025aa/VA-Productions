@@ -8,6 +8,7 @@ import ActionButton from "./ActionButton";
 import InvoiceButton from "../invoice/component/InvoiceButton";
 import OrderValidationModal from "./OrderValidationModal";
 import OrderDeleteModal from "./OrderDeleteModal";
+import OrderEditModal from "./OrderEditModal";
 
 const Order = () => {
   const [orders, setOrders] = useState([]);
@@ -16,7 +17,9 @@ const Order = () => {
   const [selectedOrder, setSelectedOrder] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
+  const [orderBeingEdited, setOrderBeingEdited] = useState(null);
 
   const fetchOrders = async () => {
     await axios
@@ -64,12 +67,10 @@ const Order = () => {
         { responseType: "blob" }
       );
 
-  // récupération du nom de fichier depuis l'en-tête Content-Disposition
       const contentDisposition =
         response.headers["content-disposition"] ||
         response.headers["Content-Disposition"];
-    // privilégie orderNumber pour le nom de fichier
-    let filename = orderNumber ? `commande-${orderNumber}.pdf` : `commande-${id}.pdf`;
+      let filename = orderNumber ? `commande-${orderNumber}.pdf` : `commande-${id}.pdf`;
       if (contentDisposition) {
         const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?"?([^";]*)"?/i);
         if (match && match[1]) {
@@ -77,27 +78,69 @@ const Order = () => {
         }
       }
 
-  const blob = new Blob([response.data], { type: "application/pdf" });
-  const url = window.URL.createObjectURL(blob);
-  // Ouvrir le PDF dans un nouvel onglet pour prévisualisation 
-  window.open(url, "_blank");
-  // Révoquer l'URL après un court délai pour laisser le navigateur charger le PDF
-  setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
     } catch (error) {
       console.error("Erreur lors du téléchargement du PDF:", error);
     }
   };
 
+  const uploadSignedPdf = async (orderId, file) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      await axios.post(
+        `${import.meta.env.VITE_API_HOST}/api/order/${orderId}/signed-pdf`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      await fetchOrders();
+    } catch (error) {
+      console.error("Erreur lors de l'upload du bon signé:", error);
+      alert(
+        error?.response?.data?.error ||
+          "Erreur lors de l'upload du bon signé."
+      );
+    }
+  };
+
   const validateOrder = async () => {
+    setValidationError("");
     setIsValidating("pending");
-    await axios
-      .post(import.meta.env.VITE_API_HOST + "/api/order/validate", {
+    try {
+      await axios.post(import.meta.env.VITE_API_HOST + "/api/order/validate", {
         orders: selectedOrder,
-      })
-      .then((response) => {
-        fetchOrders();
-        setIsValidating("finished");
       });
+      await fetchOrders();
+      setIsValidating("finished");
+    } catch (error) {
+      const apiError = error?.response?.data?.error;
+      const blockedOrders = error?.response?.data?.blockedOrders;
+      const blockedNumbers = Array.isArray(blockedOrders)
+        ? blockedOrders
+            .map((o) => o?.orderNumber)
+            .filter((n) => n !== undefined && n !== null)
+        : [];
+
+      const details = blockedNumbers.length
+        ? `N° de Commandes non signées : ${blockedNumbers.join(", ")}`
+        : "";
+
+      const message = apiError
+        ? `${apiError}${details ? `\n${details}` : ""}`
+        : "Erreur lors de la validation des commandes.";
+
+      setValidationError(message);
+      setIsValidating("error");
+    }
   };
 
   const cancelOrder = async () => {
@@ -119,7 +162,16 @@ const Order = () => {
 
   return (
     <div className="text-[#3F3F3F]">
-      {isValidating != false && <OrderValidationModal loading={isValidating} />}
+      {isValidating != false && (
+        <OrderValidationModal
+          loading={isValidating}
+          error={validationError}
+          onClose={() => {
+            setIsValidating(false);
+            setValidationError("");
+          }}
+        />
+      )}
       {isCancelling != false && <OrderDeleteModal loading={isCancelling} />}
       <p className="font-semibold text-lg mt-10">Bon de commandes crées</p>
       <p className=" opacity-80">
@@ -127,7 +179,7 @@ const Order = () => {
         validés)
       </p>
 
-      <div className="flex justify-between w-full items-center ">
+      <div className="flex justify-between w-full items-center order-actions-container">
         <ChangeStatusButton
           statusToShow={statusToShow}
           setStatusToShow={setStatusToShow}
@@ -146,7 +198,7 @@ const Order = () => {
         </div>
       </div>
 
-      <div className="flex items-start mt-5 gap-3">
+      <div className="flex items-start mt-5 gap-3 order-content-wrapper">
         <div className="bg-white min-h-fit w-[50%] rounded-lg px-6 py-6 flex flex-col gap-2">
           {ordersToShow.map((order, index) => (
             <OrderItem
@@ -155,10 +207,19 @@ const Order = () => {
               fetchCommandPdf={fetchCommandPdf}
               handleSelect={handleSelect}
               selectedOrder={selectedOrder}
+              onEdit={setOrderBeingEdited}
+              uploadSignedPdf={uploadSignedPdf}
             />
           ))}
         </div>
       </div>
+      {orderBeingEdited && (
+        <OrderEditModal
+          order={orderBeingEdited}
+          onClose={() => setOrderBeingEdited(null)}
+          refetchOrders={fetchOrders}
+        />
+      )}
     </div>
   );
 };

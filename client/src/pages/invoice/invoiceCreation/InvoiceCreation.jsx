@@ -12,9 +12,8 @@ import LoadingScreen from "./LoadingScreen";
 const InvoiceCreation = () => {
   const [step, setStep] = useState(1);
   const [contactList, setContactList] = useState([]);
-  const [savedSupportList, setSavedSupportList] = useState([]);
   const [TVA_PERCENTAGE, setTVA_PERCENTAGE] = useState(0.2);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [invoice, setInvoice] = useState({
     client: {
       clientId: "",
@@ -27,20 +26,22 @@ const InvoiceCreation = () => {
       address2: "",
       city: "",
       postalCode: "",
+      delaisPaie: "comptant", 
+      customDelaisDays: "",    
+      customDelaisSuffix: "", 
       totalPrice: 0,
       support: [],
       signature: null,
     },
   });
+
   const fetchContact = async () => {
-    await axios
-      .get(import.meta.env.VITE_API_HOST + "/api/contact/")
-      .then((response) => {
-        setContactList(response.data.contactList);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    try {
+      const response = await axios.get(import.meta.env.VITE_API_HOST + "/api/contact/");
+      setContactList(response.data.contactList);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   useEffect(() => {
@@ -48,7 +49,7 @@ const InvoiceCreation = () => {
   }, []);
 
   const deleteSupport = (index) => {
-    const newSupportList = savedSupportList.filter((support, i) => i !== index);
+    const newSupportList = invoice.client.support.filter((_, i) => i !== index);
     handleClientChange("support", newSupportList);
   };
 
@@ -62,73 +63,83 @@ const InvoiceCreation = () => {
     }));
   };
 
-  const createNewSupport = (
-    libelle,
-    supportNumber,
-    price,
-    supportName,
-    image
-  ) => {
+  const createNewSupport = (libelle, supportNumber, price, supportName, image) => {
     const newSupport = {
       name: libelle,
-      price: price,
+      price: parseFloat(price) || 0, 
       supportName: supportName,
       supportNumber: supportNumber,
       image: image,
     };
-
-    setInvoice((prevState) => ({
-      ...prevState,
-      client: {
-        ...prevState.client,
-        support: [...prevState.client.support, newSupport],
-      },
-    }));
+    handleClientChange("support", [...invoice.client.support, newSupport]);
   };
-
-  const createOrder = async () => {
+  
+  const createOrder = async (signatureDataURL, signLater = false) => {
+    increaseStep(); 
     setLoading(true);
-    increaseStep();
-    for (let i = 0; i < savedSupportList.length; i++) {
-      invoice.client.totalPrice += parseInt(savedSupportList[i].price);
+
+    let finalDelaisPaie = invoice.client.delaisPaie;
+    if (invoice.client.delaisPaie === "autre") {
+      const days = (invoice.client.customDelaisDays || "").trim();
+      const suffix = (invoice.client.customDelaisSuffix || "").trim();
+      if (days) {
+        finalDelaisPaie = `${days} jours${suffix ? ` ${suffix}` : ""}`;
+      } else {
+        finalDelaisPaie = "comptant"; 
+      }
     }
+
+    const totalPrice = invoice.client.support.reduce((sum, item) => sum + (item.price || 0), 0);
+    const updatedClientData = {
+      ...invoice.client,
+      totalPrice,
+      delaisPaie: finalDelaisPaie,
+      signLater,
+      signature: signLater ? null : (signatureDataURL ?? invoice.client.signature),
+    };
+
+    delete updatedClientData.customDelaisDays;
+    delete updatedClientData.customDelaisSuffix;
 
     const tva = { percentage: TVA_PERCENTAGE };
 
     try {
       const response = await axios.post(
         import.meta.env.VITE_API_HOST + "/api/order/create",
-        { invoice, tva },
-        {
-          responseType: "blob", // Indiquer que la réponse est un fichier (PDF)
-        }
+        { invoice: { client: updatedClientData }, tva },
+        { responseType: "blob" }
       );
 
       if (response.status === 200) {
         const contentDisposition = response.headers["content-disposition"];
-        console.log("Content-Disposition:", response.headers); // Log pour vérifier
-        let fileName = "facture.pdf";
-
+        let fileName = "bon-de-commande.pdf";
         if (contentDisposition) {
           const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
           if (fileNameMatch && fileNameMatch[1]) {
             fileName = fileNameMatch[1];
           }
         }
-
-        console.log("Nom du fichier récupéré :", fileName);
-
         const blob = response.data;
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
         link.download = fileName;
+        document.body.appendChild(link);
         link.click();
-        setLoading(false);
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(link.href);
+
+        setLoading(false); 
       } else {
-        console.error("Erreur lors de la création de la facture");
+        console.error("Erreur serveur lors de la création de la commande.");
+        alert("Une erreur est survenue côté serveur.");
+        setLoading(false);
+        decreaseStep();
       }
     } catch (error) {
-      console.error("Erreur :", error);
+      console.error("Erreur critique lors de l'appel API :", error);
+      alert("Une erreur de connexion est survenue. Vérifiez la console.");
+      setLoading(false);
+      decreaseStep(); 
     }
   };
 
@@ -136,15 +147,17 @@ const InvoiceCreation = () => {
   const decreaseStep = () => setStep(step - 1);
 
   return (
-    <div className="flex gap-2 mt-8">
-      {step == 5 && <LoadingScreen loading={loading} />}
-      {step < 4 && (
-        <div className="flex flex-col w-[50%] max-w-[450px] min-w-[450px] gap-2 overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-4 mt-8">
+      {step === 4 && <LoadingScreen loading={loading} />} 
+      
+      {step < 3 && (
+        <div className="flex flex-col w-full lg:w-[50%] lg:max-w-[450px] lg:min-w-[450px] gap-2 overflow-hidden">
           <InvoiceCreationStepFollow step={step} />
-          {step > 1 && <InvoiceSummary supportList={savedSupportList} />}
+          {step > 1 && <InvoiceSummary supportList={invoice.client.support} />}
         </div>
       )}
-      {step == 1 && (
+      
+      {step === 1 && (
         <ClientInformationsStep
           contactList={contactList}
           invoice={invoice}
@@ -153,7 +166,7 @@ const InvoiceCreation = () => {
           changeTVA={setTVA_PERCENTAGE}
         />
       )}
-      {step == 2 && (
+      {step === 2 && (
         <InvoiceSupportChoice
           nextPageFunction={increaseStep}
           previousPageFunction={decreaseStep}
@@ -162,20 +175,11 @@ const InvoiceCreation = () => {
           createdSupports={invoice.client.support}
         />
       )}
-      {step == 3 && (
-        <ClientFacturationInfo
-          nextPageFunction={increaseStep}
-          previousPageFunction={decreaseStep}
-          handleChange={handleClientChange}
-          invoice={invoice}
-        />
-      )}
-      {step >= 4 && (
+      {step === 3 && (
         <InvoiceConfirm
           invoice={invoice}
           supportList={invoice.client.support}
           createOrder={createOrder}
-          handleChange={handleClientChange}
           returnFunction={decreaseStep}
           TVA_PERCENTAGE={TVA_PERCENTAGE}
         />

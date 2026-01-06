@@ -1,3 +1,13 @@
 node_modules/
 # Fichiers PDF générés par le serveur
 /server/invoices/
+/server/orders/
+# Images uploadées des magazines
+/server/uploads/magazines/*
+# Garder le dossier mais ignorer son contenu
+!/server/uploads/magazines/.gitkeep
+# Factures Factur-X générées
+/server/facture_*.pdf
+# Fichiers pour la génération de Factur-X
+/server/utils/*.ttf
+/server/utils/*.icc

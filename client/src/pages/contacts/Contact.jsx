@@ -105,11 +105,19 @@ const Contact = () => {
     );
   };
 
-  const deleteContact = async (contactId) => {
+  const deleteContact = async (contactId, adminPassword = null) => {
     try {
-      await axios.delete(
-        import.meta.env.VITE_API_HOST + "/api/contact/" + contactId
-      );
+      const token = JSON.parse(localStorage.getItem("user"))?.token;
+      const url = import.meta.env.VITE_API_HOST + "/api/contact/" + contactId;
+      const config = {
+        headers: {},
+      };
+      if (token) config.headers.Authorization = token;
+      if (adminPassword) {
+        config.data = { adminPassword };
+      }
+
+      await axios.delete(url, config);
       setContactsList((prev) =>
         prev.filter((contact) => contact._id !== contactId)
       );
@@ -125,12 +133,15 @@ const Contact = () => {
       });
     } catch (error) {
       console.error("Erreur lors de la suppression du contact : ", error);
-      setSnackbar({
-        open: true,
-        type: "error",
-        message:
-          "Impossible de supprimer le contact pour le moment. Veuillez réessayer.",
-      });
+      if (!adminPassword) {
+        setSnackbar({
+          open: true,
+          type: "error",
+          message:
+            "Impossible de supprimer le contact pour le moment. Veuillez réessayer.",
+        });
+      }
+      throw error;
     }
   };
 
@@ -144,16 +155,6 @@ const Contact = () => {
         />
       )}
       <div className="bg-[#E8E9EB] w-full ">
-        {/*<DetailContact
-          contactId={selectedContactId}
-          company={selectedContactCompany}
-          isMenuOpen={isMenuOpen}
-          setIsMenuOpen={setIsMenuOpen}
-          refreshContact={fetchContact}
-          resetSelectedId={setSelectedContactId}
-          updateContactLocally={updateContactLocally}
-        />*/}
-
         {selectedContactId && (
           <DetailContactV2
             contactId={selectedContactId}
@@ -163,18 +164,18 @@ const Contact = () => {
           />
         )}
 
-        <div className="flex flex-col space-y-[100px] pt-6">
+        <div className="flex flex-col space-y-8 md:space-y-12 pt-6">
           <div className="flex flex-col ">
-            <p className="font-inter text-[#3F3F3F] text-[40px] font-[700]">
-              Contact
+            <p className="font-inter text-[#3F3F3F] text-3xl md:text-4xl font-bold">
+              Contacts
             </p>
-            <p className="font-inter text-[#3F3F3F] text-[20px] font-[500] opacity-70">
+            <p className="font-inter text-[#3F3F3F] text-lg md:text-xl font-medium opacity-70">
               Retrouvez la liste de tous les contacts enregistrés
             </p>
           </div>
-          <div className="flex flex-col space-y-[20px]">
+          <div className="flex flex-col space-y-5">
             <div className="flex w-full flex-col gap-5 md:flex-row justify-between items-center ">
-              <div className="flex flex-row border-[1px] border-[#3F3F3F] border-opacity-15 rounded-lg p-[10px] space-x-[5px] items-center ">
+              <div className="flex flex-row border-[1px] border-[#3F3F3F] border-opacity-15 rounded-lg p-2.5 space-x-2 items-center w-full md:w-auto">
                 <SearchIcon />
                 <input
                   type="text"
@@ -193,6 +194,7 @@ const Contact = () => {
                     onClick={() => {
                       setQuery("");
                     }}
+                    className="cursor-pointer"
                   >
                     <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
                   </svg>
@@ -201,10 +203,11 @@ const Contact = () => {
               <Button
                 onClickFunction={handleOpenModal}
                 value={"Ajouter un contact"}
+                className="w-full md:w-auto"
               />
             </div>
             {isFetching ? (
-              <div className="flex flex-row gap-2 w-[100%] items-center justify-center">
+              <div className="flex flex-row gap-2 w-full items-center justify-center pt-10">
                 <div className="w-3 h-3 rounded-full bg-gray-500 animate-bounce"></div>
                 <div className="w-3 h-3 rounded-full bg-gray-500 animate-bounce [animation-delay:-.3s]"></div>
                 <div className="w-3 h-3 rounded-full bg-gray-500 animate-bounce [animation-delay:-.5s]"></div>
@@ -227,9 +230,9 @@ const Contact = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex flex-col w-[100%] justify-center items-center">
-                    <p className="font-inter text-[#3F3F3F] text-[15px] font-[500] opacity-70">
-                      Aucun résultat !
+                  <div className="flex flex-col w-full justify-center items-center pt-10">
+                    <p className="font-inter text-[#3F3F3F] text-base font-medium opacity-70">
+                      Aucun contact trouvé.
                     </p>
                   </div>
                 )}

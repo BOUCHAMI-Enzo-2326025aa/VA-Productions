@@ -1,15 +1,18 @@
 import "./invoice.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatDateSlash } from "../../../utils/formatDate";
 import axios from "axios";
 
 const InvoiceList = ({ invoices, setInvoices }) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [downloadingInvoices, setDownloadingInvoices] = useState([]); // Pour suivre les factures en téléchargement
+  const [downloadingInvoices, setDownloadingInvoices] = useState([]);
   const invoicesPerPage = 10;
 
-  const totalPages = Math.ceil(invoices.length / invoicesPerPage);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [invoices]);
 
+  const totalPages = Math.ceil(invoices.length / invoicesPerPage);
   const startIndex = (currentPage - 1) * invoicesPerPage;
   const currentInvoices = invoices.slice(
     startIndex,
@@ -46,7 +49,6 @@ const InvoiceList = ({ invoices, setInvoices }) => {
   const handleValidate = (id) => {
     const isConfirmed = window.confirm("Voulez-vous confirmer le paiement de cette commande ?");
     if (!isConfirmed) {
-      // Si l'utilisateur clique sur "Annuler", on ne fait rien
       return;
     }
     axios
@@ -67,44 +69,89 @@ const InvoiceList = ({ invoices, setInvoices }) => {
       });
   };
 
+  const handleSendEInvoice = async (invoiceId) => {
+    if (!window.confirm("Voulez-vous vraiment envoyer cette facture au portail public ?")) return;
+    setInvoices(prev => prev.map(inv => inv._id === invoiceId ? { ...inv, eInvoiceStatus: 'processing' } : inv));
+    
+    try {
+        await axios.post(`${import.meta.env.VITE_API_HOST}/api/invoice/${invoiceId}/send-einvoice`);
+    } catch (error) {
+        console.error("Erreur lors de la demande d'envoi:", error);
+        alert(error.response?.data?.erreur || "Une erreur est survenue.");
+        setInvoices(prev => prev.map(inv => inv._id === invoiceId ? { ...inv, eInvoiceStatus: 'pending' } : inv));
+    }
+};
+
   return (
     <div>
       <table
         className="w-full text-[#3F3F3F] mt-5 invoice-table"
         cellSpacing={10}
       >
-        <thead className="!font-normal bg-black rounded bg-opacity-10">
-          <tr>
+        <thead>
+          <tr className="bg-white rounded">
             <th>Numéro de facture</th>
             <th>Client</th>
             <th>Status</th>
             <th className="table-cell-padding">Date de création</th>
             <th className="table-cell-padding">Montant</th>
+            <th>E-Facture</th>
             <th className="table-cell-padding">Action</th>
           </tr>
         </thead>
         <tbody>
-          {currentInvoices.map((invoice) => (
-            <tr key={invoice._id} className="text-center font-medium text-sm">
-              <td className="table-cell-padding cursor-pointer text-[#3399CC] text-center ">
-                {invoice.number.toString().padStart(5, "0") +
-                  "-" +
-                  invoice.entreprise.toUpperCase()}
-              </td>
-              <td className="table-cell-padding">{invoice.entreprise}</td>
-              <td className="table-cell-padding">
-                <div className="flex items-center justify-center space-x-2">
-                  <span className={`h-2 w-2 rounded-full ${
-                    invoice.status === 'paid' ? 'bg-green-500' : 'bg-red-500'
-                  }`}></span>
-                  <span>{invoice.status === "paid" ? "Payé" : "Non Payé"}</span>
-                </div>
-              </td>
-              <td className="table-cell-padding">
-                {formatDateSlash(invoice.date)}
-              </td>
-              <td className="table-cell-padding">{invoice.totalPrice} €</td>
-              <td className="table-cell-padding flex justify-center">
+          {currentInvoices.map((invoice) => {
+            const isOverdue = invoice.isOverdue;
+
+            return (
+              <tr 
+                key={invoice._id} 
+                className="text-center font-medium text-sm"
+              >
+                <td data-label="N° Facture" className="cursor-pointer text-[#3399CC]">
+                  {invoice.number.toString().padStart(5, "0") + "-" + invoice.entreprise.toUpperCase()}
+                </td>
+                <td data-label="Client">{invoice.entreprise}</td>
+                <td data-label="Status">
+                  <div className="flex items-center justify-end space-x-2">
+                    <span className={`h-2 w-2 rounded-full ${
+                      invoice.status === 'paid' ? 'bg-green-500' : isOverdue ? 'bg-red-500' : 'bg-yellow-500' 
+                    }`}></span>
+                    <span>
+                      {invoice.status === "paid" ? "Payé" : isOverdue ? "Impayé" : "Non Payé"}
+                    </span>
+                  </div>
+                </td>
+                <td data-label="Date de création">
+                  {formatDateSlash(invoice.date)}
+                </td>
+                <td className="table-cell-padding">{invoice.totalPrice} €</td>
+
+                <td className="table-cell-padding">
+                  {invoice.eInvoiceStatus === 'processing' ? (
+                    <div className="flex items-center justify-center gap-2 text-blue-600 font-semibold text-xs">
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+                      <span>Envoi...</span>
+                    </div>
+                  ) : (
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                      invoice.eInvoiceStatus === 'sent' || invoice.eInvoiceStatus === 'validated' 
+                        ? 'bg-green-100 text-green-800' 
+                        : invoice.eInvoiceStatus === 'rejected'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {{
+                        pending: 'En attente',
+                        sent: 'Envoyée',
+                        validated: 'Validée',
+                        rejected: 'Rejetée'
+                      }[invoice.eInvoiceStatus] || 'N/A'}
+                    </span>
+                  )}
+                </td>
+                
+              <td className="table-cell-padding flex justify-center items-center gap-2">
                 {downloadingInvoices.includes(invoice._id) ? (
                   <svg
                     aria-hidden="true"
@@ -126,9 +173,7 @@ const InvoiceList = ({ invoices, setInvoices }) => {
                   <svg
                     className="size-5 fill-[#3F3F3F] cursor-pointer"
                     viewBox="0 -960 960 960"
-                    onClick={() => {
-                      handleDownload(invoice._id);
-                    }}
+                    onClick={() => handleDownload(invoice._id)}
                   >
                     <path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z" />
                   </svg>
@@ -144,13 +189,23 @@ const InvoiceList = ({ invoices, setInvoices }) => {
                     <path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z" />
                   </svg>
                 )}
+                {(invoice.eInvoiceStatus === 'pending' || invoice.eInvoiceStatus === 'rejected') && (
+                  <svg 
+                    className="size-5 fill-[#3F3F3F] cursor-pointer"
+                    title="Envoyer en facture électronique"
+                    onClick={() => handleSendEInvoice(invoice._id)}
+                    xmlns="http://www.w3.org/2000/svg" 
+                    viewBox="0 -960 960 960"
+                  >
+                      <path d="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z"/>
+                  </svg>
+                )}
               </td>
-            </tr>
-          ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
-
-      {/* Pagination Controls */}
       <div className="flex justify-center items-center mt-4">
         <button
           className="px-4 py-2 bg-[#3F3F3F] rounded-l text-white text-sm cursor-pointer"
