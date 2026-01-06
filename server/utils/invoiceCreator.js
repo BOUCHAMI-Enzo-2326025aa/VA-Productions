@@ -60,7 +60,13 @@ export function generateHeader(doc, facture, number, contact = null) {
     .text("La Duranne", 50, 110, { align: "left" })
     .text("13100 AIX-EN-PROVENCE", 50, 120, { align: "left" })
     .text(
-      "Téléphone : 04 42 53 10 22 / E-Mail : direction@vaproductions.fr",
+      "Téléphone : 04 42 53 10 22",
+      50,
+      140,
+      { align: "left" }
+    )
+    .text(
+      "E-Mail : direction@vaproductions.fr",
       50,
       140,
       { align: "left" }

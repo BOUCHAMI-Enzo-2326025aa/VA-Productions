@@ -30,8 +30,8 @@ async function createOrderPdf(client, res, number, tva, signatureData = null, si
   
   doc.pipe(writeStream);
   
-  generateHeader(doc, client, number);
-  generateInvoiceTable(doc, client, tva, signatureData, signatureFileName);
+  const tableTop = generateHeader(doc, client, number, tva);
+  generateInvoiceTable(doc, client, tva, signatureData, signatureFileName, tableTop);
   doc.end();
   await streamFinished;
 
@@ -50,7 +50,60 @@ async function createOrderPdf(client, res, number, tva, signatureData = null, si
   }
 }
 
-function generateHeader(doc, client, number) {
+function formatPercent(value) {
+  const numericValue = Number(value || 0);
+  return new Intl.NumberFormat("fr-FR", {
+    style: "decimal",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+    .format(numericValue)
+    .replace(/\s/g, "");
+}
+
+function parsePaymentDelayDays(delaisPaie) {
+  if (typeof delaisPaie !== "string") return null;
+  const cleaned = delaisPaie.trim().toLowerCase();
+  if (!cleaned) return null;
+  if (cleaned === "comptant") return { days: 0, endOfMonth: false };
+  const match = cleaned.match(/^(\d+)\s*jours(?:\s+(.*))?$/i);
+  if (!match) return null;
+  const days = Number(match[1]);
+  if (!Number.isFinite(days)) return null;
+  const rest = (match[2] || "").toLowerCase();
+  const endOfMonth = rest.includes("fin de mois");
+  return { days, endOfMonth };
+}
+
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function endOfMonth(date) {
+  const d = new Date(date);
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+}
+
+function getPublicationIdentity(normalisedSupports) {
+  const entries = [];
+  const seen = new Set();
+  for (const item of normalisedSupports) {
+    const supportName = typeof item?.supportName === "string" ? item.supportName.trim() : "";
+    const numero = typeof item?.supportNumber === "string" ? item.supportNumber.trim() : "";
+    const key = `${supportName}__${numero}`;
+    if (!supportName && !numero) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    entries.push({ supportName: supportName || "-", numero: numero || "-" });
+  }
+
+  if (!entries.length) return { primary: { supportName: "-", numero: "-" }, extraCount: 0 };
+  return { primary: entries[0], extraCount: Math.max(entries.length - 1, 0) };
+}
+
+function generateHeader(doc, client, number, tva) {
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString("fr-FR");
 
@@ -58,69 +111,123 @@ function generateHeader(doc, client, number) {
   const clientVat = typeof client?.numTVA === "string" ? client.numTVA.trim() : "";
   const shouldShowCompanyIds = Boolean(clientSiret && clientVat);
 
+  const supports = Array.isArray(client?.support) ? client.support : [];
+  const normalisedSupports = supports.map((item) => {
+    const rawNumber = item?.supportNumber ?? item?.number ?? item?.quantity ?? "";
+    const supportNumber = typeof rawNumber === "string" && rawNumber.trim()
+      ? rawNumber.trim()
+      : Number.isFinite(Number(rawNumber))
+      ? String(rawNumber)
+      : "";
+    const rawSupportName = item?.supportName || item?.support || item?.support_label || "";
+    const supportName = typeof rawSupportName === "string" && rawSupportName.trim() ? rawSupportName.trim() : "";
+    return {
+      ...item,
+      supportNumber,
+      supportName,
+    };
+  });
+
+  const publication = getPublicationIdentity(normalisedSupports);
+  const tvaRate = toNumber(tva);
+  const tvaPercent = tvaRate * 100;
+
+  // Titre
   doc
-    .image("assets/Logo VA.jpg", 50, 50, { width: 150 })
-    .font("Helvetica")
-    .fontSize(10)
-    .text("130 rue du Vallon de la Vierge bât. C", 50, 100, { align: "left" })
-    .text("La Duranne", 50, 110, { align: "left" })
-    .text("13100 AIX-EN-PROVENCE", 50, 120, { align: "left" })
-    .text(
-      "Téléphone : 04 42 53 10 22 / E-Mail : direction@vaproductions.fr",
-      50,
-      140,
-      { align: "left" }
-    )
-    .text("RCS : 442 242 763 ", 50, 160, { align: "left" })
-    .text("TVA Intracommunautaire : FR 18443242763", 50, 170, {
-      align: "left",
-    })
     .font("Helvetica-Bold")
-    .text("CLIENT", 50, 190, {
-      align: "left",
-    })
-    .text(
-      client?.compagnyName ? (client?.compagnyName).toUpperCase() : "-",
-      50,
-      210,
-      {
-        align: "left",
-      }
-    )
-    .font("Helvetica")
-    .text(client?.address1 ? client?.address1 : "-", 50, 225, {
-      align: "left",
-    })
-    .text(client?.address2 ? client?.address2 : "-", 50, 235, {
-      align: "left",
-    })
-    .text(client?.postalCode + " " + client?.city, 50, 245, {
-      align: "left",
-    })
-    .text(shouldShowCompanyIds ? `SIRET : ${clientSiret}` : "", 50, 260, {
-      align: "left",
-    })
-    .text(shouldShowCompanyIds ? `N° TVA : ${clientVat}` : "", 50, 270, {
-      align: "left",
-    })
-    .font("Helvetica-Bold")
-    .fontSize(25)
+    .fontSize(22)
     .fillColor("#948a54")
-    .text("BON DE COMMANDE", 200, 50, { align: "right" })
-    .fillColor("black")
-    .fontSize(10)
-    .text("DATE : ", 400, 100)
-    .font("Helvetica")
-    .text(formattedDate, 480, 100)
+    .text("BON DE COMMANDE", 50, 40, { align: "right" })
+    .fillColor("black");
+
+  // Logo
+  doc.image("assets/Logo VA.jpg", 50, 40, { width: 150 });
+
+  // Blocs VA (gauche) / Client (droite)
+  const leftX = 50;
+  const rightX = 330;
+  const blockTopY = 105;
+  const lineGap = 14;
+
+  doc
     .font("Helvetica-Bold")
-    .text("N° BON DE COMMANDE :", 400, 115)
-    .text(number, 530, 115)
-    .text("POUR :", 400, 170);
+    .fontSize(10)
+    .text("V.A. PRODUCTIONS", leftX, blockTopY)
+    .font("Helvetica")
+    .text("130 rue du Vallon de la Vierge bât. C", leftX, blockTopY + lineGap)
+    .text("La Duranne", leftX, blockTopY + lineGap * 2)
+    .text("13100 AIX-EN-PROVENCE", leftX, blockTopY + lineGap * 3)
+    .text("Tel : 04 42 53 10 22", leftX, blockTopY + lineGap * 4)
+    .text("N° TVA Intracommunautaire : FR18443242763", leftX, blockTopY + lineGap * 5)
+    .text("N° SIRET : 44224276300037", leftX, blockTopY + lineGap * 6);
+
+  const clientY = blockTopY;
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .text(client?.compagnyName ? client.compagnyName.toUpperCase() : "-", rightX, clientY)
+    .font("Helvetica")
+    .text(client?.address1 ? client.address1 : "-", rightX, clientY + lineGap)
+    .text(client?.address2 ? client.address2 : "", rightX, clientY + lineGap * 2)
+    .text(`${client?.postalCode || ""} ${client?.city || ""}`.trim() || "-", rightX, clientY + lineGap * 3)
+    .text(shouldShowCompanyIds ? `N° TVA Intracommunautaire : ${clientVat}` : "", rightX, clientY + lineGap * 4)
+    .text(shouldShowCompanyIds ? `N° SIRET : ${clientSiret}` : "", rightX, clientY + lineGap * 5);
+
+  const headerBottomY = 200;
+
+  // Date + numéro (en dessous)
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(14)
+    .text(`Bon de commande N° ${number}`, 50, headerBottomY)
+    .font("Helvetica")
+    .fontSize(10)
+    .text(formattedDate, 50, headerBottomY + 18);
+
+  // Bloc identité de la publication
+  const identityTop = headerBottomY + 85;
+  doc
+    .save()
+    .fillColor("#f2f2f2")
+    .rect(50, identityTop, 500, 45)
+    .fill()
+    .restore();
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .fillColor("black")
+    .text("Identité de la publication", 50, identityTop - 16);
+
+  doc
+    .font("Helvetica")
+    .fontSize(8)
+    .fillColor("#6b6b6b")
+    .text("NOM DU SUPPORT", 60, identityTop + 8)
+    .text("NUMÉRO", 420, identityTop + 8, { width: 120, align: "right" });
+
+  doc
+    .font("Helvetica")
+    .fontSize(10)
+    .fillColor("black")
+    .text(publication.primary.supportName, 60, identityTop + 22)
+    .text(publication.primary.numero, 420, identityTop + 22, { width: 120, align: "right" });
+
+  if (publication.extraCount > 0) {
+    doc
+      .font("Helvetica")
+      .fontSize(9)
+      .fillColor("#6b6b6b")
+      .text(`(+${publication.extraCount} autre(s) support(s))`, 60, identityTop + 34);
+  }
+
+  // Espace sous le bloc identité
+  const tableTop = identityTop + 70;
+  return tableTop;
 }
 
-function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName) {
-  const invoiceTableTop = 330; 
-  let currentPosition = invoiceTableTop;
+function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName, tableTop = 330) {
+  let currentPosition = tableTop;
 
   const supports = Array.isArray(client.support) ? client.support : [];
   const normalisedSupports = supports.map((item) => {
@@ -144,42 +251,67 @@ function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName
     };
   });
 
+  const tvaRate = toNumber(tva);
+  const tvaPercent = tvaRate * 100;
+
   doc.font("Helvetica-Bold");
-  generateTableRow(doc, currentPosition, "Encart", "Support", "N° support", "Montant");
-  currentPosition += 15;
+  generateOrderTableRow(doc, currentPosition, "Désignation", "Quantité", "PU Vente", "TVA", "Montant HT", true);
+  currentPosition += 18;
   generateHr(doc, currentPosition);
-  currentPosition += 10;
+  currentPosition += 12;
   
   doc.font("Helvetica");
   const subTotalSupports = normalisedSupports.reduce((sum, item) => sum + item.price, 0);
 
-  normalisedSupports.forEach(item => {
-    generateTableRow(
+  normalisedSupports.forEach((item) => {
+    const qty = 1;
+    const unitPrice = item.price;
+    generateOrderTableRow(
       doc,
       currentPosition,
       item.name,
-      item.supportName,
-      item.supportNumber || "-",
-      formatPrice(item.price) + " €"
+      String(qty),
+      `${formatPrice(unitPrice)} €`,
+      formatPercent(tvaPercent),
+      `${formatPrice(item.price)} €`
     );
-    currentPosition += 20;
+    currentPosition += 22;
   });
-  generateHr(doc, currentPosition);
-  currentPosition += 10;
-  
-  generateTableRow(doc, currentPosition, "", "", "SOUS-TOTAL (C.A.)", formatPrice(subTotalSupports) + " €");
-  currentPosition += 25;
 
-  const tvaRate = toNumber(tva);
+  generateHr(doc, currentPosition);
+  currentPosition += 18;
+
   const tvaAmount = subTotalSupports * tvaRate;
   const totalTTC = subTotalSupports + tvaAmount;
 
-  generateTableRow(doc, currentPosition, "", "", "T.V.A.", `${formatPrice(tvaAmount)} €`);
-  currentPosition += 20;
+  // Totaux (style facture)
+  const totalsBoxX = 360;
+  const totalsBoxWidth = 190;
+  const totalsBoxHeight = 60;
+  doc
+    .save()
+    .fillColor("#f2f2f2")
+    .rect(totalsBoxX, currentPosition, totalsBoxWidth, totalsBoxHeight)
+    .fill()
+    .restore();
 
-  doc.font("Helvetica-Bold");
-  generateTableRow(doc, currentPosition, "", "", "TOTAL À PAYER (TTC)", `${formatPrice(totalTTC)} €`);
-  currentPosition += 40;
+  const labelX = totalsBoxX + 10;
+  const valueX = totalsBoxX + totalsBoxWidth - 10;
+  doc
+    .font("Helvetica")
+    .fontSize(10)
+    .fillColor("black")
+    .text("Total HT", labelX, currentPosition + 8)
+    .text(`${formatPrice(subTotalSupports)} €`, labelX, currentPosition + 8, { width: totalsBoxWidth - 20, align: "right" })
+    .text(`TVA (${formatPercent(tvaPercent)} %)`, labelX, currentPosition + 26)
+    .text(`${formatPrice(tvaAmount)} €`, labelX, currentPosition + 26, { width: totalsBoxWidth - 20, align: "right" });
+
+  doc
+    .font("Helvetica-Bold")
+    .text("Total TTC", labelX, currentPosition + 44)
+    .text(`${formatPrice(totalTTC)} €`, labelX, currentPosition + 44, { width: totalsBoxWidth - 20, align: "right" });
+
+  currentPosition += totalsBoxHeight + 20;
 
   let paymentTermsText = "Total dû à réception de la commande."; 
   if (client && client.delaisPaie) {
@@ -190,27 +322,43 @@ function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName
     }
   }
 
+  const delay = parsePaymentDelayDays(client?.delaisPaie);
+  let dueDateLine = "";
+  if (delay) {
+    let due = addDays(currentDateForDue(), delay.days);
+    if (delay.endOfMonth) {
+      due = endOfMonth(due);
+    }
+    dueDateLine = `Échéance : ${due.toLocaleDateString("fr-FR")}`;
+  }
+
   doc
     .font("Helvetica")
     .fontSize(9)
     .text("Veuillez rédiger tous les chèques à l'ordre de V.A. PRODUCTIONS.", 50, currentPosition)
     .text(paymentTermsText, 50, currentPosition + 12)
-    .text("Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, currentPosition + 24);
-  currentPosition += 50;
+    .text(dueDateLine, 50, currentPosition + 24)
+    .text("Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, currentPosition + 36);
+  currentPosition += 70;
   
   doc.font("Helvetica-Bold").fontSize(12).text("MERCI DE VOTRE CONFIANCE !", 50, currentPosition, { align: "center" });
   currentPosition += 40;
-  
-  doc.text("Signature", 100, currentPosition);
+
+  doc
+    .text("Signature", 50, currentPosition + 44);
 
   const signatureBuffer = getSignatureBuffer(signatureData, signatureFileName || client?.signature);
   if (signatureBuffer) {
     try {
-      doc.image(signatureBuffer, 50, currentPosition + 15, { width: 150 });
+      doc.image(signatureBuffer, 250, currentPosition + 10, { width: 150 });
     } catch (error) {
       console.error("Impossible d'intégrer la signature dans le PDF:", error);
     }
   }
+}
+
+function currentDateForDue() {
+  return new Date();
 }
 
 function getSignatureBuffer(signatureData, fallbackFileName) {
@@ -254,12 +402,15 @@ function formatPrice(value) {
     .replace(/\s/g, "");
 }
 
-function generateTableRow(doc, y, c1, c2, c3, c4) {
-  doc.fontSize(10)
-    .text(c1, 50, y, { width: 150 })   
-    .text(c2, 200, y, { width: 150 }) 
-    .text(c3, 300, y, { width: 150, align: "right" }) 
-    .text(c4, 450, y, { width: 100, align: "right" }); 
+function generateOrderTableRow(doc, y, designation, qty, unitPrice, vat, amount, isHeader = false) {
+  const fontSize = isHeader ? 9 : 10;
+  doc
+    .fontSize(fontSize)
+    .text(designation, 50, y, { width: 200 })
+    .text(qty, 260, y, { width: 60, align: "right" })
+    .text(unitPrice, 320, y, { width: 80, align: "right" })
+    .text(vat, 400, y, { width: 60, align: "right" })
+    .text(amount, 460, y, { width: 90, align: "right" });
 }
 
 function generateHr(doc, y) {
@@ -279,8 +430,8 @@ export function createOrderPdfBuffer(client, number, tva, signatureData = null, 
       });
       doc.on("error", (err) => reject(err));
 
-      generateHeader(doc, client, number);
-      generateInvoiceTable(doc, client, tva, signatureData, signatureFileName);
+      const tableTop = generateHeader(doc, client, number, tva);
+      generateInvoiceTable(doc, client, tva, signatureData, signatureFileName, tableTop);
       doc.end();
     } catch (e) {
       reject(e);
