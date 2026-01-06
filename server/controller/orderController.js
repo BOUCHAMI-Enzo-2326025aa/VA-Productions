@@ -163,9 +163,17 @@ export const createOrder = async (req, res) => {
       isSigned: !signLater && !!signatureData,
       signedPdfPath: null,
     });
+
+    const contact = await Contact.findById(client.clientId);
     
     await createOrderPdf(
-      { ...client, support: supports, delaisPaie: finalDelaisPaie },
+      {
+        ...client,
+        support: supports,
+        delaisPaie: finalDelaisPaie,
+        siret: contact?.siret,
+        numTVA: contact?.numTVA,
+      },
       res,
       maxOrderNumber + 1,
       tvaRate,
@@ -282,6 +290,8 @@ export const getOrderPdf = async (req, res) => {
     const items = normaliseSupports(order.items);
     const rate = toNumber(order.tva || 0.2);
 
+    const contact = await Contact.findById(order.client);
+
     let signatureData = order.signatureData || null;
     if (!signatureData && order.signLater !== true) {
       const latestSignature = await Signature.findOne().sort({ updatedAt: -1 });
@@ -297,6 +307,8 @@ export const getOrderPdf = async (req, res) => {
       support: items,
       signatureData,
       delaisPaie: order.delaisPaie,
+      siret: contact?.siret,
+      numTVA: contact?.numTVA,
     };
 
     console.log("Génération du PDF en mémoire...");
