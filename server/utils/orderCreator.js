@@ -226,20 +226,25 @@ function generateHeader(doc, client, number, tva) {
   return tableTop;
 }
 
+const FOOTER_BANK_LINES = [
+  "Coordonnées bancaires : Crédit Mutuel",
+  "IBAN : FR76 1027 8089 8400 0200 8754 511",
+  "BIC/SWIFT : CMCIFR2A",
+];
+
+const FOOTER_CLAUSE_TEXT =
+  "CLAUSE DE RÉSERVE DE PROPRIÉTÉ : Conformément à la loi 80.335 du 12 mai 1980, nous réservons la propriété des produitset marchandises, objets des présents débits, jusqu'au paiement de l'intégralité du prix et de sesaccessoires. En cas de non paiement\n" +
+  "total ou partiel du prix del'échéance pour quelquecause quecesoit, deconvention expresse, nous nous réservons lafaculté, sans formalités, dereprendre matériellement possession deces produits ou marchandisesàvos frais, risqueset périls. Pénalité deretard : 3 fois letaux d'intérêt légalaprès dateéchéance. Escompte pour règlementanticipé: 0% (sauf condition particulière définie dans les conditions derèglement) Le montant del'indemnitéforfaitaire pour frais derecouvrement prévueen douzièmealinéa del'articleL441-6 est fixéà 40 Eurosen matièrecommerciale.";
+
+const FOOTER_BOTTOM_PADDING = 30;
+
 function drawFooter(doc) {
-  const footerHeight = 105;
-  const footerBottomPadding = 12;
-  const footerTop = doc.page.height - footerBottomPadding - footerHeight;
-
-  const bankLines = [
-    "Coordonnées bancaires : Crédit Mutuel",
-    "IBAN : FR76 1027 8089 8400 0200 8754 511",
-    "BIC/SWIFT : CMCIFR2A",
-  ];
-
-  const clauseText =
-    "CLAUSE DE RÉSERVE DE PROPRIÉTÉ : Conformément à la loi 80.335 du 12 mai 1980, nous réservons la propriété des produitset marchandises, objets des présents débits, jusqu'au paiement de l'intégralité du prix et de sesaccessoires. En cas de non paiement\n" +
-    "total ou partiel du prix del'échéance pour quelquecause quecesoit, deconvention expresse, nous nous réservons lafaculté, sans formalités, dereprendre matériellement possession deces produits ou marchandisesàvos frais, risqueset périls. Pénalité deretard : 3 fois letaux d'intérêt légalaprès dateéchéance. Escompte pour règlementanticipé: 0% (sauf condition particulière définie dans les conditions derèglement) Le montant del'indemnitéforfaitaire pour frais derecouvrement prévueen douzièmealinéa del'articleL441-6 est fixéà 40 Eurosen matièrecommerciale.";
+  const layout = getFooterLayout(doc, {
+    bankLines: FOOTER_BANK_LINES,
+    clauseText: FOOTER_CLAUSE_TEXT,
+    footerBottomPadding: FOOTER_BOTTOM_PADDING,
+  });
+  const footerTop = layout.footerTop;
 
   doc
     .save()
@@ -250,36 +255,73 @@ function drawFooter(doc) {
     .stroke()
     .restore();
 
-  let y = footerTop + 6;
-  doc.font("Helvetica").fillColor("black").fontSize(8);
-  bankLines.forEach((line) => {
-    doc.text(line, 50, y, { align: "left" });
-    y += 12;
-  });
+  const bankText = FOOTER_BANK_LINES.join("\n");
+  doc
+    .font("Helvetica")
+    .fillColor("black")
+    .fontSize(layout.bankFontSize)
+    .text(bankText, 50, footerTop + layout.topPadding, {
+      width: layout.width,
+      align: "left",
+      lineGap: 0,
+    });
 
   doc
     .font("Helvetica")
     .fillColor("black")
-    .fontSize(5.6)
-    .text(clauseText, 50, y + 4, { width: 500, align: "left", lineGap: 0 });
-
-  doc
-    .font("Helvetica-Bold")
-    .fillColor("black")
-    .fontSize(10)
-    .text("Page 1 / 1", 50, doc.page.height - footerBottomPadding - 10, {
-      width: 500,
-      align: "right",
+    .fontSize(layout.clauseFontSize)
+    .text(FOOTER_CLAUSE_TEXT, 50, footerTop + layout.topPadding + layout.bankHeight + layout.spacingAfterBank, {
+      width: layout.width,
+      align: "left",
+      lineGap: 0,
     });
+
+}
+
+function getFooterLayout(doc, { bankLines, clauseText, footerBottomPadding }) {
+  const topPadding = 6;
+  const spacingAfterBank = 3;
+  const bankFontSize = 7.2;
+  const clauseFontSize = 5.0;
+  const width = doc.page.width - 100;
+  const internalBottomPadding = 8;
+  const safetyPadding = 14;
+
+  doc.save();
+  doc.font("Helvetica").fontSize(bankFontSize);
+  const bankText = bankLines.join("\n");
+  const bankHeight = doc.heightOfString(bankText, { width, lineGap: 0 });
+
+  doc.font("Helvetica").fontSize(clauseFontSize);
+  const clauseHeight = doc.heightOfString(clauseText, { width, lineGap: 0 });
+  doc.restore();
+
+  // 1px de séparation + padding haut + contenu + padding bas + marge de sécurité
+  const totalHeight = 1 + topPadding + bankHeight + spacingAfterBank + clauseHeight + internalBottomPadding + safetyPadding;
+  const footerTop = doc.page.height - footerBottomPadding - totalHeight;
+
+  return {
+    footerTop,
+    totalHeight,
+    topPadding,
+    spacingAfterBank,
+    bankFontSize,
+    clauseFontSize,
+    bankHeight,
+    width,
+  };
 }
 
 function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName, tableTop = 330) {
   let currentPosition = tableTop;
 
-  // même métrique que drawFooter()
-  const footerHeight = 105;
-  const footerBottomPadding = 12;
-  const footerTop = doc.page.height - footerBottomPadding - footerHeight;
+  // réserve l'espace footer correctement (mêmes constantes que drawFooter)
+  const footerLayout = getFooterLayout(doc, {
+    bankLines: FOOTER_BANK_LINES,
+    clauseText: FOOTER_CLAUSE_TEXT,
+    footerBottomPadding: FOOTER_BOTTOM_PADDING,
+  });
+  const footerTop = footerLayout.footerTop;
 
   const supports = Array.isArray(client.support) ? client.support : [];
   const normalisedSupports = supports.map((item) => {
@@ -385,7 +427,7 @@ function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName
   }
 
   // Bloc bas de page : on l'ancre juste au-dessus du footer (pour éviter tout chevauchement)
-  const bottomBlockHeight = 76;
+  const bottomBlockHeight = 56;
   let bottomY = footerTop - bottomBlockHeight - 6;
   if (bottomY < currentPosition) {
     bottomY = currentPosition;
@@ -403,15 +445,19 @@ function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName
     .text(dueDateLine, 50, bottomY + 22)
     .text("Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, bottomY + 33);
 
+  // Signature à droite (sans couper dans la marge)
+  const rightMargin = doc.page?.margins?.right ?? 50;
+  const signatureWidth = 150;
+  const signatureX = doc.page.width - rightMargin - signatureWidth;
   doc
     .font("Helvetica-Bold")
     .fontSize(10)
-    .text("Signature", 50, bottomY + 62);
+    .text("Signature", signatureX, bottomY, { width: signatureWidth, align: "left" });
 
   const signatureBuffer = getSignatureBuffer(signatureData, signatureFileName || client?.signature);
   if (signatureBuffer) {
     try {
-      doc.image(signatureBuffer, 250, bottomY + 48, { width: 140 });
+      doc.image(signatureBuffer, signatureX, bottomY + 12, { width: 140 });
     } catch (error) {
       console.error("Impossible d'intégrer la signature dans le PDF:", error);
     }
