@@ -173,7 +173,7 @@ function generateHeader(doc, client, number, tva) {
     .text(shouldShowCompanyIds ? `N° TVA Intracommunautaire : ${clientVat}` : "", rightX, clientY + lineGap * 4)
     .text(shouldShowCompanyIds ? `N° SIRET : ${clientSiret}` : "", rightX, clientY + lineGap * 5);
 
-  const headerBottomY = 200;
+  const headerBottomY = 250;
 
   // Date + numéro (en dessous)
   doc
@@ -185,11 +185,11 @@ function generateHeader(doc, client, number, tva) {
     .text(formattedDate, 50, headerBottomY + 18);
 
   // Bloc identité de la publication
-  const identityTop = headerBottomY + 85;
+  const identityTop = headerBottomY + 70;
   doc
     .save()
     .fillColor("#f2f2f2")
-    .rect(50, identityTop, 500, 45)
+    .rect(50, identityTop, 500, 40)
     .fill()
     .restore();
 
@@ -222,12 +222,64 @@ function generateHeader(doc, client, number, tva) {
   }
 
   // Espace sous le bloc identité
-  const tableTop = identityTop + 70;
+  const tableTop = identityTop + 58;
   return tableTop;
+}
+
+function drawFooter(doc) {
+  const footerHeight = 105;
+  const footerBottomPadding = 12;
+  const footerTop = doc.page.height - footerBottomPadding - footerHeight;
+
+  const bankLines = [
+    "Coordonnées bancaires : Crédit Mutuel",
+    "IBAN : FR76 1027 8089 8400 0200 8754 511",
+    "BIC/SWIFT : CMCIFR2A",
+  ];
+
+  const clauseText =
+    "CLAUSE DE RÉSERVE DE PROPRIÉTÉ : Conformément à la loi 80.335 du 12 mai 1980, nous réservons la propriété des produitset marchandises, objets des présents débits, jusqu'au paiement de l'intégralité du prix et de sesaccessoires. En cas de non paiement\n" +
+    "total ou partiel du prix del'échéance pour quelquecause quecesoit, deconvention expresse, nous nous réservons lafaculté, sans formalités, dereprendre matériellement possession deces produits ou marchandisesàvos frais, risqueset périls. Pénalité deretard : 3 fois letaux d'intérêt légalaprès dateéchéance. Escompte pour règlementanticipé: 0% (sauf condition particulière définie dans les conditions derèglement) Le montant del'indemnitéforfaitaire pour frais derecouvrement prévueen douzièmealinéa del'articleL441-6 est fixéà 40 Eurosen matièrecommerciale.";
+
+  doc
+    .save()
+    .strokeColor("#e5e5e5")
+    .lineWidth(1)
+    .moveTo(50, footerTop)
+    .lineTo(550, footerTop)
+    .stroke()
+    .restore();
+
+  let y = footerTop + 6;
+  doc.font("Helvetica").fillColor("black").fontSize(8);
+  bankLines.forEach((line) => {
+    doc.text(line, 50, y, { align: "left" });
+    y += 12;
+  });
+
+  doc
+    .font("Helvetica")
+    .fillColor("black")
+    .fontSize(5.6)
+    .text(clauseText, 50, y + 4, { width: 500, align: "left", lineGap: 0 });
+
+  doc
+    .font("Helvetica-Bold")
+    .fillColor("black")
+    .fontSize(10)
+    .text("Page 1 / 1", 50, doc.page.height - footerBottomPadding - 10, {
+      width: 500,
+      align: "right",
+    });
 }
 
 function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName, tableTop = 330) {
   let currentPosition = tableTop;
+
+  // même métrique que drawFooter()
+  const footerHeight = 105;
+  const footerBottomPadding = 12;
+  const footerTop = doc.page.height - footerBottomPadding - footerHeight;
 
   const supports = Array.isArray(client.support) ? client.support : [];
   const normalisedSupports = supports.map((item) => {
@@ -256,9 +308,9 @@ function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName
 
   doc.font("Helvetica-Bold");
   generateOrderTableRow(doc, currentPosition, "Désignation", "Quantité", "PU Vente", "TVA", "Montant HT", true);
-  currentPosition += 18;
+  currentPosition += 16;
   generateHr(doc, currentPosition);
-  currentPosition += 12;
+  currentPosition += 10;
   
   doc.font("Helvetica");
   const subTotalSupports = normalisedSupports.reduce((sum, item) => sum + item.price, 0);
@@ -275,11 +327,11 @@ function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName
       formatPercent(tvaPercent),
       `${formatPrice(item.price)} €`
     );
-    currentPosition += 22;
+    currentPosition += 18;
   });
 
   generateHr(doc, currentPosition);
-  currentPosition += 18;
+  currentPosition += 12;
 
   const tvaAmount = subTotalSupports * tvaRate;
   const totalTTC = subTotalSupports + tvaAmount;
@@ -287,7 +339,7 @@ function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName
   // Totaux (style facture)
   const totalsBoxX = 360;
   const totalsBoxWidth = 190;
-  const totalsBoxHeight = 60;
+  const totalsBoxHeight = 52;
   doc
     .save()
     .fillColor("#f2f2f2")
@@ -311,7 +363,7 @@ function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName
     .text("Total TTC", labelX, currentPosition + 44)
     .text(`${formatPrice(totalTTC)} €`, labelX, currentPosition + 44, { width: totalsBoxWidth - 20, align: "right" });
 
-  currentPosition += totalsBoxHeight + 20;
+  currentPosition += totalsBoxHeight + 10;
 
   let paymentTermsText = "Total dû à réception de la commande."; 
   if (client && client.delaisPaie) {
@@ -332,29 +384,40 @@ function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName
     dueDateLine = `Échéance : ${due.toLocaleDateString("fr-FR")}`;
   }
 
-  doc
-    .font("Helvetica")
-    .fontSize(9)
-    .text("Veuillez rédiger tous les chèques à l'ordre de V.A. PRODUCTIONS.", 50, currentPosition)
-    .text(paymentTermsText, 50, currentPosition + 12)
-    .text(dueDateLine, 50, currentPosition + 24)
-    .text("Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, currentPosition + 36);
-  currentPosition += 70;
-  
-  doc.font("Helvetica-Bold").fontSize(12).text("MERCI DE VOTRE CONFIANCE !", 50, currentPosition, { align: "center" });
-  currentPosition += 40;
+  // Bloc bas de page : on l'ancre juste au-dessus du footer (pour éviter tout chevauchement)
+  const bottomBlockHeight = 76;
+  let bottomY = footerTop - bottomBlockHeight - 6;
+  if (bottomY < currentPosition) {
+    bottomY = currentPosition;
+  }
+  // sécurité : ne jamais entrer dans le footer
+  if (bottomY + bottomBlockHeight > footerTop - 2) {
+    bottomY = footerTop - bottomBlockHeight - 2;
+  }
 
   doc
-    .text("Signature", 50, currentPosition + 44);
+    .font("Helvetica")
+    .fontSize(8)
+    .text("Veuillez rédiger tous les chèques à l'ordre de V.A. PRODUCTIONS.", 50, bottomY)
+    .text(paymentTermsText, 50, bottomY + 11)
+    .text(dueDateLine, 50, bottomY + 22)
+    .text("Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, bottomY + 33);
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .text("Signature", 50, bottomY + 62);
 
   const signatureBuffer = getSignatureBuffer(signatureData, signatureFileName || client?.signature);
   if (signatureBuffer) {
     try {
-      doc.image(signatureBuffer, 250, currentPosition + 10, { width: 150 });
+      doc.image(signatureBuffer, 250, bottomY + 48, { width: 140 });
     } catch (error) {
       console.error("Impossible d'intégrer la signature dans le PDF:", error);
     }
   }
+
+  drawFooter(doc);
 }
 
 function currentDateForDue() {
