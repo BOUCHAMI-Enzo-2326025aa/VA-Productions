@@ -176,7 +176,11 @@ const InvoiceDisplay = () => {
           />
         )}
       </div>
-      <InvoiceList invoices={invoicesToShow} setInvoices={setInvoices} />
+      <InvoiceList
+        invoices={invoicesToShow}
+        setInvoices={setInvoices}
+        setInvoicesToShow={setInvoicesToShow}
+      />
     </div>
   );
 };

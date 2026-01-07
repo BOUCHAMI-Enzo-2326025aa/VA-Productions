@@ -1,4 +1,3 @@
-import { TrendingUp } from "lucide-react";
 import { Pie, PieChart } from "recharts";
 import {
 Card,
@@ -14,7 +13,9 @@ ChartTooltip,
 ChartTooltipContent,
 } from "@/components/ui/chart";
 import { useMemo } from "react";
-export function PieChartStats({ invoices, colorList }) {
+import formatPrice from "@/utils/formatPrice";
+import { getSupportColor } from "./supportColorMap";
+export function PieChartStats({ invoices, supportColorMap }) {
 const supportList = useMemo(() => {
 return [
 ...new Set(
@@ -35,9 +36,9 @@ acc.push({ supportName, price });
 }
 return acc;
 }, [])
-.map((item, index) => ({
+.map((item) => ({
 ...item,
-fill: colorList[index % colorList.length],
+fill: getSupportColor(item.supportName, supportColorMap),
 }));
 const chartConfig = {
 support: {
@@ -46,48 +47,6 @@ label: "Support",
 price: {
 label: "Revenues",
 },
-};
-const renderCustomLabel = ({
-cx,
-cy,
-midAngle,
-innerRadius,
-outerRadius,
-percent,
-price,
-}) => {
-const RADIAN = Math.PI / 180;
-const radiusInside = innerRadius + (outerRadius - innerRadius) / 2;
-const xInside = cx + radiusInside * Math.cos(-midAngle * RADIAN);
-const yInside = cy + radiusInside * Math.sin(-midAngle * RADIAN);
-const radiusOutside = outerRadius + 20;
-const xOutside = cx + radiusOutside * Math.cos(-midAngle * RADIAN);
-const yOutside = cy + radiusOutside * Math.sin(-midAngle * RADIAN);
-return (
-  <>
-    <text
-      x={xInside}
-      y={yInside}
-      fill="white"
-      textAnchor="middle"
-      dominantBaseline="central"
-      fontSize={12}
-      fontWeight="bold"
-    >
-      €{price.toFixed(2)}
-    </text>
-    <text
-      x={xOutside}
-      y={yOutside}
-      fill="#000"
-      textAnchor={xOutside > cx ? "start" : "end"}
-      dominantBaseline="central"
-      fontSize={10}
-    >
-      {(percent * 100).toFixed(0)}%
-    </text>
-  </>
-);
 };
 return (
 <Card className="flex flex-col w-full lg:w-[35%]">
@@ -100,12 +59,27 @@ return (
 config={chartConfig}
 className="mx-auto aspect-square max-h-[100%] h-[290px] pb-0 [&_.recharts-pie-label-text]:fill-foreground">
 <PieChart>
-<ChartTooltip content={<ChartTooltipContent hideLabel />} />
+<ChartTooltip
+  content={
+    <ChartTooltipContent
+      hideLabel
+      formatter={(value, name, item) => (
+        <div className="flex flex-1 justify-between leading-none items-center">
+          <span className="text-neutral-500 dark:text-neutral-400">
+            {item?.payload?.supportName || name}
+          </span>
+          <span className="font-mono font-medium tabular-nums text-neutral-950 dark:text-neutral-50">
+            {formatPrice(value)}
+          </span>
+        </div>
+      )}
+    />
+  }
+/>
 <Pie
 data={chartData}
 dataKey="price"
 nameKey="supportName"
-label={renderCustomLabel}
 isAnimationActive={false}
 />
 </PieChart>
