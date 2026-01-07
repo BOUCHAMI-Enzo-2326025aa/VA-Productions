@@ -416,18 +416,8 @@ function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName
     }
   }
 
-  const delay = parsePaymentDelayDays(client?.delaisPaie);
-  let dueDateLine = "";
-  if (delay) {
-    let due = addDays(currentDateForDue(), delay.days);
-    if (delay.endOfMonth) {
-      due = endOfMonth(due);
-    }
-    dueDateLine = `Échéance : ${due.toLocaleDateString("fr-FR")}`;
-  }
-
-  // Bloc bas de page : on l'ancre juste au-dessus du footer (pour éviter tout chevauchement)
-  const bottomBlockHeight = 56;
+  // Bloc bas de page
+  const bottomBlockHeight = 44;
   let bottomY = footerTop - bottomBlockHeight - 6;
   if (bottomY < currentPosition) {
     bottomY = currentPosition;
@@ -442,8 +432,7 @@ function generateInvoiceTable(doc, client, tva, signatureData, signatureFileName
     .fontSize(8)
     .text("Veuillez rédiger tous les chèques à l'ordre de V.A. PRODUCTIONS.", 50, bottomY)
     .text(paymentTermsText, 50, bottomY + 11)
-    .text(dueDateLine, 50, bottomY + 22)
-    .text("Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, bottomY + 33);
+    .text("Comptes en souffrance soumis à des frais de service de 1 % par mois.", 50, bottomY + 22);
 
   // Signature à droite (sans couper dans la marge)
   const rightMargin = doc.page?.margins?.right ?? 50;
