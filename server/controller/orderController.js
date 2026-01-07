@@ -146,26 +146,29 @@ export const createOrder = async (req, res) => {
 
     const orderNumber = maxOrderNumber + 1;
 
-    const clientIdRaw = typeof client?.clientId === "string" ? client.clientId.trim() : "";
+    let clientIdRaw = typeof client?.clientId === "string" ? client.clientId.trim() : "";
     const hasValidClientId = clientIdRaw && mongoose.Types.ObjectId.isValid(clientIdRaw);
 
-    // Si aucun contact n'est sélectionné (clientId vide/invalide), on génère uniquement le PDF
-    // sans persister la commande en base.
+    // Si aucun contact existant n’est sélectionné, on crée un nouveau contact
+    // pour que la commande soit bien sauvegardée et visible dans la liste.
     if (!hasValidClientId) {
-      await createOrderPdf(
-        {
-          ...client,
-          support: supports,
-          delaisPaie: finalDelaisPaie,
-          siret: null,
-          numTVA: null,
-        },
-        res,
-        orderNumber,
-        tvaRate,
-        signLater ? null : signatureData
-      );
-      return;
+      const company = typeof client?.compagnyName === "string" ? client.compagnyName.trim() : "";
+      if (!company) {
+        return res.status(400).json({ error: "Entreprise manquante pour créer le contact." });
+      }
+
+      const createdContact = await Contact.create({
+        company,
+        name: typeof client?.name === "string" ? client.name.trim() : "",
+        surname: typeof client?.surname === "string" ? client.surname.trim() : "",
+        email: typeof client?.email === "string" ? client.email.trim() : "",
+        phoneNumber: typeof client?.phone === "string" ? client.phone.trim() : "",
+        siret: typeof client?.siret === "string" ? client.siret.trim() : "",
+        numTVA: typeof client?.numTVA === "string" ? client.numTVA.trim() : "",
+        delaisPaie: finalDelaisPaie,
+      });
+
+      clientIdRaw = String(createdContact._id);
     }
 
     await Order.create({
