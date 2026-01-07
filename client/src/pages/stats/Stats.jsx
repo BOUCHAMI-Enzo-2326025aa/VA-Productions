@@ -1,6 +1,6 @@
 import StatChart from "./StatChart";
 import PieChartStats from "./PieChartStats";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import YearlySupportStats from "./YearlySupportStats";
 import "./stats.css";
@@ -43,6 +43,20 @@ const Stats = () => {
     fetchInvoices();
     }
   }, [isAdmin]);
+
+  const invoicesLast12Months = useMemo(() => {
+    const endDate = new Date();
+    const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 11, 1);
+
+    return invoices.filter((invoice) => {
+      const invoiceDate = new Date(invoice?.date);
+      if (Number.isNaN(invoiceDate.getTime())) {
+        return false;
+      }
+
+      return invoiceDate >= startDate && invoiceDate <= endDate;
+    });
+  }, [invoices]);
 
   // On définit les colonnes de notre fichier CSV
   const csvHeaders = [
@@ -101,8 +115,8 @@ const Stats = () => {
       </div>
 
       <div className="flex flex-col lg:flex-row mt-4 gap-3">
-        <StatChart invoices={invoices} colorList={colorList} />
-        <PieChartStats invoices={invoices} colorList={colorList} />
+        <StatChart invoices={invoicesLast12Months} colorList={colorList} />
+        <PieChartStats invoices={invoicesLast12Months} colorList={colorList} />
       </div>
       <p className="font-bold text-lg text-[#3F3F3F] leading-3 mt-16">
         Statistiques par support

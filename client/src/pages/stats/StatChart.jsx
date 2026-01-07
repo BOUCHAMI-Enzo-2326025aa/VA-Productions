@@ -20,17 +20,40 @@ export function StatChart({ invoices, colorList }) {
   const [visibleSupports, setVisibleSupports] = useState({});
 
   const transformData = () => {
-    const months = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
-    ];
+    const endDate = new Date();
+    const monthBuckets = Array.from({ length: 12 }, (_, index) => {
+      const date = new Date(endDate.getFullYear(), endDate.getMonth() - 11 + index, 1);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const monthLabel = date.toLocaleDateString("fr-FR", { month: "short" });
 
-    const data = months.map((month) => ({ month }));
+      return { monthKey, monthLabel };
+    });
+
+    const monthIndexByKey = monthBuckets.reduce((acc, bucket, index) => {
+      acc[bucket.monthKey] = index;
+      return acc;
+    }, {});
+
+    const data = monthBuckets.map(({ monthLabel, monthKey }) => ({
+      month: monthLabel,
+      monthKey,
+    }));
     const tempSupportList = [];
 
     invoices.forEach((invoice) => {
       const invoiceDate = new Date(invoice.date);
-      const monthIndex = invoiceDate.getMonth();
+      if (Number.isNaN(invoiceDate.getTime())) {
+        return;
+      }
+
+      const invoiceMonthKey = `${invoiceDate.getFullYear()}-${String(
+        invoiceDate.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+      const monthIndex = monthIndexByKey[invoiceMonthKey];
+      if (monthIndex === undefined) {
+        return;
+      }
 
       invoice.supportList.forEach((item) => {
         const supportName = item.supportName.toLowerCase();
@@ -38,12 +61,10 @@ export function StatChart({ invoices, colorList }) {
           tempSupportList.push(supportName);
         }
 
-        if (monthIndex !== -1) {
-          if (!data[monthIndex][supportName]) {
-            data[monthIndex][supportName] = 0;
-          }
-          data[monthIndex][supportName] += item.price;
+        if (!data[monthIndex][supportName]) {
+          data[monthIndex][supportName] = 0;
         }
+        data[monthIndex][supportName] += item.price;
       });
     });
 
