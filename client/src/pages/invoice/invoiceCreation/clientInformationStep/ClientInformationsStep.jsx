@@ -142,11 +142,11 @@ const ClientInformationsStep = ({
         <div className="flex flex-col gap-5 mt-5">
           <div className="flex flex-col md:flex-row w-full gap-3">
             <InvoiceInput title={"Entreprise"} value={invoice.client.compagnyName} mandatory={true} onChange={(e) => handleChange("compagnyName", e.target.value)} />
-            <InvoiceInput title={"Nom"} value={invoice.client.name} mandatory={true} onChange={(e) => handleChange("name", e.target.value)} />
-            <InvoiceInput title={"Prenom"} value={invoice.client.surname} mandatory={true} onChange={(e) => handleChange("surname", e.target.value)} />
+            <InvoiceInput title={"Nom"} value={invoice.client.name} mandatory={false} onChange={(e) => handleChange("name", e.target.value)} />
+            <InvoiceInput title={"Prenom"} value={invoice.client.surname} mandatory={false} onChange={(e) => handleChange("surname", e.target.value)} />
           </div>
           <div className="flex flex-col md:flex-row gap-2 w-full md:w-[90%]">
-            <InvoiceInput title={"Adresse mail"} value={invoice.client.email} inputType="email" mandatory={true} onChange={(e) => handleChange("email", e.target.value)} />
+            <InvoiceInput title={"Adresse mail"} value={invoice.client.email} inputType="email" mandatory={false} onChange={(e) => handleChange("email", e.target.value)} />
             <InvoiceInput title={"Numéro de téléphone"} value={invoice.client.phone} inputType="tel" mandatory={false} onChange={(e) => handleChange("phone", e.target.value)} />
           </div>
           <div className="flex flex-col gap-2 mt-2">
@@ -203,10 +203,10 @@ const ClientInformationsStep = ({
             </div>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col md:flex-row gap-2">
-                <InvoiceInput title={"Ville"} mandatory={true} value={invoice.client.city} onChange={(e) => handleChange("city", e.target.value)} />
-                <InvoiceInput title={"Code postal"} value={invoice.client.postalCode} mandatory={true} onChange={(e) => handleChange("postalCode", e.target.value)} />
+                <InvoiceInput title={"Ville"} mandatory={false} value={invoice.client.city} onChange={(e) => handleChange("city", e.target.value)} />
+                <InvoiceInput title={"Code postal"} value={invoice.client.postalCode} mandatory={false} onChange={(e) => handleChange("postalCode", e.target.value)} />
               </div>
-              <InvoiceInput title={"Adresse 1"} value={invoice.client.address1} mandatory={true} onChange={(e) => handleChange("address1", e.target.value)} />
+              <InvoiceInput title={"Adresse 1"} value={invoice.client.address1} mandatory={false} onChange={(e) => handleChange("address1", e.target.value)} />
               <InvoiceInput title={"Adresse 2 - Facultatif"} value={invoice.client.address2} mandatory={false} onChange={(e) => handleChange("address2", e.target.value)} />
             </div>
           </div>
