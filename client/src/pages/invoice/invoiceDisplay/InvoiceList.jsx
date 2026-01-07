@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { formatDateSlash } from "../../../utils/formatDate";
 import axios from "axios";
 
-const InvoiceList = ({ invoices, setInvoices }) => {
+const InvoiceList = ({ invoices, setInvoices, setInvoicesToShow }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [downloadingInvoices, setDownloadingInvoices] = useState([]);
   const invoicesPerPage = 10;
@@ -47,38 +47,49 @@ const InvoiceList = ({ invoices, setInvoices }) => {
 
   
   const handleValidate = (id) => {
-    const isConfirmed = window.confirm("Voulez-vous confirmer le paiement de cette commande ?");
+    const isConfirmed = window.confirm(
+      "Voulez-vous confirmer le paiement de cette facture ?"
+    );
     if (!isConfirmed) {
       return;
     }
     axios
       .post(`${import.meta.env.VITE_API_HOST}/api/invoice/validate/${id}`)
       .then((response) => {
-        setInvoices((prevInvoices) => {
-          return prevInvoices.map((invoice) => {
-            if (invoice._id === id) {
-              return { ...invoice, status: "paid" };
-            } else {
-              return invoice;
-            }
-          });
-        });
+        const applyPaid = (prevInvoices) =>
+          prevInvoices.map((invoice) =>
+            invoice._id === id ? { ...invoice, status: "paid" } : invoice
+          );
+
+        setInvoices(applyPaid);
+        setInvoicesToShow?.(applyPaid);
       })
       .catch((error) => {
         console.error("Erreur lors de la validation :", error);
+        alert(
+          error?.response?.data?.error ||
+            "Impossible de valider la facture."
+        );
       });
   };
 
   const handleSendEInvoice = async (invoiceId) => {
     if (!window.confirm("Voulez-vous vraiment envoyer cette facture au portail public ?")) return;
-    setInvoices(prev => prev.map(inv => inv._id === invoiceId ? { ...inv, eInvoiceStatus: 'processing' } : inv));
+    const applyEInvoiceStatus = (status) => (prev) =>
+      prev.map((inv) =>
+        inv._id === invoiceId ? { ...inv, eInvoiceStatus: status } : inv
+      );
+
+    setInvoices(applyEInvoiceStatus("processing"));
+    setInvoicesToShow?.(applyEInvoiceStatus("processing"));
     
     try {
         await axios.post(`${import.meta.env.VITE_API_HOST}/api/invoice/${invoiceId}/send-einvoice`);
     } catch (error) {
         console.error("Erreur lors de la demande d'envoi:", error);
         alert(error.response?.data?.erreur || "Une erreur est survenue.");
-        setInvoices(prev => prev.map(inv => inv._id === invoiceId ? { ...inv, eInvoiceStatus: 'pending' } : inv));
+        setInvoices(applyEInvoiceStatus("pending"));
+        setInvoicesToShow?.(applyEInvoiceStatus("pending"));
     }
 };
 
