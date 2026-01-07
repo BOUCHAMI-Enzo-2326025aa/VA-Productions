@@ -14,7 +14,8 @@ ChartTooltipContent,
 } from "@/components/ui/chart";
 import { useMemo } from "react";
 import formatPrice from "@/utils/formatPrice";
-export function PieChartStats({ invoices, colorList }) {
+import { getSupportColor } from "./supportColorMap";
+export function PieChartStats({ invoices, supportColorMap }) {
 const supportList = useMemo(() => {
 return [
 ...new Set(
@@ -35,9 +36,9 @@ acc.push({ supportName, price });
 }
 return acc;
 }, [])
-.map((item, index) => ({
+.map((item) => ({
 ...item,
-fill: colorList[index % colorList.length],
+fill: getSupportColor(item.supportName, supportColorMap),
 }));
 const chartConfig = {
 support: {

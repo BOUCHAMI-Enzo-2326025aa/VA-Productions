@@ -7,24 +7,34 @@ import "./stats.css";
 import useAuth from "../../hooks/useAuth"; 
 
 import { CSVLink } from "react-csv";
+import { buildSupportColorMap } from "./supportColorMap";
 
 const Stats = () => {
   const { isAdmin } = useAuth();
   const [invoices, setInvoices] = useState([]);
-  // Liste de couleurs distinctes pour chaque magazine
+  const [paidOnly, setPaidOnly] = useState(false);
+  // Palette de base (utilisée en priorité), complétée automatiquement si besoin
   const colorList = [
-    "#ef4444", // Rouge
     "#2563eb", // Bleu
+    "#ef4444", // Rouge
     "#22c55e", // Vert
-    "#7c3aed", // Violet
-    "#f59e0b", // Orange
-    "#ec4899", // Rose
+    "#a855f7", // Violet
     "#06b6d4", // Cyan
-    "#84cc16", // Lime
-    "#f97316", // Orange foncé
-    "#8b5cf6", // Violet clair
-    "#14b8a6", // Teal
+    "#f97316", // Orange
     "#eab308", // Jaune
+    "#14b8a6", // Teal
+    "#f43f5e", // Rose
+    "#84cc16", // Lime
+    "#0ea5e9", // Sky
+    "#8b5cf6", // Purple
+    "#10b981", // Emerald
+    "#fb7185", // Rose clair
+    "#3b82f6", // Blue clair
+    "#f59e0b", // Amber
+    "#16a34a", // Green foncé
+    "#dc2626", // Red foncé
+    "#7c3aed", // Violet foncé
+    "#0891b2", // Cyan foncé
   ];
 
   const fetchInvoices = async () => {
@@ -58,6 +68,24 @@ const Stats = () => {
     });
   }, [invoices]);
 
+  const supportColorMap = useMemo(() => {
+    const supportNames = invoicesLast12Months.flatMap((invoice) =>
+      invoice.supportList.map((support) => support.supportName)
+    );
+
+    return buildSupportColorMap(supportNames, colorList);
+  }, [invoicesLast12Months]);
+
+  const invoicesFiltered = useMemo(() => {
+    if (!paidOnly) return invoices;
+    return invoices.filter((invoice) => invoice.status === "paid");
+  }, [invoices, paidOnly]);
+
+  const invoicesLast12MonthsFiltered = useMemo(() => {
+    if (!paidOnly) return invoicesLast12Months;
+    return invoicesLast12Months.filter((invoice) => invoice.status === "paid");
+  }, [invoicesLast12Months, paidOnly]);
+
   // On définit les colonnes de notre fichier CSV
   const csvHeaders = [
     { label: "Numéro de Facture", key: "numero_facture" },
@@ -71,7 +99,7 @@ const Stats = () => {
   ];
 
   // On transforme nos données complexes en un tableau simple
-  const csvData = invoices.flatMap(invoice => 
+  const csvData = invoicesFiltered.flatMap(invoice => 
     invoice.supportList.map(support => ({
       numero_facture: invoice.number,
       client: invoice.entreprise,
@@ -100,7 +128,16 @@ const Stats = () => {
           </p>
         </div>
 
-        {invoices.length > 0 && (
+        <label className="flex items-center gap-2 w-full md:w-auto">
+          <input
+            type="checkbox"
+            checked={paidOnly}
+            onChange={(e) => setPaidOnly(e.target.checked)}
+          />
+          <span className="text-[#3F3F3F] opacity-80">Payées uniquement</span>
+        </label>
+
+        {invoicesFiltered.length > 0 && (
           <CSVLink
             data={csvData}
             headers={csvHeaders}
@@ -115,8 +152,14 @@ const Stats = () => {
       </div>
 
       <div className="flex flex-col lg:flex-row mt-4 gap-3">
-        <StatChart invoices={invoicesLast12Months} colorList={colorList} />
-        <PieChartStats invoices={invoicesLast12Months} colorList={colorList} />
+        <StatChart
+          invoices={invoicesLast12MonthsFiltered}
+          supportColorMap={supportColorMap}
+        />
+        <PieChartStats
+          invoices={invoicesLast12MonthsFiltered}
+          supportColorMap={supportColorMap}
+        />
       </div>
       <p className="font-bold text-lg text-[#3F3F3F] leading-3 mt-16">
         Statistiques par support
@@ -124,7 +167,7 @@ const Stats = () => {
       <p className="text-[#3F3F3F] opacity-80 ">
         Statistiques pour chacun des supports
       </p>
-      <YearlySupportStats invoices={invoices} />
+      <YearlySupportStats invoices={invoicesFiltered} />
     </div>
   );
 };
