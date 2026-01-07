@@ -25,12 +25,14 @@ const contactSchema = mongoose.Schema({
   },
   siret: {
     type: String,
-    required: true,
+    required: false,
+    default: "",
     trim: true,
   },
   numTVA: {
     type: String,
-    required: true,
+    required: false,
+    default: "",
     trim: true,
   },
   delaisPaie: {

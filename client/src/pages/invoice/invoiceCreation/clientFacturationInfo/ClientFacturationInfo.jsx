@@ -13,13 +13,7 @@ const ClientFacturationInfo = ({
   const [errors, setErrors] = useState([]);
 
   const validateFields = () => {
-    const missing = [];
-    if (!invoice.client.city || invoice.client.city.trim() === "") missing.push("Ville");
-    if (!invoice.client.postalCode || invoice.client.postalCode.trim() === "")
-      missing.push("Code postal");
-    if (!invoice.client.address1 || invoice.client.address1.trim() === "")
-      missing.push("Adresse 1");
-    return missing;
+    return [];
   };
 
   const handleNext = () => {
@@ -55,14 +49,14 @@ const ClientFacturationInfo = ({
         <div className="flex gap-2 mt-5 mb-7">
           <InvoiceInput
             title={"Ville"}
-            mandatory={true}
+            mandatory={false}
             value={invoice.client.city}
             onChange={(e) => handleChange("city", e.target.value)}
           />
           <InvoiceInput
             title={"Code postal"}
             value={invoice.client.postalCode}
-            mandatory={true}
+            mandatory={false}
             onChange={(e) => handleChange("postalCode", e.target.value)}
           />
         </div>
@@ -70,7 +64,7 @@ const ClientFacturationInfo = ({
         <InvoiceInput
           title={"Adresse 1"}
           value={invoice.client.address1}
-          mandatory={true}
+          mandatory={false}
           onChange={(e) => handleChange("address1", e.target.value)}
         />
         <InvoiceInput
@@ -82,8 +76,7 @@ const ClientFacturationInfo = ({
       </div>
 
       <div className="flex gap-1 mt-3">
-        <p className="text-[#FF6767]">*</p>
-        <p className="text-[#3F3F3F] opacity-50">Champs obligatoires</p>
+        <p className="text-[#3F3F3F] opacity-50">Champs optionnels</p>
       </div>
 
       {/* Bouton de validation */}

@@ -48,18 +48,18 @@ const OrderSchema = new Schema({
   },
   firstAddress: {
     type: String,
-    required: true,
+    required: false,
   },
   secondAddress: {
     type: String,
   },
   postalCode: {
     type: String,
-    required: true,
+    required: false,
   },
   city: {
     type: String,
-    required: true,
+    required: false,
   },
   totalPrice: {
     type: Number,
