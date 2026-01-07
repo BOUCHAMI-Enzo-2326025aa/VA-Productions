@@ -83,20 +83,14 @@ const ClientInformationsStep = ({
   const validateFields = () => {
     const missing = [];
     if (!invoice.client.compagnyName?.trim()) missing.push("Entreprise");
-    if (!invoice.client.name?.trim()) missing.push("Nom");
-    if (!invoice.client.surname?.trim()) missing.push("Prénom");
-    if (!invoice.client.email?.trim()) {
-      missing.push("Adresse mail");
-    } else {
+
+    if (invoice.client.email?.trim()) {
       const re = /\S+@\S+\.\S+/;
       if (!re.test(invoice.client.email)) missing.push("Adresse mail (format invalide)");
     }
     if (invoice.client.delaisPaie === "autre" && (!invoice.client.customDelaisDays || !/^\d+$/.test(invoice.client.customDelaisDays))) {
       missing.push("Délai de paiement (jours invalides)");
     }
-    if (!invoice.client.city?.trim()) missing.push("Ville");
-    if (!invoice.client.postalCode?.trim()) missing.push("Code postal");
-    if (!invoice.client.address1?.trim()) missing.push("Adresse 1");
     return missing;
   };
 
