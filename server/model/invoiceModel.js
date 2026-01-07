@@ -5,6 +5,12 @@ const SupportSchema = new Schema({
     type: String,
     required: true,
   },
+  supportNumber: {
+    type: String,
+    required: false,
+    default: "",
+    trim: true,
+  },
   price: {
     type: Number,
     required: true,
