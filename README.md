@@ -36,6 +36,10 @@ cd server && npm run dev  # Backend sur :5000
 cd client && npm run dev  # Frontend sur :5173
 ```
 
+## 🚢 Déploiement
+
+Voir le guide : [DEPLOYMENT.md](DEPLOYMENT.md)
+
 ## 🔑 Points clés
 
 - **Signature automatique** : Une seule signature d'entreprise appliquée à tous les documents
