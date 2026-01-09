@@ -13,3 +13,93 @@
     justify-content: center; /* Centre l'icône et le texte */
   }
 }
+
+/* DA plus sobre pour la page Magazines */
+.mag-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #3F3F3F;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+/* Permet au texte de se replier sans déborder (zoom/dézoom) */
+.mag-action-btn__label {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* Évite que les SVG (lucide) soient compressés en flex */
+.mag-action-btn svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.mag-action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.mag-action-row .mag-action-btn {
+  width: 100%;
+}
+
+@media (max-width: 420px) {
+  .mag-action-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mag-action-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.mag-action-btn:active {
+  transform: translateY(1px);
+}
+
+.mag-action-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(63, 63, 63, 0.18);
+}
+
+.mag-action-btn--danger {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.mag-action-btn--danger:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.mag-upload-drop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.75rem;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.mag-upload-drop:hover {
+  border-color: #3F3F3F;
+  background: #f9fafb;
+}

@@ -186,7 +186,7 @@ const Magazine = () => {
   }
 
   return (
-    <div className="text-[#3F3F3F] pb-10">
+    <div className="text-[#3F3F3F] pb-10 px-2 sm:px-4">
       {snackbar.open && (
         <div className={`fixed top-5 right-5 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-semibold ${snackbar.type === "success" ? "bg-green-500" : "bg-red-500"}`}>
           {snackbar.message}
@@ -210,10 +210,10 @@ const Magazine = () => {
       ) : magazines.length === 0 ? (
         <div className="mt-10 text-center opacity-70">Aucun magazine créé pour le moment</div>
       ) : (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pr-4 md:pr-0">
           {magazines.map((magazine) => (
-            <div key={magazine._id} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition">
-              <div className="relative w-full aspect-square bg-gray-200">
+            <div key={magazine._id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition">
+              <div className="relative w-full aspect-square bg-gray-200 overflow-hidden rounded-t-lg">
                 <img
                   src={magazine.image || "https://via.placeholder.com/300x400?text=Image+Non+Disponible"}
                   alt={magazine.nom}
@@ -221,15 +221,23 @@ const Magazine = () => {
                   onError={(e) => { e.target.src = "https://via.placeholder.com/300x400?text=Image+Non+Disponible"; }}
                 />
               </div>
-              <div className="p-4">
+              <div className="p-5">
                 <h3 className="font-semibold text-lg">{magazine.nom}</h3>
                 <p className="text-sm text-gray-500 mb-3">{magazine.type}</p>
-                <div className="flex gap-2">
-                  <button onClick={() => handleOpenEditModal(magazine)} className="flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition flex items-center justify-center gap-2">
-                    <Edit2 size={16} /> Modifier
+                <div className="mag-action-row">
+                  <button
+                    onClick={() => handleOpenEditModal(magazine)}
+                    className="flex-1 mag-action-btn mag-action-btn--edit"
+                  >
+                    <Edit2 size={20} />
+                    <span className="mag-action-btn__label">Modifier</span>
                   </button>
-                  <button onClick={() => handleOpenDeleteModal(magazine._id, magazine.nom)} className="flex-1 bg-red-500 text-white py-2 rounded hover:bg-red-600 transition flex items-center justify-center gap-2">
-                    <Trash2 size={16} /> Supprimer
+                  <button
+                    onClick={() => handleOpenDeleteModal(magazine._id, magazine.nom)}
+                    className="flex-1 mag-action-btn mag-action-btn--danger"
+                  >
+                    <Trash2 size={16} />
+                    <span className="mag-action-btn__label">Supprimer</span>
                   </button>
                 </div>
               </div>
@@ -249,7 +257,7 @@ const Magazine = () => {
                 <label className="block font-semibold mb-2">Nom du magazine *</label>
                 <input
                   type="text" value={formData.nom} onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3F3F3F] focus:border-[#3F3F3F]"
                   placeholder="Ex: WMag" required
                 />
               </div>
@@ -258,7 +266,7 @@ const Magazine = () => {
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value, customType: "" })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3F3F3F] focus:border-[#3F3F3F]"
                   required
                 >
                   <option value="" disabled>Sélectionnez un type</option>
@@ -271,7 +279,7 @@ const Magazine = () => {
                   <label className="block font-semibold mb-2 text-sm">Précisez le type *</label>
                   <input
                     type="text" value={formData.customType} onChange={(e) => setFormData({ ...formData, customType: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3F3F3F] focus:border-[#3F3F3F]"
                     placeholder="Ex: Journal" required
                   />
                 </div>
@@ -280,7 +288,7 @@ const Magazine = () => {
                 <label className="block font-semibold mb-2">Image de couverture *</label>
                 <div className="mb-3">
                   <label className="w-full cursor-pointer">
-                    <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <div className="mag-upload-drop">
                       <Upload size={20} className="text-gray-600" />
                       <span className="text-sm font-medium text-gray-700">Choisir une image depuis le PC</span>
                     </div>
@@ -296,7 +304,7 @@ const Magazine = () => {
                   type="text"
                   value={formData.image}
                   onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3F3F3F] focus:border-[#3F3F3F]"
                   placeholder="Ou entrez l'URL de l'image"
                 />
                 {(formData.image) && (
