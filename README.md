@@ -38,9 +38,9 @@ cd client && npm run dev  # Frontend sur :5173
 
 ## 🔑 Points clés
 
-- **Signature automatique** : Une seule signature d'entreprise appliquée à tous les documents
+- **Signature virtuelle** : Signature client sur chaque PDF de bons de commandes et factures
 - **Synchronisation Google** : Rendez-vous bidirectionnels avec Google Calendar
-- **Export données** : Export CSV des factures pour comptabilité
+- **Export données** : Export CSV des factures et bons de commandes pour comptabilité
 - **Sécurité** : Authentification JWT, mots de passe chiffrés, contrôle d'accès par rôle
 
 ---
