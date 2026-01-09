@@ -4,6 +4,7 @@ import Contact from "../model/contactModel.js";
 import createOrderPdf, { createOrderPdfBuffer } from "../utils/orderCreator.js";
 import createInvoice from "../utils/invoiceCreator.js";
 import Signature from "../model/signatureModel.js";
+import mongoose from "mongoose";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
@@ -112,8 +113,8 @@ const withComputedTotal = (orderDoc) => {
 
 export const createOrder = async (req, res) => {
   try {
-    const client = req.body.invoice.client;
-    const tva = req.body.tva.percentage;
+    const client = req.body?.invoice?.client || {};
+    const tva = req.body?.tva?.percentage;
     const { orderNumber: maxOrderNumber = 0 } = (await Order.findOne().sort({ orderNumber: -1 })) || {};
 
     const signLater = !!client?.signLater;
@@ -143,18 +144,45 @@ export const createOrder = async (req, res) => {
     const baseTotal = supports.reduce((sum, item) => sum + item.price, 0);
     const total = Math.round(baseTotal * (1 + tvaRate) * 100) / 100;
 
-    const order = await Order.create({
-      client: client.clientId,
+    const orderNumber = maxOrderNumber + 1;
+
+    let clientIdRaw = typeof client?.clientId === "string" ? client.clientId.trim() : "";
+    const hasValidClientId = clientIdRaw && mongoose.Types.ObjectId.isValid(clientIdRaw);
+
+    // Si aucun contact existant n’est sélectionné, on crée un nouveau contact
+    // pour que la commande soit bien sauvegardée et visible dans la liste.
+    if (!hasValidClientId) {
+      const company = typeof client?.compagnyName === "string" ? client.compagnyName.trim() : "";
+      if (!company) {
+        return res.status(400).json({ error: "Entreprise manquante pour créer le contact." });
+      }
+
+      const createdContact = await Contact.create({
+        company,
+        name: typeof client?.name === "string" ? client.name.trim() : "",
+        surname: typeof client?.surname === "string" ? client.surname.trim() : "",
+        email: typeof client?.email === "string" ? client.email.trim() : "",
+        phoneNumber: typeof client?.phone === "string" ? client.phone.trim() : "",
+        siret: typeof client?.siret === "string" ? client.siret.trim() : "",
+        numTVA: typeof client?.numTVA === "string" ? client.numTVA.trim() : "",
+        delaisPaie: finalDelaisPaie,
+      });
+
+      clientIdRaw = String(createdContact._id);
+    }
+
+    await Order.create({
+      client: clientIdRaw,
       compagnyName: client.compagnyName,
-      orderNumber: maxOrderNumber + 1,
+      orderNumber,
       date: Date.now(),
       items: supports,
       totalPrice: total,
       supportList: supports,
-      firstAddress: client.address1,
-      secondAddress: client.address2,
-      postalCode: client.postalCode,
-      city: client.city,
+      firstAddress: client.address1 || "",
+      secondAddress: client.address2 || "",
+      postalCode: client.postalCode || "",
+      city: client.city || "",
       status: "pending",
       tva: tvaRate,
       delaisPaie: finalDelaisPaie,
@@ -164,7 +192,7 @@ export const createOrder = async (req, res) => {
       signedPdfPath: null,
     });
 
-    const contact = await Contact.findById(client.clientId);
+    const contact = await Contact.findById(clientIdRaw);
     
     await createOrderPdf(
       {
@@ -175,7 +203,7 @@ export const createOrder = async (req, res) => {
         numTVA: contact?.numTVA,
       },
       res,
-      maxOrderNumber + 1,
+      orderNumber,
       tvaRate,
       signLater ? null : signatureData
     );

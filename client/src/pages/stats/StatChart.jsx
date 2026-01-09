@@ -13,24 +13,48 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { getSupportColor } from "./supportColorMap";
 
-export function StatChart({ invoices, colorList }) {
+export function StatChart({ invoices, supportColorMap }) {
   const [chartData, setChartData] = useState([]);
   const [supportList, setSupportList] = useState([]);
   const [visibleSupports, setVisibleSupports] = useState({});
 
   const transformData = () => {
-    const months = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
-    ];
+    const endDate = new Date();
+    const monthBuckets = Array.from({ length: 12 }, (_, index) => {
+      const date = new Date(endDate.getFullYear(), endDate.getMonth() - 11 + index, 1);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const monthLabel = date.toLocaleDateString("fr-FR", { month: "short" });
 
-    const data = months.map((month) => ({ month }));
+      return { monthKey, monthLabel };
+    });
+
+    const monthIndexByKey = monthBuckets.reduce((acc, bucket, index) => {
+      acc[bucket.monthKey] = index;
+      return acc;
+    }, {});
+
+    const data = monthBuckets.map(({ monthLabel, monthKey }) => ({
+      month: monthLabel,
+      monthKey,
+    }));
     const tempSupportList = [];
 
     invoices.forEach((invoice) => {
       const invoiceDate = new Date(invoice.date);
-      const monthIndex = invoiceDate.getMonth();
+      if (Number.isNaN(invoiceDate.getTime())) {
+        return;
+      }
+
+      const invoiceMonthKey = `${invoiceDate.getFullYear()}-${String(
+        invoiceDate.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+      const monthIndex = monthIndexByKey[invoiceMonthKey];
+      if (monthIndex === undefined) {
+        return;
+      }
 
       invoice.supportList.forEach((item) => {
         const supportName = item.supportName.toLowerCase();
@@ -38,15 +62,14 @@ export function StatChart({ invoices, colorList }) {
           tempSupportList.push(supportName);
         }
 
-        if (monthIndex !== -1) {
-          if (!data[monthIndex][supportName]) {
-            data[monthIndex][supportName] = 0;
-          }
-          data[monthIndex][supportName] += item.price;
+        if (!data[monthIndex][supportName]) {
+          data[monthIndex][supportName] = 0;
         }
+        data[monthIndex][supportName] += item.price;
       });
     });
 
+    tempSupportList.sort((a, b) => a.localeCompare(b, "fr-FR"));
     setSupportList(tempSupportList);
 
     data.forEach((monthData) => {
@@ -76,7 +99,7 @@ export function StatChart({ invoices, colorList }) {
   const chartConfig = supportList.reduce((config, support, index) => {
     config[support] = {
       label: support.charAt(0).toUpperCase() + support.slice(1),
-      color: colorList[index % colorList.length],
+      color: getSupportColor(support, supportColorMap),
     };
     return config;
   }, {});
@@ -112,13 +135,13 @@ export function StatChart({ invoices, colorList }) {
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
 
             {supportList.map(
-              (support, index) =>
+              (support) =>
                 visibleSupports[support] && (
                   <Line
                     key={support}
                     dataKey={support}
                     type="monotone"
-                    stroke={colorList[index % colorList.length]}
+                    stroke={getSupportColor(support, supportColorMap)}
                     strokeWidth={2}
                     dot={false}
                   />
@@ -131,7 +154,7 @@ export function StatChart({ invoices, colorList }) {
 
       <CardFooter>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 w-full">
-          {supportList.map((support, index) => (
+          {supportList.map((support) => (
             <div
               key={support}
               className={`flex items-center space-x-2 cursor-pointer ${
@@ -141,7 +164,10 @@ export function StatChart({ invoices, colorList }) {
             >
               <span
                 className="w-6 h-2 rounded"
-                style={{ backgroundColor: colorList[index] || "#000" }}
+                style={{
+                  backgroundColor:
+                    getSupportColor(support, supportColorMap) || "#000",
+                }}
               />
               <span>{chartConfig[support]?.label || support}</span>
             </div>
