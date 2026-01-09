@@ -229,13 +229,15 @@ const Magazine = () => {
                     onClick={() => handleOpenEditModal(magazine)}
                     className="flex-1 mag-action-btn mag-action-btn--edit"
                   >
-                    <Edit2 size={20} /> Modifier
+                    <Edit2 size={20} />
+                    <span className="mag-action-btn__label">Modifier</span>
                   </button>
                   <button
                     onClick={() => handleOpenDeleteModal(magazine._id, magazine.nom)}
                     className="flex-1 mag-action-btn mag-action-btn--danger"
                   >
-                    <Trash2 size={16} /> Supprimer
+                    <Trash2 size={16} />
+                    <span className="mag-action-btn__label">Supprimer</span>
                   </button>
                 </div>
               </div>
