@@ -28,6 +28,14 @@ const userSchema = mongoose.Schema({
   verificationCode: {
     type: String,
   },
+
+  // Mot de passe oublié
+  resetPasswordTokenHash: {
+    type: String,
+  },
+  resetPasswordExpiresAt: {
+    type: Date,
+  },
 });
 
 let User = mongoose.model("User", userSchema);
