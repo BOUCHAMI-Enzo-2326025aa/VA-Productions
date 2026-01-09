@@ -31,6 +31,12 @@ MONGODBURL=mongodb+srv://...
 SECRET=votre_secret
 PORT=5000
 
+# Lien front utilisé pour générer les emails (par défaut)
+FRONT_LINK=https://votre-domaine-prod.tld
+
+# Optionnel (recommandé en dev): lien front de développement (ex: Vite)
+FRONT_LINK_DEV=http://localhost:5173
+
 # Lancer l'application
 cd server && npm run dev  # Backend sur :5000
 cd client && npm run dev  # Frontend sur :5173

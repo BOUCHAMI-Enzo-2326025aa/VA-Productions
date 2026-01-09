@@ -126,7 +126,9 @@ const Login = () => {
             </button>
             <button
               className="w-full border-[#5C89E0] active:scale-95 text-[#5C89E0] hover:text-white hover:bg-[#5C89E0] transition-all border-2 py-3 rounded-[5px]"
-              onClick={() => { /* Logique du mot de passe oublié ici */ }}
+              onClick={() => {
+                location.href = "/mot-de-passe-oublie";
+              }}
             >
               Mot de passe oublié ?
             </button>

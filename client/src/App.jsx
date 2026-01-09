@@ -21,6 +21,8 @@ import Stats from "./pages/stats/Stats";
 import Magazine from "./pages/magazine/Magazine";
 import Charge from "./pages/charge/Charge";
 import Settings from "./pages/settings/Settings";
+import ForgotPassword from "./pages/password/ForgotPassword";
+import ResetPassword from "./pages/password/ResetPassword";
 
 function App() {
   const [userLoaded, setUserLoaded] = useState(false);
@@ -82,6 +84,24 @@ function App() {
             element={
               <NotLoggedRoute>
                 <UserVerify />
+              </NotLoggedRoute>
+            }
+          />
+
+          <Route
+            path="/mot-de-passe-oublie"
+            element={
+              <NotLoggedRoute>
+                <ForgotPassword />
+              </NotLoggedRoute>
+            }
+          />
+
+          <Route
+            path="/reset-password/:token"
+            element={
+              <NotLoggedRoute>
+                <ResetPassword />
               </NotLoggedRoute>
             }
           />

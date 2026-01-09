@@ -326,3 +326,124 @@ export const changePassword = async (req, res) => {
     res.status(500).json({ erreur: error.message });
   }
 };
+
+export const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Réponse générique pour éviter l'énumération d'emails
+    const genericResponse = {
+      message:
+        "Si un compte existe avec cet email, vous allez recevoir un lien de réinitialisation.",
+    };
+
+    if (!email) {
+      return res.status(400).json({ message: "Email requis." });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    // On envoie l'email uniquement si le compte existe
+    if (user) {
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      const resetTokenHash = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+
+      await User.updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            resetPasswordTokenHash: resetTokenHash,
+            resetPasswordExpiresAt: expiresAt,
+          },
+        }
+      );
+
+      // En dev, on veut souvent pointer vers localhost plutôt que le lien prod.
+      // Priorité: FRONT_LINK_DEV -> FRONT_LINK
+      const frontBaseUrl =
+        process.env.FRONT_LINK_DEV || process.env.FRONT_LINK;
+
+      if (!frontBaseUrl) {
+        console.warn(
+          "FRONT_LINK (ou FRONT_LINK_DEV) manquant: impossible de générer le lien de reset."
+        );
+      }
+
+      const resetLink = `${frontBaseUrl}/reset-password/${resetToken}`;
+
+      const emailHtml = `
+        <h1>Réinitialisation de votre mot de passe</h1>
+        <p>Bonjour ${user.prenom || ""},</p>
+        <p>Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le lien ci-dessous :</p>
+        <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background-color: #3F3F3F; color: white; text-decoration: none; border-radius: 5px; margin: 16px 0;">Réinitialiser mon mot de passe</a>
+        <p>Ce lien expire dans 15 minutes.</p>
+        <p>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.</p>
+        <p>L'équipe V.A. Productions</p>
+      `;
+
+      const emailText = `Réinitialisation de mot de passe : ${resetLink} (expire dans 15 minutes)`;
+
+      await sendMail(
+        normalizedEmail,
+        "Réinitialisation de votre mot de passe V.A. Productions",
+        emailHtml,
+        emailText
+      );
+    }
+
+    return res.status(200).json(genericResponse);
+  } catch (error) {
+    console.error("Erreur requestPasswordReset:", error);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Token et nouveau mot de passe requis." });
+    }
+
+    if (!isPasswordStrong(newPassword)) {
+      return res.status(400).json({
+        message:
+          "Mot de passe trop faible. Il doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole.",
+      });
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      resetPasswordTokenHash: tokenHash,
+      resetPasswordExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Lien invalide ou expiré." });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(newPassword, salt);
+
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: { password: hash },
+        $unset: { resetPasswordTokenHash: "", resetPasswordExpiresAt: "" },
+      }
+    );
+
+    return res.status(200).json({ message: "Mot de passe réinitialisé avec succès." });
+  } catch (error) {
+    console.error("Erreur resetPassword:", error);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+};

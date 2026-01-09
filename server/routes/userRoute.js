@@ -8,6 +8,8 @@ import {
   deleteUser,
   updateProfile,
   changePassword,
+  requestPasswordReset,
+  resetPassword,
 } from "../controller/userController.js";
 import { authorize } from "../middleware/auth.js";
 import { Roles } from "../utils/Roles.js";
@@ -29,4 +31,8 @@ router.post("/verify", verifyUser);
 router.put("/profile", authorize(Roles.Commercial), updateProfile);
 
 router.put("/password", authorize(Roles.Commercial), changePassword);
+
+// Mot de passe oublié
+router.post("/password/forgot", requestPasswordReset);
+router.post("/password/reset", resetPassword);
 
