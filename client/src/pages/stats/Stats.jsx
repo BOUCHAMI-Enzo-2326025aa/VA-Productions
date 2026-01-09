@@ -12,6 +12,9 @@ import { buildSupportColorMap } from "./supportColorMap";
 const Stats = () => {
   const { isAdmin } = useAuth();
   const [invoices, setInvoices] = useState([]);
+  const [magazines, setMagazines] = useState([]);
+  const [isInvoicesLoading, setIsInvoicesLoading] = useState(true);
+  const [isMagazinesLoading, setIsMagazinesLoading] = useState(true);
   const [paidOnly, setPaidOnly] = useState(false);
   // Palette de base (utilisée en priorité), complétée automatiquement si besoin
   const colorList = [
@@ -38,6 +41,7 @@ const Stats = () => {
   ];
 
   const fetchInvoices = async () => {
+    setIsInvoicesLoading(true);
     try {
       const response = await axios.get(
         import.meta.env.VITE_API_HOST + "/api/invoice/"
@@ -45,20 +49,68 @@ const Stats = () => {
       setInvoices(response.data);
     } catch (error) {
       console.error("Erreur lors de la récupération des invoices", error);
+    } finally {
+      setIsInvoicesLoading(false);
+    }
+  };
+
+  const fetchMagazines = async () => {
+    setIsMagazinesLoading(true);
+    try {
+      const response = await axios.get(
+        import.meta.env.VITE_API_HOST + "/api/magazine/"
+      );
+      setMagazines(Array.isArray(response.data?.magazines) ? response.data.magazines : []);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des magazines", error);
+      setMagazines([]);
+    } finally {
+      setIsMagazinesLoading(false);
     }
   };
 
   useEffect(() => {
      if (isAdmin) {
     fetchInvoices();
+    fetchMagazines();
     }
   }, [isAdmin]);
+
+  const isStatsLoading = isInvoicesLoading || isMagazinesLoading;
+
+  // Filtrer les factures pour exclure les magazines supprimés
+  const filteredInvoices = useMemo(() => {
+    // Tant que les magazines ne sont pas connus, on ne veut pas afficher de données "non filtrées"
+    if (isMagazinesLoading) return [];
+
+    // Aucun magazine actif => rien à afficher dans les stats par support
+    if (!Array.isArray(magazines) || magazines.length === 0) return [];
+    
+    const activeMagazineNames = new Set(
+      magazines.map(mag => mag.nom.toLowerCase().trim())
+    );
+    
+    return invoices.map(invoice => {
+      if (!invoice.supportList || invoice.supportList.length === 0) return invoice;
+      
+      const filteredSupportList = invoice.supportList.filter(support => {
+        const normalizedSupport = support.supportName.toLowerCase().trim();
+        const isActive = activeMagazineNames.has(normalizedSupport);
+        return isActive;
+      });
+      
+      return {
+        ...invoice,
+        supportList: filteredSupportList
+      };
+    }).filter(invoice => invoice.supportList && invoice.supportList.length > 0);
+  }, [invoices, magazines]);
 
   const invoicesLast12Months = useMemo(() => {
     const endDate = new Date();
     const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 11, 1);
 
-    return invoices.filter((invoice) => {
+    return filteredInvoices.filter((invoice) => {
       const invoiceDate = new Date(invoice?.date);
       if (Number.isNaN(invoiceDate.getTime())) {
         return false;
@@ -66,7 +118,7 @@ const Stats = () => {
 
       return invoiceDate >= startDate && invoiceDate <= endDate;
     });
-  }, [invoices]);
+  }, [filteredInvoices]);
 
   const supportColorMap = useMemo(() => {
     const supportNames = invoicesLast12Months.flatMap((invoice) =>
@@ -77,9 +129,9 @@ const Stats = () => {
   }, [invoicesLast12Months]);
 
   const invoicesFiltered = useMemo(() => {
-    if (!paidOnly) return invoices;
-    return invoices.filter((invoice) => invoice.status === "paid");
-  }, [invoices, paidOnly]);
+    if (!paidOnly) return filteredInvoices;
+    return filteredInvoices.filter((invoice) => invoice.status === "paid");
+  }, [filteredInvoices, paidOnly]);
 
   const invoicesLast12MonthsFiltered = useMemo(() => {
     if (!paidOnly) return invoicesLast12Months;
@@ -137,7 +189,7 @@ const Stats = () => {
           <span className="text-[#3F3F3F] opacity-80">Payées uniquement</span>
         </label>
 
-        {invoicesFiltered.length > 0 && (
+        {!isStatsLoading && invoicesFiltered.length > 0 && (
           <CSVLink
             data={csvData}
             headers={csvHeaders}
@@ -152,14 +204,22 @@ const Stats = () => {
       </div>
 
       <div className="flex flex-col lg:flex-row mt-4 gap-3">
-        <StatChart
-          invoices={invoicesLast12MonthsFiltered}
-          supportColorMap={supportColorMap}
-        />
-        <PieChartStats
-          invoices={invoicesLast12MonthsFiltered}
-          supportColorMap={supportColorMap}
-        />
+        {isStatsLoading ? (
+          <div className="w-full text-center text-[#3F3F3F] opacity-70 py-12">
+            Chargement des statistiques...
+          </div>
+        ) : (
+          <>
+            <StatChart
+              invoices={invoicesLast12MonthsFiltered}
+              supportColorMap={supportColorMap}
+            />
+            <PieChartStats
+              invoices={invoicesLast12MonthsFiltered}
+              supportColorMap={supportColorMap}
+            />
+          </>
+        )}
       </div>
       <p className="font-bold text-lg text-[#3F3F3F] leading-3 mt-16">
         Statistiques par support

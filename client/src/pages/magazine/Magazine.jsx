@@ -3,6 +3,7 @@ import axios from "axios";
 import { Upload, Trash2, Edit2, Plus, X } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import ConfirmModal from "../../components/ConfirmModal";
+import ImageCropper from "../../components/ImageCropper";
 import "./Magazine.css";
 
 // Définit les types standards pour le menu déroulant
