@@ -13,12 +13,13 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { getSupportColor } from "./supportColorMap";
+import { getSupportColor, normalizeSupportName } from "./supportColorMap";
 
 export function StatChart({ invoices, supportColorMap }) {
   const [chartData, setChartData] = useState([]);
   const [supportList, setSupportList] = useState([]);
   const [visibleSupports, setVisibleSupports] = useState({});
+  const [supportLabels, setSupportLabels] = useState({});
 
   const transformData = () => {
     const endDate = new Date();
@@ -40,6 +41,7 @@ export function StatChart({ invoices, supportColorMap }) {
       monthKey,
     }));
     const tempSupportList = [];
+    const tempSupportLabels = {};
 
     invoices.forEach((invoice) => {
       const invoiceDate = new Date(invoice.date);
@@ -57,20 +59,33 @@ export function StatChart({ invoices, supportColorMap }) {
       }
 
       invoice.supportList.forEach((item) => {
-        const supportName = item.supportName.toLowerCase();
-        if (!tempSupportList.includes(supportName)) {
-          tempSupportList.push(supportName);
+        const supportKey = normalizeSupportName(item.supportName);
+        if (!supportKey) {
+          return;
         }
 
-        if (!data[monthIndex][supportName]) {
-          data[monthIndex][supportName] = 0;
+        if (!tempSupportLabels[supportKey]) {
+          tempSupportLabels[supportKey] = String(item.supportName || "").trim();
         }
-        data[monthIndex][supportName] += item.price;
+
+        if (!tempSupportList.includes(supportKey)) {
+          tempSupportList.push(supportKey);
+        }
+
+        if (!data[monthIndex][supportKey]) {
+          data[monthIndex][supportKey] = 0;
+        }
+        data[monthIndex][supportKey] += item.price;
       });
     });
 
-    tempSupportList.sort((a, b) => a.localeCompare(b, "fr-FR"));
+    tempSupportList.sort((a, b) => {
+      const labelA = tempSupportLabels[a] || a;
+      const labelB = tempSupportLabels[b] || b;
+      return labelA.localeCompare(labelB, "fr-FR");
+    });
     setSupportList(tempSupportList);
+    setSupportLabels(tempSupportLabels);
 
     data.forEach((monthData) => {
       tempSupportList.forEach((support) => {
@@ -98,7 +113,7 @@ export function StatChart({ invoices, supportColorMap }) {
 
   const chartConfig = supportList.reduce((config, support, index) => {
     config[support] = {
-      label: support.charAt(0).toUpperCase() + support.slice(1),
+      label: supportLabels[support] || support,
       color: getSupportColor(support, supportColorMap),
     };
     return config;
