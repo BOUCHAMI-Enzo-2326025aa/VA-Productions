@@ -14,4 +14,5 @@ export const getDayMonth = (date) => {
     day: "numeric",
     month: "long",
   });
+  
 };
