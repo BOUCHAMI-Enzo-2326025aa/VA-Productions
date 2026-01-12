@@ -26,6 +26,44 @@ import ResetPassword from "./pages/password/ResetPassword";
 
 
 axios.defaults.withCredentials = true;  
+axios.defaults.baseURL = import.meta.env.VITE_API_HOST;
+
+const readStoredToken = () => {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.token || parsed?.user?.token || null;
+  } catch {
+    return null;
+  }
+};
+
+// Always attach latest token (some browsers block cross-site cookies).
+axios.interceptors.request.use((config) => {
+  const token = readStoredToken();
+  if (token) {
+    config.headers = config.headers || {};
+    if (!config.headers.Authorization && !config.headers.authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    if (status === 401) {
+      localStorage.removeItem("user");
+      if (window.location.pathname !== "/connexion") {
+        window.location.replace("/connexion");
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 function App() {
   const [userLoaded, setUserLoaded] = useState(false);

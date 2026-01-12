@@ -37,6 +37,12 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Render runs behind a reverse proxy (sets X-Forwarded-*).
+// Needed so express-rate-limit can identify clients correctly.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // Render/Vercel/Nginx/etc. add X-Forwarded-* headers. Enable trust proxy so req.ip
 // and express-rate-limit can correctly identify the client.
 if (process.env.NODE_ENV === "production") {
@@ -63,6 +69,7 @@ const corsOptions = {
     }
   },
   credentials: true, 
+  allowedHeaders: ["Content-Type", "Authorization"],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   optionsSuccessStatus: 200
 };
