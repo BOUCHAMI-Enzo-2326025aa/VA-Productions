@@ -1,20 +1,30 @@
 import React, { useEffect } from 'react';
 import useAuth from '../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const NotLoggedRoute = ({ children }) => {
-    const { token } = useAuth();
+    const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
-        if (token) {
+        // ne pas rediriger si on est sur reset password
+        const pathname = location?.pathname || "";
+        const isResetFlow =
+            pathname.startsWith("/reset-password/") || pathname === "/mot-de-passe-oublie";
+
+        // Si l'utilisateur est connecté et qu'il n'essaie pas de reset son mot de passe
+        if (user && !isResetFlow) {
             navigate("/dashboard", { replace: true });
         }
-    }, [token, navigate]); 
+    }, [user, navigate, location]); 
+    const pathname = location?.pathname || "";
+    const isResetFlow = pathname.startsWith("/reset-password/") || pathname === "/mot-de-passe-oublie";
 
-    if (token) {
+    if (user && !isResetFlow) {
         return null; 
     }
+    
     return <>{children}</>;
 };
 

@@ -3,19 +3,19 @@ import useAuth from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 const AdminRoute = ({ children }) => {
-    const { token, isAdmin } = useAuth();
+    const { user, isAdmin } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!token) {
+        if (!user) {
             navigate("/connexion", { replace: true });
         } 
         else if (!isAdmin) {
             navigate("/dashboard", { replace: true });
         }
-    }, [token, isAdmin, navigate]);
+    }, [user, isAdmin, navigate]);
 
-    if (token && isAdmin) {
+    if (user && isAdmin) {
         return <>{children}</>;
     }
 

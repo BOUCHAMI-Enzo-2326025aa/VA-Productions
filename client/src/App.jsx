@@ -21,26 +21,27 @@ import Stats from "./pages/stats/Stats";
 import Magazine from "./pages/magazine/Magazine";
 import Charge from "./pages/charge/Charge";
 import Settings from "./pages/settings/Settings";
+import ForgotPassword from "./pages/password/ForgotPassword";
+import ResetPassword from "./pages/password/ResetPassword";
+
+
+axios.defaults.withCredentials = true;  
 
 function App() {
   const [userLoaded, setUserLoaded] = useState(false);
   useEffect(() => {
-    try {
-      const userString = localStorage.getItem("user");
 
+     try {
+      const userString = localStorage.getItem("user");
       if (userString) {
-        const user = JSON.parse(userString);
-        
-        if (user && user.token) {
-          axios.defaults.withCredentials = true;
-          axios.defaults.headers.common["Authorization"] = user.token;
-        }
+        JSON.parse(userString);
       }
     } catch (error) {
-      console.error("Erreur en lisant le localStorage, nettoyage en cours...", error);
+      console.error("Erreur localStorage, nettoyage...", error);
       localStorage.removeItem("user");
     }
-        setUserLoaded(true);
+    
+    setUserLoaded(true);
   }, []);
 
   if (!userLoaded) {
@@ -82,6 +83,24 @@ function App() {
             element={
               <NotLoggedRoute>
                 <UserVerify />
+              </NotLoggedRoute>
+            }
+          />
+
+          <Route
+            path="/mot-de-passe-oublie"
+            element={
+              <NotLoggedRoute>
+                <ForgotPassword />
+              </NotLoggedRoute>
+            }
+          />
+
+          <Route
+            path="/reset-password/:token"
+            element={
+              <NotLoggedRoute>
+                <ResetPassword />
               </NotLoggedRoute>
             }
           />
