@@ -4,6 +4,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import "dotenv/config";
+import cookieParser from "cookie-parser";
+
+  
 
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -36,7 +39,7 @@ const app = express();
 
 // Sécurité des en-têtes
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" } // pour afficher les images uploadées
+  crossOriginResourcePolicy: { policy: "cross-origin" } 
 }));
 
 const whitelist = [
@@ -59,6 +62,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+app.use(cookieParser()); 
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

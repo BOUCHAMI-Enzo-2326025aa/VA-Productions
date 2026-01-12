@@ -3,16 +3,16 @@ import useAuth from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 const NotLoggedRoute = ({ children }) => {
-    const { token } = useAuth();
+    const { user } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (token) {
+        if (user) {
             navigate("/dashboard", { replace: true });
         }
-    }, [token, navigate]); 
+    }, [user, navigate]); 
 
-    if (token) {
+    if (user) {
         return null; 
     }
     return <>{children}</>;

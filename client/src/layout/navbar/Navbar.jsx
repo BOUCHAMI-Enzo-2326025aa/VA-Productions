@@ -63,31 +63,31 @@ const Navbar = ({ isOpen, closeNavbar }) => {
             link={"/dashboard"}
             text={"Dashboard"}
             icon={dashboardSvg}
-            closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
+            closeNavbar={closeNavbar} 
           />
           <PageLink 
             link={"/contacts"} 
             text={"Contacts"} 
             icon={contactSvg} 
-            closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
+            closeNavbar={closeNavbar} 
           />
           <PageLink 
             link={"/order"} 
             text={"Commandes"} 
             icon={oderSvg} 
-            closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
+            closeNavbar={closeNavbar} 
           />
           <PageLink
             link={"/invoice"}
             text={"Facturations"}
             icon={facturationSvg}
-            closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
+            closeNavbar={closeNavbar} 
           />
           <PageLink
             link={"/calendrier"}
             text={"Calendrier"}
             icon={calendrierSvg}
-            closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
+            closeNavbar={closeNavbar} 
           />
         </div>
 
@@ -118,25 +118,25 @@ const Navbar = ({ isOpen, closeNavbar }) => {
                     link={"/admin/user"}
                     text={"Gestion Utilisateur"}
                     icon={manageUserSvg}
-                    closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
+                    closeNavbar={closeNavbar} 
                   />
                   <PageLink
                     link={"/admin/charge"}
                     text={"Comptabilité"}
                     icon={chargeSvg}
-                    closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
+                    closeNavbar={closeNavbar} 
                   />
                   <PageLink
                     link={"/admin/magazine"}
                     text={"Magazines"}
                     icon={contactSvg}
-                    closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
+                    closeNavbar={closeNavbar} 
                   />
                   <PageLink
                     link={"/admin/stats"}
                     text={"Statistiques"}
                     icon={statsSvg}
-                    closeNavbar={closeNavbar} // <--- PROPRIÉTÉ AJOUTÉE
+                    closeNavbar={closeNavbar}
                   />
                 </div>
               )}
@@ -146,9 +146,16 @@ const Navbar = ({ isOpen, closeNavbar }) => {
 
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-4">
           <button
-            onClick={() => {
-              localStorage.removeItem("user");
-              window.location.href = "/connexion";
+            onClick={async () => {
+              try {
+                // Appel au serveur pour supprimer le cookie
+                await axios.post(import.meta.env.VITE_API_HOST + "/api/user/logout");
+              } catch (error) {
+                console.error("Erreur lors de la déconnexion", error);
+              } finally {
+                localStorage.removeItem("user");
+                window.location.href = "/connexion";
+              }
             }}
             className="p-2 hover:bg-black hover:bg-opacity-10 rounded-lg transition group"
             title="Déconnexion"
