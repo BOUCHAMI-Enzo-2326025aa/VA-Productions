@@ -28,21 +28,20 @@ Le backend applique une politique CORS basée sur :
 flowchart LR
   %% MERN Deployment Diagram - VA Productions
 
-  U[Utilisateur\nNavigateur] -->|HTTPS| V[Vercel\nFrontend React/Vite\nPWA/Service Worker]
+  U[Utilisateur / Navigateur] -->|HTTPS| V[Vercel: Frontend React/Vite]
 
-  V -->|HTTPS\nREST API\nAuthorization: Bearer TOKEN\ncookies (credentials)| R[Render\nBackend Node.js/Express]
+  V -->|HTTPS REST API (auth header ou cookie)| R[Render: Backend Node/Express]
 
-  R -->|MongoDB driver| M[(MongoDB Atlas\nDatabase)]
+  R -->|MongoDB driver| M[(MongoDB Atlas)]
 
   %% Optional/feature modules
-  R -->|Emails (Brevo)| B[Brevo API\nEmail sender]
-  V -->|OAuth flow| G[Google APIs\nGoogle Calendar]
-  R -->|Token exchange / refresh| G
+  R -->|Emails| B[Brevo API]
+  V -->|OAuth| G[Google APIs: Calendar]
+  R -->|Tokens| G
 
   %% File storage
-  R -->|PDF / uploads\n(server/invoices, server/uploads)| FS[(Render filesystem\n(ephemeral)\n+ optional Persistent Disk)]
+  R -->|PDF + uploads| FS[(Render filesystem / Persistent Disk)]
 
-  %% Notes as subgraphs
   subgraph Frontend
     V
   end
@@ -51,7 +50,7 @@ flowchart LR
     R
   end
 
-  subgraph Data
+  subgraph Donnees
     M
     FS
   end
