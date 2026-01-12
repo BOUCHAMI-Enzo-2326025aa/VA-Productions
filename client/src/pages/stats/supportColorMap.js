@@ -1,4 +1,4 @@
-function normalizeSupportName(name) {
+export function normalizeSupportName(name) {
   return String(name || "").trim().toLowerCase();
 }
 

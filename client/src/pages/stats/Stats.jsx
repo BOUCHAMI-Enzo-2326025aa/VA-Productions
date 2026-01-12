@@ -180,13 +180,22 @@ const Stats = () => {
           </p>
         </div>
 
-        <label className="flex items-center gap-2 w-full md:w-auto">
-          <input
-            type="checkbox"
-            checked={paidOnly}
-            onChange={(e) => setPaidOnly(e.target.checked)}
-          />
-          <span className="text-[#3F3F3F] opacity-80">Payées uniquement</span>
+        <label className="flex items-center justify-between gap-4 w-full md:w-auto px-3 py-2 bg-white border border-[#E1E1E1] rounded-md">
+          <span className="text-[#3F3F3F] opacity-80 font-medium">
+            Payées uniquement
+          </span>
+          <span className="relative inline-flex items-center">
+            <input
+              type="checkbox"
+              checked={paidOnly}
+              onChange={(e) => setPaidOnly(e.target.checked)}
+              className="peer sr-only"
+              role="switch"
+              aria-label="Afficher uniquement les factures payées"
+            />
+            <span className="h-6 w-11 rounded-full border border-[#E1E1E1] bg-[#F7F7F7] transition-colors peer-checked:bg-[#3F3F3F] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#3F3F3F]" />
+            <span className="pointer-events-none absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+          </span>
         </label>
 
         {!isStatsLoading && invoicesFiltered.length > 0 && (

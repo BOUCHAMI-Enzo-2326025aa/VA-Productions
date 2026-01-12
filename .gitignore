@@ -1,4 +1,9 @@
 node_modules/
+
+# Environnement (secrets)
+.env
+.env.*
+!**/.env.example
 # Fichiers PDF générés par le serveur
 /server/invoices/
 /server/orders/
