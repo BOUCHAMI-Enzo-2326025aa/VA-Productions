@@ -37,6 +37,12 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Render/Vercel/Nginx/etc. add X-Forwarded-* headers. Enable trust proxy so req.ip
+// and express-rate-limit can correctly identify the client.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // Sécurité des en-têtes
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" } 
