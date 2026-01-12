@@ -5,20 +5,23 @@ const useAuth = () => {
 
   const authData = useMemo(() => {
     if (!storedString) {
-      return { user: null, token: null, isAdmin: false };
+      return { user: null, isAdmin: false };
     }
     try {
       const storedData = JSON.parse(storedString);
-      if (storedData && storedData.user && storedData.user.role) {
+      
+      const user = storedData.user || storedData; 
+
+      if (user && user.role) {
         return {
-          user: storedData.user,
-          token: storedData.token,
-          isAdmin: storedData.user.role === 'admin',
+          user: user,
+          token: null, 
+          isAdmin: user.role === 'admin',
         };
       }
-      return { user: storedData.user || null, token: storedData.token || null, isAdmin: false };
+      return { user: null, token: null, isAdmin: false };
     } catch (error) {
-      console.error("Erreur en parsant les données utilisateur du localStorage", error);
+      console.error("Erreur parsing user localStorage", error);
       return { user: null, token: null, isAdmin: false };
     }
   }, [storedString]);

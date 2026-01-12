@@ -4,6 +4,15 @@ import path from "path";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import "dotenv/config";
+import cookieParser from "cookie-parser";
+
+  
+
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import hpp from "hpp";
+import xss from "xss-clean";
+import mongoSanitize from "express-mongo-sanitize";
 
 import "./model/contactModel.js";
 import "./model/userModel.js";
@@ -28,39 +37,70 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Sécurité des en-têtes
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" } 
+}));
+
+const whitelist = [
+  "http://localhost:5173", 
+  process.env.FRONT_LINK   
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log("Bloqué par CORS:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true, 
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+
+app.use(cookieParser()); 
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 250,
+  message: "Trop de requêtes depuis cette IP, veuillez réessayer plus tard."
+});
+app.use("/api", limiter);
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+app.use(mongoSanitize()); // Contre injection NoSQL
+app.use(xss()); // Contre injection XSS
+app.use(hpp()); 
+
+mongoose
+  .connect(process.env.MONGODBURL)
+  .then(() => {
+    console.log("App connected to database");
+  })
+  .catch((error) => {
+    console.log(error);
+  });
+
+
+// Route spécifique pour les factures 
 app.get("/invoices/:filename", (req, res) => {
-  const filename = req.params.filename;
+  const filename = path.basename(req.params.filename); 
   const filePath = path.join(__dirname, "invoices", filename);
 
   res.sendFile(filePath, (err) => {
     if (err) {
-      console.error("Erreur lors de l'envoi du fichier:", err);
-      res.status(500).send("Erreur lors du téléchargement du fichier");
+      console.error("Erreur envoi fichier:", err);
+      res.status(err.status || 500).send("Fichier introuvable");
     }
   });
 });
-
-const allowedOrigins = [
-  process.env.FRONT_LINK,    // L'URL de votre site en production
-  'http://localhost:5173',   // L'URL de votre client en local
-  'http://localhost:5174'    // J'ajoute l'autre port au cas où il changerait
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // autoriser les requêtes sans origine (comme Postman) ou si l'origine est dans la liste
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Non autorisé par la politique CORS'));
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  credentials: true, 
-}));
-
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Servir les images des magazines uploadées
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -75,17 +115,9 @@ app.use("/api/google", googleCalendarRouter);
 app.use("/api/charge", chargeRouter);
 app.use("/api/signature", signatureRouter);
 
-
-app.listen(process.env.PORT, () => {
-  console.log(`App started on port ${process.env.PORT}`);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`App started on port ${PORT}`);
 });
 
 
-mongoose
-  .connect(process.env.MONGODBURL)
-  .then(() => {
-    console.log("App connected to database");
-  })
-  .catch((error) => {
-    console.log(error);
-  });
