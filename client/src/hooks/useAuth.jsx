@@ -11,12 +11,14 @@ const useAuth = () => {
       const storedData = JSON.parse(storedString);
       
       const user = storedData.user || storedData; 
+      const token = storedData.token || user?.token || null;
 
       if (user && user.role) {
+        const normalizedRole = String(user.role || "").trim().toLowerCase();
         return {
           user: user,
-          token: null, 
-          isAdmin: user.role === 'admin',
+          token,
+          isAdmin: normalizedRole === 'admin',
         };
       }
       return { user: null, token: null, isAdmin: false };
