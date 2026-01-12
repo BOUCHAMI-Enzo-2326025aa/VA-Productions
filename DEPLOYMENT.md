@@ -30,7 +30,7 @@ flowchart LR
 
   U[Utilisateur / Navigateur] -->|HTTPS| V[Vercel: Frontend React/Vite]
 
-  V -->|HTTPS REST API (auth header ou cookie)| R[Render: Backend Node/Express]
+  V -->|HTTPS REST API - auth header ou cookie| R[Render: Backend Node/Express]
 
   R -->|MongoDB driver| M[(MongoDB Atlas)]
 
