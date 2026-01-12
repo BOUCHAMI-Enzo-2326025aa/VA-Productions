@@ -7,7 +7,9 @@ import crypto from "crypto";
 const COOKIE_OPTIONS = {
   httpOnly: true, 
   secure: process.env.NODE_ENV === "production", 
-  sameSite: "lax", 
+  // Front (Vercel) and API (Render) are different origins in production.
+  // Allow cross-site cookies (requires HTTPS + secure=true).
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   maxAge: 3 * 24 * 60 * 60 * 1000 
 };
 
@@ -16,8 +18,10 @@ const isPasswordStrong = (password) => {
   return regex.test(password);
 };
 
+const normalizeRole = (role) => String(role || "").trim().toLowerCase();
+
 const createToken = (_id, role) => {
-  return jsonwebtoken.sign({ user: { _id, role } }, process.env.SECRET, {
+  return jsonwebtoken.sign({ user: { _id, role: normalizeRole(role) } }, process.env.SECRET, {
     expiresIn: "3d",
   });
 };
@@ -42,7 +46,8 @@ export const createUser = async (req, res) => {
     }
 
     // Valider le rôle (par défaut: commercial)
-    const userRole = role && (role === "admin" || role === "commercial") ? role : "commercial";
+    const requestedRole = normalizeRole(role);
+    const userRole = requestedRole === "admin" || requestedRole === "commercial" ? requestedRole : "commercial";
     const verificationCode = crypto.randomBytes(16).toString("hex");
     const verificationLink = `${process.env.FRONT_LINK}/user/verify/${email}/${verificationCode}`;
     // vérification email unique
@@ -102,13 +107,20 @@ export const loginUser = async (req, res) => {
     const token = createToken(user._id, user.role);
     res.cookie("token", token, COOKIE_OPTIONS);
 
-    res.status(200).json({ 
+    const safeUser = {
       _id: user._id,
       email: user.email,
-      role: user.role,
+      role: normalizeRole(user.role),
       nom: user.nom,
       prenom: user.prenom,
-      message: "Connexion réussie" 
+    };
+
+    // Backward compatible (fields at root) + explicit user/token
+    res.status(200).json({
+      ...safeUser,
+      user: safeUser,
+      token,
+      message: "Connexion réussie",
     });
 
   } catch (error) {
@@ -119,6 +131,8 @@ export const loginUser = async (req, res) => {
 export const logoutUser = (req, res) => {
   res.cookie("token", "", {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     expires: new Date(0) // expire immédiatement
   });
   res.status(200).json({ message: "Déconnecté avec succès" });
@@ -148,7 +162,8 @@ export const verifyUser = async (req, res) => {
 
       res.status(200).json({ 
         userId: updatedUser._id, 
-        user: updatedUser 
+        user: updatedUser,
+        token
       });
     } else {
       res.status(400).json({ message: "Code de vérification invalide" });

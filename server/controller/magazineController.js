@@ -159,7 +159,12 @@ export const deleteMagazine = async (req, res) => {
       return res.status(400).json({ erreur: "Le mot de passe administrateur est requis" });
     }
     
-    const token = req.headers.authorization;
+    const authHeader = req.headers?.authorization;
+    const headerToken = authHeader
+      ? (authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : authHeader.trim())
+      : null;
+    const token = req.cookies?.token || headerToken;
+
     if (!token) {
       return res.status(401).json({ erreur: "Token manquant" });
     }
