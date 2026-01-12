@@ -24,6 +24,7 @@
   border-radius: 0.5rem;
   font-weight: 600;
   min-width: 0;
+  flex: 1 1 160px;
   border: 1px solid #e5e7eb;
   background: #ffffff;
   color: #3F3F3F;
@@ -34,8 +35,7 @@
 /* Permet au texte de se replier sans déborder (zoom/dézoom) */
 .mag-action-btn__label {
   min-width: 0;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
   line-height: 1.1;
   text-align: center;
 }
@@ -48,19 +48,15 @@
 }
 
 .mag-action-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   min-width: 0;
 }
 
-.mag-action-row .mag-action-btn {
-  width: 100%;
-}
-
 @media (max-width: 420px) {
-  .mag-action-row {
-    grid-template-columns: 1fr;
+  .mag-action-btn {
+    flex-basis: 100%;
   }
 }
 
