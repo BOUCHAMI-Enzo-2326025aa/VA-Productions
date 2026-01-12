@@ -22,6 +22,45 @@ Le frontend appelle l’API via la variable :
 Le backend applique une politique CORS basée sur :
 - `FRONT_LINK` (doit correspondre exactement à l’origin Vercel, ex: `https://<front>.vercel.app`)
 
+### 1.1 Diagramme de déploiement (MERN)
+
+```mermaid
+flowchart LR
+  %% MERN Deployment Diagram - VA Productions
+
+  U[Utilisateur / Navigateur] -->|HTTPS| V[Vercel: Frontend React/Vite]
+
+  V -->|HTTPS REST API - auth header ou cookie| R[Render: Backend Node/Express]
+
+  R -->|MongoDB driver| M[(MongoDB Atlas)]
+
+  %% Optional/feature modules
+  R -->|Emails| B[Brevo API]
+  V -->|OAuth| G[Google APIs: Calendar]
+  R -->|Tokens| G
+
+  %% File storage
+  R -->|PDF + uploads| FS[(Render filesystem / Persistent Disk)]
+
+  subgraph Frontend
+    V
+  end
+
+  subgraph Backend
+    R
+  end
+
+  subgraph Donnees
+    M
+    FS
+  end
+```
+
+Notes :
+- En production, le front (Vercel) et l’API (Render) sont sur des **origins différentes** : prévoir `FRONT_LINK` côté API + `VITE_API_HOST` côté front.
+- Les routes protégées utilisent un token JWT (cookie et/ou header `Authorization`).
+- Les PDF/upload stockés sur Render peuvent être perdus au redeploy sans **Persistent Disk** (ou stockage externe).
+
 ---
 
 ## 2) MongoDB Atlas (création + connexion)
