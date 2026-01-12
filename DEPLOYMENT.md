@@ -30,7 +30,7 @@ flowchart LR
 
   U[Utilisateur\nNavigateur] -->|HTTPS| V[Vercel\nFrontend React/Vite\nPWA/Service Worker]
 
-  V -->|HTTPS\nREST API\nAuthorization: Bearer <token>\n+ cookies (credentials)| R[Render\nBackend Node.js/Express]
+  V -->|HTTPS\nREST API\nAuthorization: Bearer TOKEN\ncookies (credentials)| R[Render\nBackend Node.js/Express]
 
   R -->|MongoDB driver| M[(MongoDB Atlas\nDatabase)]
 
