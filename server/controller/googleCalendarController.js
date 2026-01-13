@@ -46,7 +46,7 @@ export const handleCallback = async (req, res) => {
     const { code } = req.query;
 
     if (!code) {
-      return res.status(400).send('Code d\'authentification manquant');
+      return res.status(400).send("Code d'authentification manquant");
     }
 
     const oauth2Client = createOAuth2Client(req);
@@ -55,26 +55,48 @@ export const handleCallback = async (req, res) => {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
-    // Stocker les tokens (en production, utilisez une base de données)
-    // Pour l'instant, on les renvoie au client qui les stockera dans localStorage
+    res.setHeader("Content-Security-Policy", "script-src 'self' 'unsafe-inline'");
+    
+    res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
+    
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     
     res.send(`
+      <!DOCTYPE html>
       <html>
+        <head>
+          <title>Authentification réussie</title>
+          <style>
+            body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+          </style>
+        </head>
         <body>
+          <h1>✅ Authentification réussie !</h1>
+          <p>Fermeture automatique...</p>
           <script>
-            window.opener.postMessage({
-              type: 'google-auth-success',
-              tokens: ${JSON.stringify(tokens)}
-            }, '*');
-            window.close();
+            // Les tokens injectés par le serveur
+            const tokens = ${JSON.stringify(tokens)};
+            
+            // On envoie le message à la fenêtre principale
+            // L'étoile '*' permet d'envoyer le message peu importe si on est sur localhost, 127.0.0.1 ou ton nom de domaine
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'google-auth-success',
+                tokens: tokens
+              }, '*');
+              
+              // On ferme la popup
+              window.close();
+            } else {
+              document.body.innerHTML = "<p style='color:red'>Impossible de contacter la fenêtre principale. Vous pouvez fermer ceci manuellement.</p>";
+            }
           </script>
-          <p>Authentification réussie ! Cette fenêtre va se fermer...</p>
         </body>
       </html>
     `);
   } catch (error) {
     console.error('Erreur callback Google:', error);
-    res.status(500).send('Erreur lors de l\'authentification');
+    res.status(500).send(`Erreur d'authentification: ${error.message}`);
   }
 };
 
