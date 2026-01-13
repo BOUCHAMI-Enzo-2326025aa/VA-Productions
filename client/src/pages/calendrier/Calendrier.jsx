@@ -43,22 +43,23 @@ const Calendrier = () => {
       setIsAuthenticated(true);
     }
 
+
     const handleMessage = (event) => {
-      console.log('📨 Message reçu:', event.data);
-      console.log('📍 Origin:', event.origin);
-      
-      // Accepter les messages de notre serveur API (qui sert le callback)
-      // Le callback vient de http://localhost:5555 (serveur backend)
-      const apiHost = import.meta.env.VITE_API_HOST || 'http://localhost:5555';
-      const expectedOrigin = new URL(apiHost).origin;
-      
-      console.log('✅ Origin attendue:', expectedOrigin);
-      
-      // Vérifier que le message vient bien de notre API backend
-      if (event.origin !== expectedOrigin) {
-        console.warn('⚠️ Message ignoré - origine non autorisée:', event.origin, '(attendu:', expectedOrigin + ')');
-        return;
-      }
+  console.log('📨 Message reçu:', event.data);
+  console.log('📍 Origin:', event.origin);
+
+  // La liste des serveurs backend autorisés à nous parler
+  const allowedOrigins = [
+    'http://localhost:5555',                          // le backend local
+    'https://sae-v-a-productions.onrender.com'        // le backend en ligne
+  ];
+
+  // On vérifie si l'origine du message est dans notre liste
+  if (!allowedOrigins.includes(event.origin)) {
+    
+    console.warn('⚠️ Message ignoré - origine non reconnue:', event.origin);
+    // return; // <-- Décommentez cette ligne une fois que tout marche pour la sécurité
+  }
       
       if (event.data && event.data.type === 'google-auth-success') {
         console.log('🎉 Authentification Google réussie !');
