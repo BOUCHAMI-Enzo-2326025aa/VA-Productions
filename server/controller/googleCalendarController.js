@@ -56,11 +56,11 @@ export const handleCallback = async (req, res) => {
     oauth2Client.setCredentials(tokens);
 
     res.setHeader("Content-Security-Policy", "script-src 'self' 'unsafe-inline'");
-    // 2. Empêche le navigateur d'isoler la popup (garde le lien avec window.opener)
+    
     res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
-    // 3. Autorise le partage de ressources cross-origin
+    
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-    // On renvoie une page HTML simple qui exécute le script et se ferme
+    
     res.send(`
       <!DOCTYPE html>
       <html>
