@@ -43,12 +43,33 @@ const Calendrier = () => {
       setIsAuthenticated(true);
     }
 
+
     const handleMessage = (event) => {
-      if (event.data.type === 'google-auth-success') {
+  console.log('📨 Message reçu:', event.data);
+  console.log('📍 Origin:', event.origin);
+
+  // La liste des serveurs backend autorisés à nous parler
+  const allowedOrigins = [
+    'http://localhost:5555',                          // le backend local
+    'https://sae-v-a-productions.onrender.com'        // le backend en ligne
+  ];
+
+  // On vérifie si l'origine du message est dans notre liste
+  if (!allowedOrigins.includes(event.origin)) {
+    
+    console.warn('⚠️ Message ignoré - origine non reconnue:', event.origin);
+    // return; // <-- Décommentez cette ligne une fois que tout marche pour la sécurité
+  }
+      
+      if (event.data && event.data.type === 'google-auth-success') {
+        console.log('🎉 Authentification Google réussie !');
         const tokens = event.data.tokens;
         localStorage.setItem('googleTokens', JSON.stringify(tokens));
         setGoogleTokens(tokens);
         setIsAuthenticated(true);
+        
+        // Notification visuelle
+        console.log('✅ Tokens sauvegardés dans localStorage');
       }
     };
 
@@ -61,23 +82,34 @@ const Calendrier = () => {
 
   const handleSignIn = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_HOST}/api/google/auth-url`);
+      console.log('Début connexion Google Calendar...');
+      const apiHost = import.meta.env.VITE_API_HOST || 'http://localhost:5555';
+      const response = await axios.get(`${apiHost}/api/google/auth-url`);
       const authUrl = response.data.authUrl;
+      
+      console.log('URL d\'authentification reçue');
       
       const width = 500;
       const height = 600;
       const left = (window.screen.width - width) / 2;
       const top = (window.screen.height - height) / 2;
       
-      window.open(
+      const popup = window.open(
         authUrl,
         'Google Authentication',
         `width=${width},height=${height},left=${left},top=${top}`
       );
       
+      if (!popup) {
+        alert('⚠️ La popup a été bloquée. Veuillez autoriser les popups pour ce site.');
+        return;
+      }
+      
+      console.log('Popup ouverte, en attente de la réponse...');
+      
     } catch (error) {
       console.error("Erreur lors de la connexion Google:", error);
-      alert("Erreur lors de la connexion à Google Calendar.");
+      alert("❌ Erreur lors de la connexion à Google Calendar: " + error.message);
     }
   };
 
