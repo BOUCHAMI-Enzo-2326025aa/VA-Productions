@@ -34,16 +34,34 @@ const Navigation = () => {
         V - Les bons de commande
       </a>
       <a
+        href="#gestion-magazines"
+        className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
+      >
+        VI - Gestion des magazines
+      </a>
+      <a
+        href="#gestion-charges"
+        className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
+      >
+        VII - Gestion des charges
+      </a>
+      <a
         href="#gestion-utilisateurs"
         className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
       >
-        VI - Gestion des utilisateurs
+        VIII - Gestion des utilisateurs
       </a>
       <a
         href="#stats"
         className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
       >
-        VII - Statistiques
+        IX - Statistiques
+      </a>
+      <a
+        href="#parametres"
+        className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit"
+      >
+        X - Paramètres
       </a>
     </div>
   );

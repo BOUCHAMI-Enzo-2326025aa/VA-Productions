@@ -7,8 +7,8 @@ const Guide = () => {
   return (
     <div className="text-[#3F3F3F] mt-10 w-full flex flex-col gap-10">
       <a
-        href="/guide.pdf"
-        download="Guide d'utilisation.pdf"
+        href="/Guide d'utilisation .pdf"
+        download="Guide d'utilisation V.A Productions.pdf"
         target="_blank"
         rel="noopener noreferrer"
         className="bg-blue-500 text-white px-4 py-2 rounded w-fit self-center md:self-start"
@@ -154,15 +154,114 @@ const Guide = () => {
                 <b>Validation et génération :</b> Avant de finaliser, une page
                 récapitulative affichera tous les détails de la commande, y
                 compris les informations du client, les éléments commandés, et
-                le montant total avec les taxes applicables. Après vérification,
-                signez puis cliquez sur "Confirmer" pour valider la commande et
+                le montant total avec les taxes applicables. Après vérification
+                et signature du client cliquez sur "Confirmer" pour valider la commande et
                 générer automatiquement un PDF récapitulatif.
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Filtrer les commandes">
+              <p>
+                Vous pouvez filtrer les commandes par date, support, statut ou
+                client. Cliquez sur le bouton de filtre, choisissez parmi les
+                options proposées, puis appuyez sur le bouton "Rechercher". Vous
+                pouvez également réinitialiser les filtres en cliquant sur le
+                bouton "Réinitialiser".
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Valider le paiement">
+              <p>
+                Une fois le paiement reçu, vous pouvez valider la commande
+                correspondante en cliquant sur le bouton "Valider". Cela
+                transformera automatiquement la commande en facture.
+              </p>
+            </Paragraph>
+          </Section>
+
+          <Section className="mt-16" name="gestion-magazines">
+            <Title texte="VI - Gestion des magazines" />
+            <Paragraph>
+              <p>
+                La page <b>Magazines</b> permet de gérer les différents supports
+                publicitaires disponibles dans l'application. Vous pouvez
+                consulter, ajouter, modifier et supprimer des magazines.
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Ajouter un magazine" className="mt-4">
+              <p>
+                Pour ajouter un nouveau magazine, cliquez sur le bouton "+
+                Ajouter un magazine". Vous devrez renseigner les informations
+                suivantes :
+              </p>
+              <ul className="list-disc ml-6 mt-2 flex flex-col gap-1">
+                <li><b>Nom du magazine :</b> Le nom du support publicitaire.</li>
+                <li><b>Type :</b> Le type de support (magazine, flyer, affiche, etc.).</li>
+                <li><b>Couverture du magazine :</b> Vous pouvez télécharger une image représentant le magazine pour référence.</li>
+              </ul>
+            </Paragraph>
+            <Paragraph subtitle="Modifier un magazine">
+              <p>
+                En cliquant sur un magazine dans la liste, vous pouvez accéder à
+                ses détails et le modifier. Vous pouvez changer le nom, le type,
+                ou remplacer la couverture du magazine.
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Supprimer un magazine">
+              <p>
+                Pour supprimer un magazine, cliquez sur le bouton de suppression
+                correspondant. Une confirmation vous sera demandée avant la
+                suppression définitive.
+              </p>
+            </Paragraph>
+          </Section>
+
+          <Section className="mt-16" name="gestion-charges">
+            <Title texte="VII - Gestion des charges" />
+            <Paragraph>
+              <p>
+                La page <b>Charges</b> permet de gérer toutes les dépenses de
+                l'entreprise. Vous pouvez consulter, ajouter, modifier et
+                supprimer des charges.
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Ajouter une charge" className="mt-4">
+              <p>
+                Pour ajouter une nouvelle charge, cliquez sur le bouton "+
+                Ajouter une charge". Vous devrez renseigner les informations
+                suivantes :
+              </p>
+              <ul className="list-disc ml-6 mt-2 flex flex-col gap-1">
+                <li><b>Nom de la charge :</b> Le libellé de la dépense.</li>
+                <li><b>Montant :</b> Le montant de la charge en euros.</li>
+                <li><b>Date :</b> La date à laquelle la charge a été effectuée.</li>
+                <li><b>Catégorie :</b> Le type de charge (fournitures, déplacements, salaires, etc.).</li>
+                <li><b>Description :</b> Des détails supplémentaires sur la charge (optionnel).</li>
+              </ul>
+            </Paragraph>
+            <Paragraph subtitle="Modifier une charge">
+              <p>
+                En cliquant sur une charge dans la liste, vous pouvez accéder à
+                ses détails et la modifier. Vous pouvez changer le nom, le
+                montant, la date, la catégorie ou la description.
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Supprimer une charge">
+              <p>
+                Pour supprimer une charge, cliquez sur le bouton de suppression
+                correspondant. Une confirmation vous sera demandée avant la
+                suppression définitive.
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Filtrer les charges">
+              <p>
+                Vous pouvez filtrer les charges par date, catégorie ou montant.
+                Utilisez les options de filtre disponibles pour affiner votre
+                recherche et obtenir une vue précise de vos dépenses.
               </p>
             </Paragraph>
           </Section>
 
           <Section className="mt-16" name="gestion-utilisateurs">
-            <Title texte="VI - Gestion des utilisateurs" />
+            <Title texte="VIII - Gestion des utilisateurs" />
             <Paragraph>
               <p>
                 La page <b>Gestion des utilisateurs</b> affiche une liste
@@ -173,8 +272,8 @@ const Guide = () => {
             </Paragraph>
             <Paragraph subtitle="Modifier un utilisateur">
               <p>
-                En cliquant sur un utilisateur, vous pouvez modifier ses
-                informations, comme son rôle ou son e-mail, en temps réel.
+                En cliquant sur un utilisateur, vous pouvez modifier son rôle.
+                Pour le faire passer administrateur par exemple.
               </p>
             </Paragraph>
             <Paragraph subtitle="Ajouter un utilisateur">
@@ -184,15 +283,62 @@ const Guide = () => {
                 e-mail, rôle) et sauvegardez pour l’enregistrer dans le système.
               </p>
             </Paragraph>
+            <Paragraph subtitle="Supprimer un utilisateur">
+              <p>
+                Pour supprimer un utilisateur, cliquez sur le bouton de
+                suppression correspondant. Une confirmation vous sera demandée
+                avant la suppression définitive.
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Gestion des rôles">
+              <p>
+                L'application dispose de deux rôles :
+              </p>
+              <ul className="list-disc ml-6 mt-2 flex flex-col gap-1">
+                <li><b>Administrateur :</b> Accès complet à toutes les fonctionnalités.</li>
+                <li><b>Commercial :</b> Accès à toutes les fonctionnalités sauf la partie administration qui est invisible pour eux.</li>
+              </ul>
+            </Paragraph>
           </Section>
 
           <Section className="mt-16" name="stats">
-            <Title texte="VII - Statistiques" />
+            <Title texte="IX - Statistiques" />
             <Paragraph>
               <p>
                 La page <b>Statistiques</b> permet de consulter les performances
                 de chaque support. Vous pouvez visualiser le nombre de ventes
-                réalisées sur une période donnée.
+                réalisées sur une période donnée, ainsi que le chiffre
+                d'affaires généré par support.
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Exporter les données">
+              <p>
+                Il est possible d'exporter les données statistiques au format CSV
+                pour les utiliser dans vos rapports ou
+                présentations.
+              </p>
+            </Paragraph>
+          </Section>
+
+          <Section className="mt-16" name="parametres">
+            <Title texte="X - Paramètres" />
+            <Paragraph>
+              <p>
+                La page <b>Paramètres</b> permet de personnaliser votre
+                expérience utilisateur et de configurer les informations de
+                votre entreprise.
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Informations personnelles" className="mt-4">
+              <p>
+                Vous pouvez modifier votre nom, prénom.
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Modifier le mot de passe">
+              <p>
+                Pour changer votre mot de passe, accédez à la section
+                "Sécurité" dans les paramètres. Vous devrez saisir votre mot de
+                passe actuel puis définir un nouveau mot de passe sécurisé.
               </p>
             </Paragraph>
           </Section>
