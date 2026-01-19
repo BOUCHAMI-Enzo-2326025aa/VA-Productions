@@ -1,10 +1,24 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { User, Lock, Save, Eye, EyeOff } from "lucide-react";
+import useAuth from "../../hooks/useAuth";
+import { PAGE_CONTENT_CONFIG, PAGE_KEYS } from "../../content/pageContentConfig";
 
 const Settings = () => {
   const [user, setUser] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, type: "", message: "" });
+
+  const { isAdmin } = useAuth();
+
+  // Admin - éditeur de contenu des pages
+  const [selectedPageKey, setSelectedPageKey] = useState("dashboard");
+  const [accountingSubPageKey, setAccountingSubPageKey] = useState("accountingCharges");
+  const [pageEditorForm, setPageEditorForm] = useState({});
+  const [pageEditorLoading, setPageEditorLoading] = useState(false);
+  const [pageEditorFetching, setPageEditorFetching] = useState(false);
+
+  const isAccountingGroup = selectedPageKey === "accounting";
+  const effectivePageKey = isAccountingGroup ? accountingSubPageKey : selectedPageKey;
   
   // État pour le formulaire de profil
   const [profileForm, setProfileForm] = useState({
@@ -37,6 +51,68 @@ const Settings = () => {
 
     }
   }, []);
+
+  useEffect(() => {
+    const fetchPageContent = async () => {
+      if (!isAdmin) return;
+      if (!String(effectivePageKey || "").trim()) return;
+      const config = PAGE_CONTENT_CONFIG?.[effectivePageKey];
+      if (!config) return;
+      const defaults = config?.defaults || {};
+      const allowedFieldKeys = new Set(Object.keys(config?.fields || {}));
+
+      setPageEditorFetching(true);
+      try {
+        const res = await axios.get(`/api/page-content/${effectivePageKey}`);
+        const fields = res?.data?.fields || {};
+        const merged = { ...defaults, ...fields };
+        // Only keep fields declared as editable in config
+        const filtered = {};
+        for (const key of Object.keys(merged)) {
+          if (allowedFieldKeys.has(key)) {
+            filtered[key] = merged[key];
+          }
+        }
+        // Ensure all editable fields exist in state (even if empty)
+        for (const key of allowedFieldKeys) {
+          if (filtered[key] === undefined) filtered[key] = defaults[key] ?? "";
+        }
+        setPageEditorForm(filtered);
+      } catch (error) {
+        console.error("Erreur chargement contenu page:", error);
+        showSnackbar("error", "Impossible de charger le contenu de la page");
+      } finally {
+        setPageEditorFetching(false);
+      }
+    };
+
+    fetchPageContent();
+  }, [effectivePageKey, isAdmin]);
+
+  const handleSavePageContent = async (e) => {
+    e.preventDefault();
+    if (!isAdmin) return;
+    const config = PAGE_CONTENT_CONFIG?.[effectivePageKey];
+    if (!config) return;
+    const allowedFieldKeys = Object.keys(config?.fields || {});
+    const payload = {};
+    for (const key of allowedFieldKeys) {
+      payload[key] = pageEditorForm?.[key] ?? "";
+    }
+
+    setPageEditorLoading(true);
+    try {
+      await axios.put(`/api/page-content/${effectivePageKey}`, {
+        fields: payload,
+      });
+      showSnackbar("success", "Contenu mis à jour");
+    } catch (error) {
+      console.error("Erreur sauvegarde contenu page:", error);
+      showSnackbar("error", error.response?.data?.error || "Erreur lors de l'enregistrement");
+    } finally {
+      setPageEditorLoading(false);
+    }
+  };
 
   const showSnackbar = (type, message) => {
     setSnackbar({ open: true, type, message });
@@ -314,6 +390,102 @@ const Settings = () => {
           </form>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Save className="text-[#3F3F3F]" size={24} />
+            <h2 className="text-xl font-semibold">Éditeur de pages</h2>
+          </div>
+          <p className="opacity-80 mb-6">Modifier uniquement les titres et textes statiques (global).</p>
+
+          <form onSubmit={handleSavePageContent} className="space-y-4">
+            <div>
+              <label className="block font-semibold mb-2">Page</label>
+              <select
+                value={selectedPageKey}
+                onChange={(e) => setSelectedPageKey(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={pageEditorFetching}
+              >
+                {PAGE_KEYS.filter((key) => key !== "accountingCharges" && key !== "accountingResult").map(
+                  (key) => (
+                    <option key={key} value={key}>
+                      {PAGE_CONTENT_CONFIG[key]?.label || key}
+                    </option>
+                  )
+                )}
+                <option value="accounting">Comptabilité</option>
+              </select>
+            </div>
+
+            {selectedPageKey === "accounting" && (
+              <div>
+                <label className="block font-semibold mb-2">Sous-page</label>
+                <select
+                  value={accountingSubPageKey}
+                  onChange={(e) => setAccountingSubPageKey(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={pageEditorFetching}
+                >
+                  <option value="accountingCharges">Saisie des charges</option>
+                  <option value="accountingResult">Compte de résultat</option>
+                </select>
+              </div>
+            )}
+
+            {Object.entries(PAGE_CONTENT_CONFIG[effectivePageKey]?.fields || {}).map(
+              ([fieldKey, meta]) => {
+                const label = meta?.label || fieldKey;
+                const type = meta?.type || "text";
+                const value = pageEditorForm?.[fieldKey] ?? "";
+
+                if (type === "textarea") {
+                  return (
+                    <div key={fieldKey}>
+                      <label className="block font-semibold mb-2">{label}</label>
+                      <textarea
+                        value={value}
+                        onChange={(e) =>
+                          setPageEditorForm((p) => ({ ...p, [fieldKey]: e.target.value }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
+                        placeholder={label}
+                        disabled={pageEditorFetching}
+                      />
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={fieldKey}>
+                    <label className="block font-semibold mb-2">{label}</label>
+                    <input
+                      type="text"
+                      value={value}
+                      onChange={(e) =>
+                        setPageEditorForm((p) => ({ ...p, [fieldKey]: e.target.value }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={label}
+                      disabled={pageEditorFetching}
+                    />
+                  </div>
+                );
+              }
+            )}
+
+            <button
+              type="submit"
+              disabled={pageEditorLoading || pageEditorFetching}
+              className="w-full bg-[#3F3F3F] text-white py-2 rounded-lg font-semibold hover:bg-opacity-80 transition flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Save size={18} />
+              {pageEditorLoading ? "Enregistrement..." : "Enregistrer"}
+            </button>
+          </form>
+        </div>
+      )}
 
     </div>
   );
