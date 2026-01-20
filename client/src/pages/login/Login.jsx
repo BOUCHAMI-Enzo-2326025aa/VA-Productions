@@ -6,8 +6,10 @@ import va_logo from "../../assets/va-production-logo.png";
 import loading_gif from "../../assets/loading-gif.svg";
 import ErrorMessage from "./ErrorMessage";
 import { Eye, EyeOff } from "lucide-react";
+import usePageContent from "../../hooks/usePageContent";
 
 const Login = () => {
+  const { content } = usePageContent("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginSuccessfull, setLoginSuccessfull] = useState(false);
@@ -64,14 +66,14 @@ const Login = () => {
 
         {/* HEADER */}
         <div className="font-bold text-4xl md:text-5xl">
-          <p className="text-[#3F3F3F]">Bienvenue chez</p>
+          <p className="text-[#3F3F3F]">{content.welcomeLine1 || "Bienvenue chez"}</p>
           <p className="text-white bg-[#3F3F3F] w-fit px-3 py-1 mt-1">
-            V.A Productions
+            {content.welcomeLine2 || "V.A Productions"}
           </p>
         </div>
         <p className="max-w-md mt-5 opacity-70">
-          Découvrez tous les outils liés à la prospection et facturation pour
-          faciliter la prise de contact et de commande
+          {content.subtitle ||
+            "Découvrez tous les outils liés à la prospection et facturation pour faciliter la prise de contact et de commande"}
         </p>
 
         {/* FORMULAIRE */}
@@ -80,16 +82,17 @@ const Login = () => {
           onSubmit={(e) => e.preventDefault()}
         >
           <label className="flex flex-col font-medium text-[15px]">
-            Email
+            {content.emailLabel || "Email"}
             <input
               required
               onChange={(e) => setUsername(e.target.value)}
               className="border-[#3F3F3F] border-[0.75px] border-opacity-15 w-full py-[10px] rounded-[5px] px-2 mt-1"
+              placeholder={content.emailPlaceholder || ""}
             />
           </label>
 
           <label className="flex flex-col font-medium text-[15px]">
-            Mot de passe
+            {content.passwordLabel || "Mot de passe"}
             <div className="relative">
               <input
                 required
@@ -100,6 +103,7 @@ const Login = () => {
                 onBlur={() => setPasswordError("")}
                 type={showPassword ? "text" : "password"}
                 className="border-[#3F3F3F] border-[0.75px] border-opacity-15 w-full py-[10px] rounded-[5px] px-2 pr-10 mt-1"
+                placeholder={content.passwordPlaceholder || ""}
               />
               <button
                 type="button"
@@ -122,7 +126,7 @@ const Login = () => {
               type="submit"
             >
               {loading && <img className="size-6" src={loading_gif} alt="Chargement" />}
-              {!loading && <p>Se connecter</p>}
+              {!loading && <p>{content.submitButtonLabel || "Se connecter"}</p>}
             </button>
             <button
               className="w-full border-[#5C89E0] active:scale-95 text-[#5C89E0] hover:text-white hover:bg-[#5C89E0] transition-all border-2 py-3 rounded-[5px]"
@@ -130,7 +134,7 @@ const Login = () => {
                 location.href = "/mot-de-passe-oublie";
               }}
             >
-              Mot de passe oublié ?
+              {content.forgotPasswordButtonLabel || "Mot de passe oublié ?"}
             </button>
           </div>
         </form>
