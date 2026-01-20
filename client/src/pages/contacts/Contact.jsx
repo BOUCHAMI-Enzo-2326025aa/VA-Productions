@@ -8,8 +8,10 @@ import "./contact.css";
 import Button from "../../components/ui/Button";
 import DetailContactV2 from "./components/DetailContactV2";
 import SnackBar from "./components/SnackBar";
+import usePageContent from "../../hooks/usePageContent";
 
 const Contact = () => {
+  const { content } = usePageContent("contacts");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [filteredContacts, setFilteredContacts] = useState([]);
@@ -167,10 +169,10 @@ const Contact = () => {
         <div className="flex flex-col space-y-8 md:space-y-12 pt-6">
           <div className="flex flex-col ">
             <p className="font-inter text-[#3F3F3F] text-3xl md:text-4xl font-bold">
-              Contacts
+              {content.title}
             </p>
             <p className="font-inter text-[#3F3F3F] text-lg md:text-xl font-medium opacity-70">
-              Retrouvez la liste de tous les contacts enregistrés
+              {content.text}
             </p>
           </div>
           <div className="flex flex-col space-y-5">
@@ -180,7 +182,7 @@ const Contact = () => {
                 <input
                   type="text"
                   className="bg-transparent focus:border-transparent focus:ring-0 border-transparent focus:outline-none font-inter text-[#3F3F3F] placeholder-opacity-50 flex-1"
-                  placeholder="Rechercher un contact"
+                  placeholder={content.searchPlaceholder}
                   onChange={(e) => setQuery(e.target.value)}
                   value={query}
                 />
@@ -202,7 +204,7 @@ const Contact = () => {
               </div>
               <Button
                 onClickFunction={handleOpenModal}
-                value={"Ajouter un contact"}
+                value={content.addContactButtonLabel}
                 className="w-full md:w-auto"
               />
             </div>

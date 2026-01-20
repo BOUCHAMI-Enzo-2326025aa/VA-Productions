@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Navbar from "./navbar/Navbar";
 import mini_calendar_icon from "../assets/mini-calendar-icon.svg";
+import usePageContent from "../hooks/usePageContent";
 
 function formatDate(timestamp) {
   const options = { day: "numeric", month: "short", year: "numeric" };
@@ -10,6 +11,7 @@ function formatDate(timestamp) {
 
 const Layout = ({ children, pathName }) => {
   const [isNavOpen, setNavOpen] = useState(false);
+  const { content: layoutContent } = usePageContent("layout");
 
   const handleOpenCloseNavBar = () => {
     setNavOpen(!isNavOpen);
@@ -32,7 +34,7 @@ const Layout = ({ children, pathName }) => {
             >
               <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z" />
             </svg>
-            <p className="opacity-70 max-lg:ml-2">V.A. Productions /</p>
+            <p className="opacity-70 max-lg:ml-2">{layoutContent.appName} /</p>
             <p className="font-semibold">{pathName}</p>
           </div>
           <div className="flex items-center gap-2 opacity-70">

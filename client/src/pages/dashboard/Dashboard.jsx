@@ -4,10 +4,12 @@ import ContactList from "./contactList/ContactList";
 import FactureList from "./factureList/FactureList";
 import { ClientChart } from "./clientChart/ClientChart";
 import useAuth from "../../hooks/useAuth";
+import usePageContent from "../../hooks/usePageContent";
 
 const Dashboard = () => {
   const [isOpen, setIsOpen] = useState(true);
   const { user } = useAuth();
+  const { content } = usePageContent("dashboard");
 
   return (
     <>
@@ -16,7 +18,7 @@ const Dashboard = () => {
           Bonjour{user?.prenom ? `, ${user.prenom}` : ""}
         </p>
         <p className="font-inter text-[#3F3F3F] text-[20px] opacity-80 max-[680px]:text-sm">
-          Bienvenue sur l'application de V.A Productions
+          {content.text}
         </p>
       </div>
       <LinkList />
