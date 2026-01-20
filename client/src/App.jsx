@@ -5,6 +5,7 @@ import Calendrier from "./pages/calendrier/Calendrier";
 import Contact from "./pages/contacts/Contact";
 import Layout from "./layout/Layout";
 import Login from "./pages/login/Login";
+import AdminTwoFactor from "./pages/login/AdminTwoFactor";
 import ManageUser from "./pages/createUser/ManageUser";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import AdminRoute from "./auth/AdminRoute";
@@ -113,6 +114,15 @@ function App() {
             element={
               <NotLoggedRoute>
                 <Login />
+              </NotLoggedRoute>
+            }
+          />
+
+          <Route
+            path="/connexion/admin-2fa"
+            element={
+              <NotLoggedRoute>
+                <AdminTwoFactor />
               </NotLoggedRoute>
             }
           />

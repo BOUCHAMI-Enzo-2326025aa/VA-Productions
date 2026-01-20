@@ -38,6 +38,20 @@ const Login = () => {
         password: password,
       })
       .then((response) => {
+        // Admin => A2F requis
+        if (response?.data?.step === "2fa_required") {
+          const payload = {
+            email: response?.data?.user?.email || username,
+            nonce: response?.data?.nonce,
+            user: response?.data?.user,
+            createdAt: Date.now(),
+          };
+          localStorage.setItem("admin2fa", JSON.stringify(payload));
+          location.replace("/connexion/admin-2fa");
+          return;
+        }
+
+        // Connexion standard
         setLoginSuccessfull(true);
         localStorage.setItem("user", JSON.stringify(response.data));
         location.replace("/dashboard");

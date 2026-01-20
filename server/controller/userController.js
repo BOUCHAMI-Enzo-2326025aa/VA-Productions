@@ -20,6 +20,27 @@ const isPasswordStrong = (password) => {
 
 const normalizeRole = (role) => String(role || "").trim().toLowerCase();
 
+const isAdmin = (role) => normalizeRole(role) === "admin";
+
+const generateTwoFactorCode = () => {
+  // 6 chiffres, affichage conseillé: "123 456"
+  return String(Math.floor(100000 + Math.random() * 900000));
+};
+
+const formatTwoFactorCode = (code) => {
+  const clean = String(code || "").replace(/\D/g, "");
+  if (clean.length !== 6) return clean;
+  return `${clean.slice(0, 3)} ${clean.slice(3)}`;
+};
+
+const hashTwoFactorCode = (code) => {
+  // Hash HMAC (plus simple et rapide que bcrypt pour un OTP court)
+  return crypto
+    .createHmac("sha256", process.env.SECRET)
+    .update(String(code))
+    .digest("hex");
+};
+
 const createToken = (_id, role) => {
   return jsonwebtoken.sign({ user: { _id, role: normalizeRole(role) } }, process.env.SECRET, {
     expiresIn: "3d",
@@ -104,6 +125,164 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "L'identifiant ou le mot de passe est incorrect" });
     }
 
+    const safeUser = {
+      _id: user._id,
+      email: user.email,
+      role: normalizeRole(user.role),
+      nom: user.nom,
+      prenom: user.prenom,
+    };
+
+    // Admin => étape A2F obligatoire
+    if (isAdmin(user.role)) {
+      const code = generateTwoFactorCode();
+      const nonce = crypto.randomBytes(16).toString("hex");
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+      await User.updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            twoFactorCodeHash: hashTwoFactorCode(code),
+            twoFactorExpiresAt: expiresAt,
+            twoFactorNonce: nonce,
+          },
+        }
+      );
+
+      const emailHtml = `
+        <h2>Code de connexion administrateur</h2>
+        <p>Bonjour ${user.prenom || ""} ${user.nom || ""},</p>
+        <p>Voici votre code de vérification (valable 5 minutes) :</p>
+        <p style="font-size: 28px; font-weight: 700; letter-spacing: 2px; margin: 16px 0;">${formatTwoFactorCode(code)}</p>
+        <p>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.</p>
+      `;
+
+      const emailText = `Votre code de vérification (valable 5 minutes) : ${formatTwoFactorCode(code)}`;
+
+      await sendMail(user.email, "Votre code de vérification (Admin)", emailHtml, emailText);
+
+      return res.status(200).json({
+        step: "2fa_required",
+        nonce,
+        user: safeUser,
+        message: "Code de vérification envoyé par email",
+      });
+    }
+
+    // Non-admin => connexion directe
+    const token = createToken(user._id, user.role);
+    res.cookie("token", token, COOKIE_OPTIONS);
+
+    // Backward compatible (fields at root) + explicit user/token
+    res.status(200).json({
+      ...safeUser,
+      user: safeUser,
+      token,
+      message: "Connexion réussie",
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const requestAdminTwoFactor = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email requis" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || !isAdmin(user.role)) {
+      // Ne pas leak si le compte existe ou non
+      return res.status(200).json({ message: "Si le compte admin existe, un code a été envoyé." });
+    }
+
+    const code = generateTwoFactorCode();
+    const nonce = crypto.randomBytes(16).toString("hex");
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          twoFactorCodeHash: hashTwoFactorCode(code),
+          twoFactorExpiresAt: expiresAt,
+          twoFactorNonce: nonce,
+        },
+      }
+    );
+
+    const emailHtml = `
+      <h2>Code de connexion administrateur</h2>
+      <p>Bonjour ${user.prenom || ""} ${user.nom || ""},</p>
+      <p>Voici votre code de vérification (valable 5 minutes) :</p>
+      <p style="font-size: 28px; font-weight: 700; letter-spacing: 2px; margin: 16px 0;">${formatTwoFactorCode(code)}</p>
+      <p>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.</p>
+    `;
+    const emailText = `Votre code de vérification (valable 5 minutes) : ${formatTwoFactorCode(code)}`;
+
+    await sendMail(user.email, "Votre code de vérification (Admin)", emailHtml, emailText);
+
+    return res.status(200).json({
+      step: "2fa_required",
+      nonce,
+      message: "Code de vérification renvoyé",
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const verifyAdminTwoFactor = async (req, res) => {
+  try {
+    const { email, code, nonce } = req.body;
+    if (!email || !code || !nonce) {
+      return res.status(400).json({ message: "Email, code et nonce requis" });
+    }
+
+    const cleanCode = String(code).replace(/\D/g, "");
+    if (cleanCode.length !== 6) {
+      return res.status(400).json({ message: "Code invalide" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || !isAdmin(user.role)) {
+      return res.status(400).json({ message: "Code invalide" });
+    }
+
+    if (!user.twoFactorExpiresAt || !user.twoFactorCodeHash || !user.twoFactorNonce) {
+      return res.status(400).json({ message: "Aucun code en attente" });
+    }
+
+    if (user.twoFactorNonce !== nonce) {
+      return res.status(400).json({ message: "Code invalide" });
+    }
+
+    if (user.twoFactorExpiresAt.getTime() < Date.now()) {
+      return res.status(400).json({ message: "Code expiré" });
+    }
+
+    const expectedHash = user.twoFactorCodeHash;
+    const providedHash = hashTwoFactorCode(cleanCode);
+    if (expectedHash !== providedHash) {
+      return res.status(400).json({ message: "Code invalide" });
+    }
+
+    // OK => on établit la session
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $unset: {
+          twoFactorCodeHash: "",
+          twoFactorExpiresAt: "",
+          twoFactorNonce: "",
+        },
+      }
+    );
+
     const token = createToken(user._id, user.role);
     res.cookie("token", token, COOKIE_OPTIONS);
 
@@ -115,14 +294,12 @@ export const loginUser = async (req, res) => {
       prenom: user.prenom,
     };
 
-    // Backward compatible (fields at root) + explicit user/token
-    res.status(200).json({
+    return res.status(200).json({
       ...safeUser,
       user: safeUser,
       token,
       message: "Connexion réussie",
     });
-
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
