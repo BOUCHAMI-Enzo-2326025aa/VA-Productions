@@ -36,6 +36,18 @@ const userSchema = mongoose.Schema({
   resetPasswordExpiresAt: {
     type: Date,
   },
+
+  // A2F (uniquement demandé lors de la connexion admin)
+  twoFactorCodeHash: {
+    type: String,
+  },
+  twoFactorExpiresAt: {
+    type: Date,
+  },
+  // Identifiant de challenge pour éviter de valider un ancien code
+  twoFactorNonce: {
+    type: String,
+  },
 });
 
 let User = mongoose.model("User", userSchema);
