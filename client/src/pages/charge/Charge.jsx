@@ -3,6 +3,7 @@ import axios from "axios";
 import { Trash2 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import refreshIcon from "../../assets/SaveIcon.svg";
+import usePageContent from "../../hooks/usePageContent";
 import "./Charge.css";
 
 const VIEW_OPTIONS = {
@@ -69,6 +70,8 @@ const Charge = () => {
   });
 
   const isResultView = view === VIEW_OPTIONS.RESULT;
+  const pageKey = isResultView ? "accountingResult" : "accountingCharges";
+  const { content } = usePageContent(pageKey);
 
   const showFeedback = (type, message) => {
     setFeedback({ type, message });
@@ -430,27 +433,27 @@ const Charge = () => {
           <thead>
             <tr className="bg-white shadow-sm">
               <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Compte (6 chiffres)
+                {content.thAccount}
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Nom du compte
+                {content.thName}
               </th>
               {isResultView ? (
                 <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-gray-500">
-                  Montant (€)
+                  {content.thAmount}
                 </th>
               ) : (
                 <>
                   <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    Montant précédent (€)
+                    {content.thPrevious}
                   </th>
                   <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    Montant prévu (€)
+                    {content.thPlanned}
                   </th>
                 </>
               )}
               <th className="px-4 py-3 text-center text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Actions
+                {content.thActions}
               </th>
             </tr>
           </thead>
@@ -476,7 +479,7 @@ const Charge = () => {
             ) : (
               charges.map((row, index) => (
                 <tr key={row._id || `nouveau-${index}`}>
-                  <td data-label="Compte">
+                  <td data-label={content.thAccount}>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -487,7 +490,7 @@ const Charge = () => {
                       placeholder="601000"
                     />
                   </td>
-                  <td data-label="Nom">
+                  <td data-label={content.thName}>
                     <input
                       type="text"
                       value={row.nom}
@@ -497,7 +500,7 @@ const Charge = () => {
                     />
                   </td>
                   {isResultView ? (
-                    <td data-label="Montant (€)">
+                    <td data-label={content.thAmount}>
                       <input
                         type="number"
                         value={row.montantResultat}
@@ -510,7 +513,7 @@ const Charge = () => {
                     </td>
                   ) : (
                     <>
-                      <td data-label="Montant précédent (€)">
+                      <td data-label={content.thPrevious}>
                         <input
                           type="number"
                           value={row.montantPrecedent}
@@ -521,7 +524,7 @@ const Charge = () => {
                           placeholder="0"
                         />
                       </td>
-                      <td data-label="Montant prévu (€)">
+                      <td data-label={content.thPlanned}>
                         <input
                           type="number"
                           value={row.montantPrevu}
@@ -534,7 +537,7 @@ const Charge = () => {
                       </td>
                     </>
                   )}
-                  <td data-label="Actions">
+                  <td data-label={content.thActions}>
                     <div className="flex items-center justify-center gap-2">
                       <button
                         type="button"
@@ -572,8 +575,8 @@ const Charge = () => {
             <tfoot>
               {isResultView ? (
                 <tr className="bg-gray-50">
-                  <td data-label="Total" className="px-4 py-3 text-sm font-semibold text-gray-600">
-                    Total
+                  <td data-label={content.tfootTotal} className="px-4 py-3 text-sm font-semibold text-gray-600">
+                    {content.tfootTotal}
                   </td>
                   <td></td>
                   <td data-label="Total Montant" className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
@@ -587,8 +590,8 @@ const Charge = () => {
               ) : (
                 <>
                   <tr className="bg-gray-50">
-                    <td data-label="Total des saisies" className="px-4 py-3 text-sm font-semibold text-gray-600">
-                      Total des saisies
+                    <td data-label={content.tfootTotalEntries} className="px-4 py-3 text-sm font-semibold text-gray-600">
+                      {content.tfootTotalEntries}
                     </td>
                     <td></td>
                     <td data-label="Total Précédent" className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
@@ -606,8 +609,8 @@ const Charge = () => {
                     <td></td>
                   </tr>
                   <tr className="bg-white">
-                    <td data-label="Montant compte de résultat" className="px-4 py-3 text-sm font-semibold text-gray-600">
-                      Montant issu du compte de résultat
+                    <td data-label={content.tfootResultAmount} className="px-4 py-3 text-sm font-semibold text-gray-600">
+                      {content.tfootResultAmount}
                     </td>
                     <td></td>
                     <td></td>
@@ -620,8 +623,8 @@ const Charge = () => {
                     <td></td>
                   </tr>
                   <tr className="bg-white">
-                    <td data-label="Contrôle" className="px-4 py-3 text-sm font-semibold text-gray-600">
-                      Contrôle reste à saisir / trop saisi
+                    <td data-label={content.tfootControl} className="px-4 py-3 text-sm font-semibold text-gray-600">
+                      {content.tfootControl}
                     </td>
                     <td></td>
                     <td></td>
@@ -634,8 +637,8 @@ const Charge = () => {
                     <td></td>
                   </tr>
                   <tr className="bg-white">
-                    <td data-label="Écart N/N-1" className="px-4 py-3 text-sm font-semibold text-gray-600">
-                      Ecart exercice en cours et précédent
+                    <td data-label={content.tfootGap} className="px-4 py-3 text-sm font-semibold text-gray-600">
+                      {content.tfootGap}
                     </td>
                     <td></td>
                     <td></td>

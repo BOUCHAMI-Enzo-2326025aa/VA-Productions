@@ -2,8 +2,10 @@ import Section from "./Section";
 import Title from "./Title";
 import Paragraph from "./Paragraph";
 import Navigation from "./Navigation";
+import usePageContent from "../../hooks/usePageContent";
 
 const Guide = () => {
+  const { content } = usePageContent("guide");
   return (
     <div className="text-[#3F3F3F] mt-10 w-full flex flex-col gap-10">
       <a
@@ -13,7 +15,7 @@ const Guide = () => {
         rel="noopener noreferrer"
         className="bg-blue-500 text-white px-4 py-2 rounded w-fit self-center md:self-start"
       >
-        Télécharger le Guide PDF
+        {content.downloadPdfLabel}
       </a>
       <div className="flex flex-col lg:flex-row justify-between relative">
         <div className="w-full lg:w-[50%]">

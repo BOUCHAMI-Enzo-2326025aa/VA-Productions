@@ -1,7 +1,9 @@
 import React, { useMemo } from "react";
 import { CSVLink } from "react-csv";
+import usePageContent from "../../hooks/usePageContent";
 
 const SupportStats = ({ name, image, invoices }) => {
+  const { content } = usePageContent("stats");
   const { totalRevenue, invoiceCount, lastOrderDate, filteredInvoices } = useMemo(() => {
     const filteredInvoices = invoices
       .map((invoice) => ({
@@ -62,15 +64,15 @@ const SupportStats = ({ name, image, invoices }) => {
 
       <div className="flex mt-4 justify-between z-40 text-white">
         <div className="flex flex-col items-center w-24">
-          <p className="opacity-80 text-sm font-light">Revenu</p>
+          <p className="opacity-80 text-sm font-light">{content.revenueLabel}</p>
           <p className="font-bold ">{totalRevenue.toLocaleString("fr-FR")}€</p>
         </div>
         <div className="flex flex-col items-center w-24">
-          <p className="opacity-80 text-sm font-light">Factures</p>
+          <p className="opacity-80 text-sm font-light">{content.invoicesLabel}</p>
           <p className="font-bold ">{invoiceCount}</p>
         </div>
         <div className="flex flex-col items-center w-44">
-          <p className="opacity-80 text-xs font-light">Dernière commande</p>
+          <p className="opacity-80 text-xs font-light">{content.lastOrderLabel}</p>
           <p className="font-bold ">{lastOrderDate}</p>
         </div>
       </div>
@@ -85,7 +87,7 @@ const SupportStats = ({ name, image, invoices }) => {
             target="_blank"
             separator={";"}
           >
-            Exporter les données de {name}
+            {content.exportButtonLabelPrefix} {name}
           </CSVLink>
         )}
       </div>

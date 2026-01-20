@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Upload, Trash2, Edit2, Plus, X } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
+import usePageContent from "../../hooks/usePageContent";
 import ConfirmModal from "../../components/ConfirmModal";
 import ImageCropper from "../../components/ImageCropper";
 import "./Magazine.css";
@@ -12,6 +13,7 @@ const STANDARD_TYPES = ["Magazine"];
 const Magazine = () => {
   const { isAdmin } = useAuth();
   const [magazines, setMagazines] = useState([]);
+  const { content } = usePageContent("magazine");
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMagazine, setEditingMagazine] = useState(null);
@@ -194,21 +196,21 @@ const Magazine = () => {
       )}
       <div className="flex justify-between items-center mt-10 magazine-header-container">
         <div>
-          <p className="font-bold text-lg md:text-xl leading-3">Gestion des Magazines</p>
-          <p className="opacity-80 mt-2 text-sm md:text-base">Créez et gérez les magazines disponibles</p>
+          <p className="font-bold text-lg md:text-xl leading-3">{content.headerTitle}</p>
+          <p className="opacity-80 mt-2 text-sm md:text-base">{content.headerSubtitle}</p>
         </div>
         <button
           onClick={handleOpenCreateModal}
           className="bg-[#3F3F3F] text-white px-4 py-2 rounded-lg font-semibold hover:bg-opacity-80 transition flex items-center gap-2"
         >
           <Plus size={20} />
-          Nouveau Magazine
+          {content.newMagazineButtonLabel}
         </button>
       </div>
       {isLoading ? (
-        <div className="mt-10 text-center">Chargement...</div>
+        <div className="mt-10 text-center">{content.loadingLabel}</div>
       ) : magazines.length === 0 ? (
-        <div className="mt-10 text-center opacity-70">Aucun magazine créé pour le moment</div>
+        <div className="mt-10 text-center opacity-70">{content.emptyLabel}</div>
       ) : (
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pr-4 md:pr-0">
           {magazines.map((magazine) => (
@@ -230,7 +232,7 @@ const Magazine = () => {
                     className="flex-1 mag-action-btn mag-action-btn--edit"
                   >
                     <Edit2 size={20} />
-                    <span className="mag-action-btn__label">Modifier</span>
+                    <span className="mag-action-btn__label">{content.editLabel}</span>
                   </button>
                   <button
                     onClick={() => handleOpenDeleteModal(magazine._id, magazine.nom)}
@@ -337,8 +339,8 @@ const Magazine = () => {
                 )}
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400 transition">Annuler</button>
-                <button type="submit" className="flex-1 bg-[#3F3F3F] text-white py-2 rounded-lg font-semibold hover:bg-opacity-80 transition">{editingMagazine ? "Modifier" : "Créer"}</button>
+                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400 transition">{content.cancelLabel}</button>
+                <button type="submit" className="flex-1 bg-[#3F3F3F] text-white py-2 rounded-lg font-semibold hover:bg-opacity-80 transition">{editingMagazine ? content.editLabel : content.createLabel}</button>
               </div>
             </form>
           </div>

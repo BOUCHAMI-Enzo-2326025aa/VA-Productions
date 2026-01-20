@@ -13,9 +13,11 @@ import oderSvg from "../../assets/order-icon.svg";
 import powerIconSvg from "../../assets/power-icon.svg";
 import gearIconSvg from "../../assets/gear-icon.svg";
 import useAuth from "../../hooks/useAuth";
+import usePageContent from "../../hooks/usePageContent";
 
 const Navbar = ({ isOpen, closeNavbar }) => {
  const { isAdmin } = useAuth();
+ const { content: layoutContent } = usePageContent("layout");
 
  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(() => {
   const saved = localStorage.getItem("adminMenuOpen");
@@ -57,35 +59,35 @@ const Navbar = ({ isOpen, closeNavbar }) => {
       <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
      </svg>
     </div>
-    <p className="mt-6 text-sm text-white font-medium opacity-70">MENU</p>
+        <p className="mt-6 text-sm text-white font-medium opacity-70">{layoutContent.menuLabel}</p>
     <div className="flex gap-0 flex-col mt-4">
      <PageLink
       link={"/dashboard"}
-      text={"Dashboard"}
+            text={layoutContent.dashboardLinkLabel}
       icon={dashboardSvg}
       closeNavbar={closeNavbar}
      />
      <PageLink
       link={"/contacts"}
-      text={"Contacts"}
+            text={layoutContent.contactsLinkLabel}
       icon={contactSvg}
       closeNavbar={closeNavbar}
      />
      <PageLink
       link={"/order"}
-      text={"Commandes"}
+            text={layoutContent.ordersLinkLabel}
       icon={oderSvg}
       closeNavbar={closeNavbar}
      />
      <PageLink
       link={"/invoice"}
-      text={"Facturation"}
+            text={layoutContent.invoiceLinkLabel}
       icon={facturationSvg}
       closeNavbar={closeNavbar}
      />
      <PageLink
       link={"/calendrier"}
-      text={"Calendrier"}
+            text={layoutContent.calendarLinkLabel}
       icon={calendrierSvg}
       closeNavbar={closeNavbar}
      />
@@ -100,7 +102,7 @@ const Navbar = ({ isOpen, closeNavbar }) => {
         className="flex w-full items-center justify-between rounded-md px-2 py-2 text-white opacity-70 hover:bg-black hover:bg-opacity-5 hover:opacity-100 hover:scale-105 transition-all"
         aria-expanded={isAdminMenuOpen}
        >
-        <span className="text-lg font-normal">Administration</span>
+        <span className="text-lg font-normal">{layoutContent.adminSectionLabel}</span>
         <svg
          className={`size-5 transition-transform ${isAdminMenuOpen ? "rotate-180" : ""
           }`}
@@ -115,25 +117,25 @@ const Navbar = ({ isOpen, closeNavbar }) => {
         <div className="ml-4 flex flex-col gap-1">
          <PageLink
           link={"/admin/user"}
-          text={"Gestion Utilisateur"}
+          text={layoutContent.manageUsersLinkLabel}
           icon={manageUserSvg}
           closeNavbar={closeNavbar}
          />
          <PageLink
           link={"/admin/charge"}
-          text={"Comptabilité"}
+          text={layoutContent.accountingLinkLabel}
           icon={chargeSvg}
           closeNavbar={closeNavbar}
          />
          <PageLink
           link={"/admin/magazine"}
-          text={"Magazines"}
+          text={layoutContent.magazinesLinkLabel}
           icon={contactSvg}
           closeNavbar={closeNavbar}
          />
          <PageLink
           link={"/admin/stats"}
-          text={"Statistiques"}
+          text={layoutContent.statsLinkLabel}
           icon={statsSvg}
           closeNavbar={closeNavbar}
          />
@@ -157,7 +159,7 @@ const Navbar = ({ isOpen, closeNavbar }) => {
        }
       }}
       className="p-2 hover:bg-black hover:bg-opacity-10 rounded-lg transition group"
-      title="Déconnexion"
+    title={layoutContent.logoutTooltip}
      >
       <img src={powerIconSvg} alt="Déconnexion" className="w-10 h-10 opacity-70 group-hover:opacity-100 transition" />
      </button>
@@ -165,7 +167,7 @@ const Navbar = ({ isOpen, closeNavbar }) => {
      <a
       href="/settings"
       className="p-2 hover:bg-black hover:bg-opacity-10 rounded-lg transition group"
-      title="Paramètres"
+    title={layoutContent.settingsTooltip}
      >
       <img src={gearIconSvg} alt="Paramètres" className="w-10 h-10 opacity-70 group-hover:opacity-100 transition" />
      </a>
@@ -173,7 +175,7 @@ const Navbar = ({ isOpen, closeNavbar }) => {
      <a
       href="/guide"
       className="p-2 hover:bg-black hover:bg-opacity-10 rounded-lg transition group"
-      title="Guide d'utilisation"
+    title={layoutContent.guideTooltip}
      >
       <img src={userGuideSvg} alt="Guide d'utilisation" className="w-10 h-10 opacity-70 group-hover:opacity-100 transition" />
      </a>
