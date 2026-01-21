@@ -5,12 +5,14 @@ import axios from "axios";
 import YearlySupportStats from "./YearlySupportStats";
 import "./stats.css";
 import useAuth from "../../hooks/useAuth"; 
+import usePageContent from "../../hooks/usePageContent";
 
 import { CSVLink } from "react-csv";
 import { buildSupportColorMap } from "./supportColorMap";
 
 const Stats = () => {
   const { isAdmin } = useAuth();
+  const { content } = usePageContent("stats");
   const [invoices, setInvoices] = useState([]);
   const [magazines, setMagazines] = useState([]);
   const [isInvoicesLoading, setIsInvoicesLoading] = useState(true);
@@ -173,10 +175,10 @@ const Stats = () => {
       <div className="flex flex-col items-start gap-4 md:flex-row md:justify-between md:items-center mt-10">
         <div>
           <p className="font-bold text-lg text-[#3F3F3F] leading-3">
-            Statistiques des supports
+            {content.supportsTitle}
           </p>
           <p className="text-[#3F3F3F] opacity-80 mt-2">
-            Statistiques des supports
+            {content.supportsDescription}
           </p>
         </div>
 
@@ -231,10 +233,10 @@ const Stats = () => {
         )}
       </div>
       <p className="font-bold text-lg text-[#3F3F3F] leading-3 mt-16">
-        Statistiques par support
+        {content.supportsSectionTitle}
       </p>
       <p className="text-[#3F3F3F] opacity-80 ">
-        Statistiques pour chacun des supports
+        {content.supportsSectionDescription}
       </p>
       <YearlySupportStats invoices={invoicesFiltered} />
     </div>

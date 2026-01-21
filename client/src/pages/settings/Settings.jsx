@@ -397,7 +397,7 @@ const Settings = () => {
             <Save className="text-[#3F3F3F]" size={24} />
             <h2 className="text-xl font-semibold">Éditeur de pages</h2>
           </div>
-          <p className="opacity-80 mb-6">Modifier uniquement les titres et textes statiques (global).</p>
+          <p className="opacity-80 mb-6">Modifier uniquement les titres et textes statiques.</p>
 
           <form onSubmit={handleSavePageContent} className="space-y-4">
             <div>
