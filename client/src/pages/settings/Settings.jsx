@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { User, Lock, Save, Eye, EyeOff } from "lucide-react";
+import PageHeader from "../../components/PageHeader";
 
 const Settings = () => {
   const [user, setUser] = useState(null);
@@ -140,12 +141,12 @@ const Settings = () => {
         </div>
       )}
 
-      <div className="mt-10">
-        <p className="font-bold text-lg leading-3">Paramètres</p>
-        <p className="opacity-80 mt-2">
-          Gérez vos informations personnelles et votre sécurité
-        </p>
-      </div>
+      <PageHeader
+        title="Paramètres"
+        description="Gérez vos informations personnelles et votre sécurité"
+        storageKey="page-header:parametres"
+        className="mt-10"
+      />
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Section Profil */}

@@ -6,6 +6,7 @@ import { formatDateSlash } from "../../utils/formatDate";
 import RoleSelection from "./RoleSelection";
 import DeleteUserButton from "./DeleteUserButton";
 import useAuth from "../../hooks/useAuth";
+import PageHeader from "../../components/PageHeader";
 
 const ManageUser = () => {
   const { isAdmin } = useAuth();
@@ -71,17 +72,23 @@ const ManageUser = () => {
         />
       )}
 
-      <div className="flex flex-col md:flex-row w-full justify-between md:items-center gap-4">
-        <p className="text-2xl font-bold">Membres</p>
-        {isAdmin && (
-          <button
-            className="text-white bg-[#3F3F3F] px-8 py-3 rounded text-sm w-full md:w-auto"
-            onClick={() => setIsCreateUserOpen(true)}
-          >
-            Ajouter un utilisateur
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Membres"
+        description="Gérez les comptes utilisateurs et leurs rôles"
+        storageKey="page-header:administration-utilisateurs"
+        className="md:items-center"
+        titleClassName="text-2xl"
+        actions={
+          isAdmin ? (
+            <button
+              className="text-white bg-[#3F3F3F] px-8 py-3 rounded text-sm w-full md:w-auto"
+              onClick={() => setIsCreateUserOpen(true)}
+            >
+              Ajouter un utilisateur
+            </button>
+          ) : null
+        }
+      />
 
       <div className="mt-6">
         <p>Rechercher</p>

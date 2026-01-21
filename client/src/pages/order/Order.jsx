@@ -9,6 +9,7 @@ import InvoiceButton from "../invoice/component/InvoiceButton";
 import OrderValidationModal from "./OrderValidationModal";
 import OrderDeleteModal from "./OrderDeleteModal";
 import OrderEditModal from "./OrderEditModal";
+import PageHeader from "../../components/PageHeader";
 
 const Order = () => {
   const [orders, setOrders] = useState([]);
@@ -173,11 +174,12 @@ const Order = () => {
         />
       )}
       {isCancelling != false && <OrderDeleteModal loading={isCancelling} />}
-      <p className="font-semibold text-lg mt-10">Bon de commandes crées</p>
-      <p className=" opacity-80">
-        Voici la liste de tous les bons des commandes crées (en cours et
-        validés)
-      </p>
+      <PageHeader
+        title="Bons de commandes créés"
+        description="Voici la liste de tous les bons des commandes créés (en cours et validés)"
+        storageKey="page-header:commandes"
+        className="mt-10"
+      />
 
       <div className="flex justify-between w-full items-center order-actions-container">
         <ChangeStatusButton

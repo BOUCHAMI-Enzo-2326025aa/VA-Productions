@@ -3,6 +3,7 @@ import axios from "axios";
 import DateSection from "./components/DateSection";
 import Button from "./components/Button";
 import google_calendar_icon from "../../assets/google-calendar-icon.png";
+import PageHeader from "../../components/PageHeader";
 
 const Calendrier = () => {
   const [events, setEvents] = useState({});
@@ -346,14 +347,13 @@ const Calendrier = () => {
 
   return (
     <div className="bg-[#E8E9EB] w-full py-6">
-      <div>
-        <h1 className="font-inter text-[#3F3F3F] text-3xl md:text-4xl font-bold">
-          Calendrier
-        </h1>
-        <p className="font-inter text-[#3F3F3F] text-lg md:text-xl font-medium opacity-70">
-          Retrouvez les prochains rendez-vous et appels
-        </p>
-      </div>
+      <PageHeader
+        title="Calendrier"
+        description="Retrouvez les prochains rendez-vous et appels"
+        storageKey="page-header:calendrier"
+        titleClassName="font-inter text-3xl md:text-4xl"
+        descriptionClassName="font-inter text-lg md:text-xl font-medium opacity-70"
+      />
 
       <div className="w-full flex justify-end mb-6 items-center gap-2 calendar-actions-container">
         {!isAuthenticated ? (

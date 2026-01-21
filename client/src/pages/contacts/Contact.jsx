@@ -8,6 +8,7 @@ import "./contact.css";
 import Button from "../../components/ui/Button";
 import DetailContactV2 from "./components/DetailContactV2";
 import SnackBar from "./components/SnackBar";
+import PageHeader from "../../components/PageHeader";
 
 const Contact = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -165,14 +166,13 @@ const Contact = () => {
         )}
 
         <div className="flex flex-col space-y-8 md:space-y-12 pt-6">
-          <div className="flex flex-col ">
-            <p className="font-inter text-[#3F3F3F] text-3xl md:text-4xl font-bold">
-              Contacts
-            </p>
-            <p className="font-inter text-[#3F3F3F] text-lg md:text-xl font-medium opacity-70">
-              Retrouvez la liste de tous les contacts enregistrés
-            </p>
-          </div>
+          <PageHeader
+            title="Contacts"
+            description="Retrouvez la liste de tous les contacts enregistrés"
+            storageKey="page-header:contacts"
+            titleClassName="font-inter text-3xl md:text-4xl"
+            descriptionClassName="font-inter text-lg md:text-xl font-medium opacity-70"
+          />
           <div className="flex flex-col space-y-5">
             <div className="flex w-full flex-col gap-5 md:flex-row justify-between items-center ">
               <div className="flex flex-row border-[1px] border-[#3F3F3F] border-opacity-15 rounded-lg p-2.5 space-x-2 items-center w-full md:w-auto">

@@ -5,6 +5,7 @@ import useAuth from "../../hooks/useAuth";
 import ConfirmModal from "../../components/ConfirmModal";
 import ImageCropper from "../../components/ImageCropper";
 import "./Magazine.css";
+import PageHeader from "../../components/PageHeader";
 
 // Définit les types standards pour le menu déroulant
 const STANDARD_TYPES = ["Magazine"];
@@ -192,19 +193,21 @@ const Magazine = () => {
           {snackbar.message}
         </div>
       )}
-      <div className="flex justify-between items-center mt-10 magazine-header-container">
-        <div>
-          <p className="font-bold text-lg md:text-xl leading-3">Gestion des Magazines</p>
-          <p className="opacity-80 mt-2 text-sm md:text-base">Créez et gérez les magazines disponibles</p>
-        </div>
-        <button
-          onClick={handleOpenCreateModal}
-          className="bg-[#3F3F3F] text-white px-4 py-2 rounded-lg font-semibold hover:bg-opacity-80 transition flex items-center gap-2"
-        >
+      <PageHeader
+        title="Gestion des Magazines"
+        description="Créez et gérez les magazines disponibles"
+        storageKey="page-header:magazines"
+        className="mt-10 magazine-header-container"
+        actions={
+          <button
+            onClick={handleOpenCreateModal}
+            className="bg-[#3F3F3F] text-white px-4 py-2 rounded-lg font-semibold hover:bg-opacity-80 transition flex items-center gap-2"
+          >
           <Plus size={20} />
           Nouveau Magazine
-        </button>
-      </div>
+          </button>
+        }
+      />
       {isLoading ? (
         <div className="mt-10 text-center">Chargement...</div>
       ) : magazines.length === 0 ? (

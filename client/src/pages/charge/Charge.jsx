@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import refreshIcon from "../../assets/SaveIcon.svg";
 import "./Charge.css";
+import PageHeader from "../../components/PageHeader";
 
 const VIEW_OPTIONS = {
   CHARGES: "charges",
@@ -402,28 +403,31 @@ const Charge = () => {
         </div>
       )}
 
-      <div className="flex justify-between items-center mt-10 charge-header-container">
-        <div>
-          <div className="flex items-center gap-3">
+      <PageHeader
+        title={view === VIEW_OPTIONS.RESULT ? "Compte de résultat" : "Saisie des charges"}
+        description={viewDescription}
+        storageKey={`page-header:charge:${view}`}
+        className="mt-10 charge-header-container"
+        actions={
+          <>
             <select
               value={view}
               onChange={(event) => setView(event.target.value)}
-              className="font-bold text-lg leading-3 text-[#3F3F3F] bg-transparent border-none focus:outline-none cursor-pointer"
+              className="font-bold text-lg leading-3 text-[#3F3F3F] bg-transparent border border-transparent focus:outline-none cursor-pointer"
             >
               <option value={VIEW_OPTIONS.CHARGES}>Saisie des charges</option>
               <option value={VIEW_OPTIONS.RESULT}>Compte de résultat</option>
             </select>
-          </div>
-          <p className="opacity-80 mt-2">{viewDescription}</p>
-        </div>
-        <button
-          type="button"
-          onClick={handleAddRow}
-          className="bg-[#3F3F3F] text-white px-4 py-2 rounded-lg font-semibold hover:bg-opacity-80 transition"
-        >
-          Ajouter une ligne
-        </button>
-      </div>
+            <button
+              type="button"
+              onClick={handleAddRow}
+              className="bg-[#3F3F3F] text-white px-4 py-2 rounded-lg font-semibold hover:bg-opacity-80 transition"
+            >
+              Ajouter une ligne
+            </button>
+          </>
+        }
+      />
 
       <div className="mt-8 overflow-x-auto">
         <table className="min-w-full border-separate border-spacing-y-2 charge-table">

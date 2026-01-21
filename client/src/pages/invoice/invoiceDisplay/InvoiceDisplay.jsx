@@ -4,6 +4,7 @@ import InvoiceList from "./InvoiceList";
 import InvoiceNumbers from "./invoiceNumbers/InvoiceNumbers";
 import axios from "axios";
 import FilterModal from "./FilterModal";
+import PageHeader from "../../../components/PageHeader";
 
 const InvoiceDisplay = () => {
   const [magazineList, setMagazineList] = useState([]);
@@ -138,13 +139,19 @@ const InvoiceDisplay = () => {
           onClick={() => setIsFilterOpen(false)}
         ></div>
       )}
+      <PageHeader
+        title="Factures"
+        description="Consultez et gérez l'ensemble des factures"
+        storageKey="page-header:factures"
+        className="mt-10"
+      />
       <div className="invoice-stats-container">
         <InvoiceNumbers invoices={invoicesToShow} isLoading={isLoading} />
       </div>
 
       <div className="text-[#3F3F3F] mt-10 ">
         <p className="font-semibold">Liste des factures</p>
-        <p className="text-sm">Voici la liste de toutes les factures crées !</p>
+        <p className="text-sm">Voici la liste de toutes les factures créées !</p>
       </div>
 
       <div className="flex items-center h-auto mt-5 gap-2 justify-between relative invoice-actions-container">

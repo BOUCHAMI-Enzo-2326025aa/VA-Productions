@@ -8,6 +8,7 @@ import useAuth from "../../hooks/useAuth";
 
 import { CSVLink } from "react-csv";
 import { buildSupportColorMap } from "./supportColorMap";
+import PageHeader from "../../components/PageHeader";
 
 const Stats = () => {
   const { isAdmin } = useAuth();
@@ -170,47 +171,46 @@ const Stats = () => {
 
     return (
     <div className="mb-10">
-      <div className="flex flex-col items-start gap-4 md:flex-row md:justify-between md:items-center mt-10">
-        <div>
-          <p className="font-bold text-lg text-[#3F3F3F] leading-3">
-            Statistiques des supports
-          </p>
-          <p className="text-[#3F3F3F] opacity-80 mt-2">
-            Statistiques des supports
-          </p>
-        </div>
+      <PageHeader
+        title="Statistiques des supports"
+        description="Statistiques des supports"
+        storageKey="page-header:statistiques"
+        className="mt-10"
+        actions={
+          <>
+            <label className="flex items-center justify-between gap-4 w-full md:w-auto px-3 py-2 bg-white border border-[#E1E1E1] rounded-md">
+              <span className="text-[#3F3F3F] opacity-80 font-medium">
+                Payées uniquement
+              </span>
+              <span className="relative inline-flex items-center">
+                <input
+                  type="checkbox"
+                  checked={paidOnly}
+                  onChange={(e) => setPaidOnly(e.target.checked)}
+                  className="peer sr-only"
+                  role="switch"
+                  aria-label="Afficher uniquement les factures payées"
+                />
+                <span className="h-6 w-11 rounded-full border border-[#E1E1E1] bg-[#F7F7F7] transition-colors peer-checked:bg-[#3F3F3F] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#3F3F3F]" />
+                <span className="pointer-events-none absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+              </span>
+            </label>
 
-        <label className="flex items-center justify-between gap-4 w-full md:w-auto px-3 py-2 bg-white border border-[#E1E1E1] rounded-md">
-          <span className="text-[#3F3F3F] opacity-80 font-medium">
-            Payées uniquement
-          </span>
-          <span className="relative inline-flex items-center">
-            <input
-              type="checkbox"
-              checked={paidOnly}
-              onChange={(e) => setPaidOnly(e.target.checked)}
-              className="peer sr-only"
-              role="switch"
-              aria-label="Afficher uniquement les factures payées"
-            />
-            <span className="h-6 w-11 rounded-full border border-[#E1E1E1] bg-[#F7F7F7] transition-colors peer-checked:bg-[#3F3F3F] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#3F3F3F]" />
-            <span className="pointer-events-none absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
-          </span>
-        </label>
-
-        {!isStatsLoading && invoicesFiltered.length > 0 && (
-          <CSVLink
-            data={csvData}
-            headers={csvHeaders}
-            filename={"export-statistiques-va-production.csv"}
-            className="bg-[#3F3F3F] text-white font-semibold py-2 px-4 rounded hover:bg-opacity-80 transition-all w-full md:w-auto text-center"
-            target="_blank"
-            separator={";"} 
-          >
-            Exporter les Données (CSV)
-          </CSVLink>
-        )}
-      </div>
+            {!isStatsLoading && invoicesFiltered.length > 0 && (
+              <CSVLink
+                data={csvData}
+                headers={csvHeaders}
+                filename={"export-statistiques-va-production.csv"}
+                className="bg-[#3F3F3F] text-white font-semibold py-2 px-4 rounded hover:bg-opacity-80 transition-all w-full md:w-auto text-center"
+                target="_blank"
+                separator={";"} 
+              >
+                Exporter les Données (CSV)
+              </CSVLink>
+            )}
+          </>
+        }
+      />
 
       <div className="flex flex-col lg:flex-row mt-4 gap-3">
         {isStatsLoading ? (
