@@ -51,8 +51,36 @@ const InvoiceList = ({ invoices, setInvoices, setInvoicesToShow, isEditing = fal
   );
   const invoicesPerPage = 10;
 
+  // fonction pour vérifier les factures en cours de traitement
+  const checkProcessingInvoices = async () => {
+    const processingInvoices = invoices.filter(inv => inv.eInvoiceStatus === 'processing');
+    
+    if (processingInvoices.length === 0) return;
+
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_HOST}/api/invoice`);
+      const updatedInvoices = response.data;
+      
+      const applyUpdates = (prevInvoices) =>
+        prevInvoices.map((invoice) => {
+          const updated = updatedInvoices.find(u => u._id === invoice._id);
+          return updated ? { ...invoice, eInvoiceStatus: updated.eInvoiceStatus } : invoice;
+        });
+
+      setInvoices(applyUpdates);
+      setInvoicesToShow?.(applyUpdates);
+    } catch (error) {
+      console.error("Erreur lors de la vérification des statuts:", error);
+    }
+  };
+
   useEffect(() => {
-    setCurrentPage(1);
+    const hasProcessing = invoices.some(inv => inv.eInvoiceStatus === 'processing');
+    
+    if (!hasProcessing) return;
+
+    const interval = setInterval(checkProcessingInvoices, 3000);
+    return () => clearInterval(interval);
   }, [invoices]);
 
   const totalPages = Math.ceil(invoices.length / invoicesPerPage);

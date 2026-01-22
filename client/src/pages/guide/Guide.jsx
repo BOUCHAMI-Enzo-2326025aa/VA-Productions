@@ -12,6 +12,7 @@ const Guide = () => {
         description="Consultez le guide pour découvrir toutes les fonctionnalités"
         storageKey="page-header:guide"
       />
+      <div className="flex flex-col md:flex-row gap-4 self-center md:self-start">
       <a
         href="/Guide d'utilisation .pdf"
         download="Guide d'utilisation V.A Productions.pdf"
@@ -21,6 +22,16 @@ const Guide = () => {
       >
         Télécharger le Guide PDF
       </a>
+      <a
+          href="/Guide_Cybersécurité.pdf"
+          download="Guide de Cybersécurité V.A Productions.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-red-500 text-white px-4 py-2 rounded w-fit text-center"
+        >
+          Télécharger le Guide Cybersécurité
+        </a>
+      </div>
       <div className="flex flex-col lg:flex-row justify-between relative">
         <div className="w-full lg:w-[50%]">
           <Section className="mt-16" name="dashboard">
@@ -347,6 +358,63 @@ const Guide = () => {
                 passe actuel puis définir un nouveau mot de passe sécurisé.
               </p>
             </Paragraph>
+          </Section>
+
+           <Section className="mt-16" name="cybersecurite">
+            <Title texte="XI - Bonnes pratiques de cybersécurité" />
+            <Paragraph>
+              <p>
+                La sécurité de l'application et de vos données est une priorité. 
+                Nous avons mis en place des protections techniques robustes (chiffrement, pare-feu), 
+                mais la sécurité est un travail d'équipe. Voici les bonnes pratiques à adopter au quotidien.
+              </p>
+            </Paragraph>
+            <Paragraph subtitle="Votre mot de passe est votre clé" className="mt-4">
+              <p>
+                Votre mot de passe est la seule barrière entre un pirate et les données clients :
+              </p>
+              <ul className="list-disc ml-6 mt-2 flex flex-col gap-1">
+                <li><b>Complexité :</b> Utilisez au minimum 8 caractères avec majuscules, chiffres et symboles.</li>
+                <li><b>Astuce :</b> Préférez une "phrase de passe" comme "J'aimeLeCafeLeMatin99!" plutôt qu'un mot compliqué.</li>
+                <li><b>Usage unique :</b> N'utilisez jamais votre mot de passe professionnel sur des sites personnels.</li>
+              </ul>
+            </Paragraph>
+            <Paragraph subtitle="Sécuriser son accès au quotidien">
+              <ul className="list-disc ml-6 mt-2 flex flex-col gap-1">
+                <li><b>Verrouillage :</b> Verrouillez toujours votre session (Windows + L) en quittant votre poste.</li>
+                <li><b>Navigation privée :</b> Sur un ordinateur partagé, utilisez le mode navigation privée et déconnectez-vous systématiquement.</li>
+                <li><b>Wi-Fi public :</b> Évitez les réseaux publics (gares, cafés). Privilégiez le partage de connexion 4G/5G.</li>
+              </ul>
+            </Paragraph>
+            <Paragraph subtitle="Vigilance face aux emails (Phishing)">
+              <ul className="list-disc ml-6 mt-2 flex flex-col gap-1">
+                <li><b>Vérifiez l'expéditeur :</b> Assurez-vous que les emails proviennent de l'adresse officielle de l'entreprise.</li>
+                <li><b>Méfiez-vous de l'urgence :</b> Un email demandant d'agir très vite est souvent une arnaque. Vérifiez avant de cliquer.</li>
+              </ul>
+            </Paragraph>
+            <Paragraph subtitle="Protection des données clients">
+              <ul className="list-disc ml-6 mt-2 flex flex-col gap-1">
+                <li><b>Exports :</b> Les fichiers téléchargés (CSV, statistiques) ne doivent pas sortir de l'environnement professionnel.</li>
+                <li><b>Imports :</b> Vérifiez toujours le contenu des fichiers avant de les importer dans l'application.</li>
+              </ul>
+            </Paragraph>
+            <Paragraph subtitle="Que faire en cas de doute ?">
+              <p>
+                Si vous pensez avoir fait une erreur (clic suspect, mot de passe compromis, perte de matériel) :
+              </p>
+              <ol className="list-decimal ml-6 mt-2 flex flex-col gap-1">
+                <li>Changez immédiatement votre mot de passe via "Paramètres".</li>
+                <li>Prévenez l'administrateur sans attendre.</li>
+              </ol>
+              <p className="mt-2">
+                <b>Une réaction rapide permet d'éviter ou de limiter les conséquences d'un incident.</b>
+              </p>
+            </Paragraph>
+            <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded">
+              <p className="text-sm font-semibold text-red-800">
+                Pour plus de détails, téléchargez le guide complet de cybersécurité en haut de cette page.
+              </p>
+            </div>
           </Section>
         </div>
         <Navigation />

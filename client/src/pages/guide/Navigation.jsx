@@ -63,6 +63,14 @@ const Navigation = () => {
       >
         X - Paramètres
       </a>
+
+      <a
+        href="#cybersecurite"
+        className="cursor-pointer font-bold hover:translate-x-4 transition-all w-fit text-red-600"
+      >
+        XI - Bonnes pratiques de cybersécurité
+      </a>
+      
     </div>
   );
 };

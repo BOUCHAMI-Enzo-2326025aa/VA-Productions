@@ -127,7 +127,7 @@ export function StatChart({ invoices, supportColorMap }) {
   };
 
   return (
-    <Card className="w-full lg:!w-[65%]">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Revenu de chaque support</CardTitle>
         <CardDescription>12 Derniers mois</CardDescription>

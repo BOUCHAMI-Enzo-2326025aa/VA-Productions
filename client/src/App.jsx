@@ -4,6 +4,7 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import Calendrier from "./pages/calendrier/Calendrier";
 import Contact from "./pages/contacts/Contact";
 import Layout from "./layout/Layout";
+import AdminTwoFactor from "./pages/login/AdminTwoFactor";
 import Login from "./pages/login/Login";
 import ManageUser from "./pages/createUser/ManageUser";
 import ProtectedRoute from "./auth/ProtectedRoute";
@@ -23,6 +24,7 @@ import Charge from "./pages/charge/Charge";
 import Settings from "./pages/settings/Settings";
 import ForgotPassword from "./pages/password/ForgotPassword";
 import ResetPassword from "./pages/password/ResetPassword";
+import AiAssistant from "./components/AiAssistant/AiAssistant";
 
 
 axios.defaults.withCredentials = true;  
@@ -106,6 +108,7 @@ function App() {
     return (
     <MantineProvider>
       <BrowserRouter>
+      <AiAssistant />
         <Routes>
           // Routes publiques (pas de connexion)
           <Route
@@ -113,6 +116,14 @@ function App() {
             element={
               <NotLoggedRoute>
                 <Login />
+              </NotLoggedRoute>
+            }
+          />
+          <Route
+            path="/connexion/admin-2fa"
+            element={
+              <NotLoggedRoute>
+                <AdminTwoFactor />
               </NotLoggedRoute>
             }
           />

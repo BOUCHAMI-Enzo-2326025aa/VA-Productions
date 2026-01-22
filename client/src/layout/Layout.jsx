@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Navbar from "./navbar/Navbar";
 import mini_calendar_icon from "../assets/mini-calendar-icon.svg";
 import EditableText from "../components/EditableText";
+import AiAssistant from "../components/AiAssistant/AiAssistant";
 
 function formatDate(timestamp) {
   const options = { day: "numeric", month: "short", year: "numeric" };
@@ -77,6 +78,7 @@ const Layout = ({ children, pathName }) => {
           </div>
         </div>
         {children}
+        <AiAssistant />
       </div>
     </div>
   );
