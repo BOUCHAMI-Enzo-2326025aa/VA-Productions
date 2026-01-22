@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import logo from "../../assets/va-production-logo.png";
 import PageLink from "./PageLink";
 import dashboardSvg from "../../assets/dashboard-icon.svg";
@@ -13,6 +14,7 @@ import oderSvg from "../../assets/order-icon.svg";
 import powerIconSvg from "../../assets/power-icon.svg";
 import gearIconSvg from "../../assets/gear-icon.svg";
 import useAuth from "../../hooks/useAuth";
+import { getPageContent } from "../../utils/pageContentApi";
 
 const NAV_LABEL_DEFAULTS = {
  menu: "MENU",
@@ -28,32 +30,30 @@ const NAV_LABEL_DEFAULTS = {
  adminStats: "Statistiques",
 };
 
-const readLabel = (key) => {
- try {
-  const raw = localStorage.getItem(key);
-  return raw === null ? null : raw;
- } catch {
-  return null;
- }
+const loadLabels = async () => {
+      try {
+            const fields = await getPageContent("navbar");
+            return {
+                  menu: fields?.menu ?? NAV_LABEL_DEFAULTS.menu,
+                  dashboard: fields?.dashboard ?? NAV_LABEL_DEFAULTS.dashboard,
+                  contacts: fields?.contacts ?? NAV_LABEL_DEFAULTS.contacts,
+                  orders: fields?.orders ?? NAV_LABEL_DEFAULTS.orders,
+                  invoices: fields?.invoices ?? NAV_LABEL_DEFAULTS.invoices,
+                  calendar: fields?.calendar ?? NAV_LABEL_DEFAULTS.calendar,
+                  adminSection: fields?.adminSection ?? NAV_LABEL_DEFAULTS.adminSection,
+                  adminUsers: fields?.adminUsers ?? NAV_LABEL_DEFAULTS.adminUsers,
+                  adminCharge: fields?.adminCharge ?? NAV_LABEL_DEFAULTS.adminCharge,
+                  adminMagazines: fields?.adminMagazines ?? NAV_LABEL_DEFAULTS.adminMagazines,
+                  adminStats: fields?.adminStats ?? NAV_LABEL_DEFAULTS.adminStats,
+            };
+      } catch {
+            return { ...NAV_LABEL_DEFAULTS };
+      }
 };
-
-const loadLabels = () => ({
- menu: readLabel("navbar:menu") || NAV_LABEL_DEFAULTS.menu,
- dashboard: readLabel("navbar:dashboard") || NAV_LABEL_DEFAULTS.dashboard,
- contacts: readLabel("navbar:contacts") || NAV_LABEL_DEFAULTS.contacts,
- orders: readLabel("navbar:orders") || NAV_LABEL_DEFAULTS.orders,
- invoices: readLabel("navbar:invoices") || NAV_LABEL_DEFAULTS.invoices,
- calendar: readLabel("navbar:calendar") || NAV_LABEL_DEFAULTS.calendar,
- adminSection: readLabel("navbar:admin") || NAV_LABEL_DEFAULTS.adminSection,
- adminUsers: readLabel("navbar:admin:users") || NAV_LABEL_DEFAULTS.adminUsers,
- adminCharge: readLabel("navbar:admin:charge") || NAV_LABEL_DEFAULTS.adminCharge,
- adminMagazines: readLabel("navbar:admin:magazines") || NAV_LABEL_DEFAULTS.adminMagazines,
- adminStats: readLabel("navbar:admin:stats") || NAV_LABEL_DEFAULTS.adminStats,
-});
 
 const Navbar = ({ isOpen, closeNavbar }) => {
  const { isAdmin } = useAuth();
- const [labels, setLabels] = useState(loadLabels);
+ const [labels, setLabels] = useState({ ...NAV_LABEL_DEFAULTS });
 
  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(() => {
   const saved = localStorage.getItem("adminMenuOpen");
@@ -65,14 +65,21 @@ const Navbar = ({ isOpen, closeNavbar }) => {
  }, [isAdminMenuOpen]);
 
  useEffect(() => {
-  const syncLabels = () => setLabels(loadLabels());
-  syncLabels();
-  window.addEventListener("storage", syncLabels);
-  window.addEventListener("navbar-labels-change", syncLabels);
-  return () => {
-   window.removeEventListener("storage", syncLabels);
-   window.removeEventListener("navbar-labels-change", syncLabels);
-  };
+      let isActive = true;
+
+      const syncLabels = async () => {
+            const nextLabels = await loadLabels();
+            if (isActive) {
+                  setLabels(nextLabels);
+            }
+      };
+
+      syncLabels();
+      window.addEventListener("navbar-labels-change", syncLabels);
+      return () => {
+            isActive = false;
+            window.removeEventListener("navbar-labels-change", syncLabels);
+      };
  }, []);
 
  const toggleAdminMenu = () => {

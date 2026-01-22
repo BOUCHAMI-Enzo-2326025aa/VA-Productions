@@ -20,6 +20,7 @@ import "./model/orderModel.js";
 import "./model/invoiceModel.js";
 import "./model/eventModel.js";
 import "./model/magazineModel.js";
+import "./model/pageContentModel.js";
 
 import { router as userRouter } from "./routes/userRoute.js";
 import { router as invoiceRouter } from "./routes/invoiceRoute.js";
@@ -30,6 +31,7 @@ import eventRoutes from "./routes/eventRoutes.js";
 import googleCalendarRouter from "./routes/googleCalendarRoute.js";
 import chargeRouter from "./routes/chargeRoute.js";
 import signatureRouter from "./routes/signatureRoute.js";
+import { router as pageContentRouter } from "./routes/pageContentRoute.js";
 //import nodemailer from "nodemailer";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -127,6 +129,7 @@ app.use("/api/magazine", magazineRouter);
 app.use("/api/google", googleCalendarRouter);
 app.use("/api/charge", chargeRouter);
 app.use("/api/signature", signatureRouter);
+app.use("/api/page-content", pageContentRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

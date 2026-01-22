@@ -4,6 +4,7 @@ import { User, Lock, Save, Eye, EyeOff } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import EditableText from "../../components/EditableText";
 import useAuth from "../../hooks/useAuth";
+import { getPageContent, updatePageContent } from "../../utils/pageContentApi";
 
 const readStoredValue = (key, fallback) => {
   try {
@@ -79,39 +80,31 @@ const Settings = () => {
   const [passwordSavingLabel, setPasswordSavingLabel] = useState(() =>
     readStoredValue("settings:password:saving", "Changement en cours...")
   );
-  const [menuLabel, setMenuLabel] = useState(() =>
-    readStoredValue("navbar:menu", "MENU")
-  );
-  const [dashboardLabel, setDashboardLabel] = useState(() =>
-    readStoredValue("navbar:dashboard", "Dashboard")
-  );
-  const [contactsLabel, setContactsLabel] = useState(() =>
-    readStoredValue("navbar:contacts", "Contacts")
-  );
-  const [ordersLabel, setOrdersLabel] = useState(() =>
-    readStoredValue("navbar:orders", "Commandes")
-  );
-  const [invoicesLabel, setInvoicesLabel] = useState(() =>
-    readStoredValue("navbar:invoices", "Facturation")
-  );
-  const [calendarLabel, setCalendarLabel] = useState(() =>
-    readStoredValue("navbar:calendar", "Calendrier")
-  );
-  const [adminSectionLabel, setAdminSectionLabel] = useState(() =>
-    readStoredValue("navbar:admin", "Administration")
-  );
-  const [adminUsersLabel, setAdminUsersLabel] = useState(() =>
-    readStoredValue("navbar:admin:users", "Gestion Utilisateur")
-  );
-  const [adminChargeLabel, setAdminChargeLabel] = useState(() =>
-    readStoredValue("navbar:admin:charge", "Comptabilité")
-  );
-  const [adminMagazinesLabel, setAdminMagazinesLabel] = useState(() =>
-    readStoredValue("navbar:admin:magazines", "Magazines")
-  );
-  const [adminStatsLabel, setAdminStatsLabel] = useState(() =>
-    readStoredValue("navbar:admin:stats", "Statistiques")
-  );
+  const NAVBAR_DEFAULTS = {
+    menu: "MENU",
+    dashboard: "Dashboard",
+    contacts: "Contacts",
+    orders: "Commandes",
+    invoices: "Facturation",
+    calendar: "Calendrier",
+    adminSection: "Administration",
+    adminUsers: "Gestion Utilisateur",
+    adminCharge: "Comptabilité",
+    adminMagazines: "Magazines",
+    adminStats: "Statistiques",
+  };
+
+  const [menuLabel, setMenuLabel] = useState(NAVBAR_DEFAULTS.menu);
+  const [dashboardLabel, setDashboardLabel] = useState(NAVBAR_DEFAULTS.dashboard);
+  const [contactsLabel, setContactsLabel] = useState(NAVBAR_DEFAULTS.contacts);
+  const [ordersLabel, setOrdersLabel] = useState(NAVBAR_DEFAULTS.orders);
+  const [invoicesLabel, setInvoicesLabel] = useState(NAVBAR_DEFAULTS.invoices);
+  const [calendarLabel, setCalendarLabel] = useState(NAVBAR_DEFAULTS.calendar);
+  const [adminSectionLabel, setAdminSectionLabel] = useState(NAVBAR_DEFAULTS.adminSection);
+  const [adminUsersLabel, setAdminUsersLabel] = useState(NAVBAR_DEFAULTS.adminUsers);
+  const [adminChargeLabel, setAdminChargeLabel] = useState(NAVBAR_DEFAULTS.adminCharge);
+  const [adminMagazinesLabel, setAdminMagazinesLabel] = useState(NAVBAR_DEFAULTS.adminMagazines);
+  const [adminStatsLabel, setAdminStatsLabel] = useState(NAVBAR_DEFAULTS.adminStats);
   
   // État pour le formulaire de profil
   const [profileForm, setProfileForm] = useState({
@@ -151,6 +144,90 @@ const Settings = () => {
     }
   }, [isAdmin]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    const keySetters = [
+      { key: "settings:profile:title", setter: setProfileTitle },
+      { key: "settings:profile:name", setter: setNameLabel },
+      { key: "settings:profile:firstName", setter: setFirstNameLabel },
+      { key: "settings:profile:email", setter: setEmailLabel },
+      { key: "settings:profile:emailHint", setter: setEmailHint },
+      { key: "settings:profile:namePlaceholder", setter: setNamePlaceholder },
+      { key: "settings:profile:firstNamePlaceholder", setter: setFirstNamePlaceholder },
+      { key: "settings:profile:save", setter: setProfileSaveLabel },
+      { key: "settings:profile:saving", setter: setProfileSavingLabel },
+      { key: "settings:password:title", setter: setPasswordTitle },
+      { key: "settings:password:current", setter: setCurrentPasswordLabel },
+      { key: "settings:password:new", setter: setNewPasswordLabel },
+      { key: "settings:password:confirm", setter: setConfirmPasswordLabel },
+      { key: "settings:password:currentPlaceholder", setter: setCurrentPasswordPlaceholder },
+      { key: "settings:password:newPlaceholder", setter: setNewPasswordPlaceholder },
+      { key: "settings:password:confirmPlaceholder", setter: setConfirmPasswordPlaceholder },
+      { key: "settings:password:hint", setter: setPasswordHint },
+      { key: "settings:password:save", setter: setPasswordSaveLabel },
+      { key: "settings:password:saving", setter: setPasswordSavingLabel },
+    ];
+
+    const loadSettingsContent = async () => {
+      const results = await Promise.all(
+        keySetters.map(async ({ key }) => {
+          try {
+            const fields = await getPageContent(key);
+            return { key, value: fields?.value };
+          } catch {
+            return { key, value: null };
+          }
+        })
+      );
+
+      if (!isActive) return;
+
+      results.forEach(({ key, value }) => {
+        if (value === null || value === undefined) return;
+        const match = keySetters.find((item) => item.key === key);
+        if (match?.setter) {
+          match.setter(value);
+        }
+      });
+    };
+
+    loadSettingsContent();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    const loadNavbarLabels = async () => {
+      try {
+        const fields = await getPageContent("navbar");
+        if (!isActive) return;
+        setMenuLabel(fields?.menu ?? NAVBAR_DEFAULTS.menu);
+        setDashboardLabel(fields?.dashboard ?? NAVBAR_DEFAULTS.dashboard);
+        setContactsLabel(fields?.contacts ?? NAVBAR_DEFAULTS.contacts);
+        setOrdersLabel(fields?.orders ?? NAVBAR_DEFAULTS.orders);
+        setInvoicesLabel(fields?.invoices ?? NAVBAR_DEFAULTS.invoices);
+        setCalendarLabel(fields?.calendar ?? NAVBAR_DEFAULTS.calendar);
+        setAdminSectionLabel(fields?.adminSection ?? NAVBAR_DEFAULTS.adminSection);
+        setAdminUsersLabel(fields?.adminUsers ?? NAVBAR_DEFAULTS.adminUsers);
+        setAdminChargeLabel(fields?.adminCharge ?? NAVBAR_DEFAULTS.adminCharge);
+        setAdminMagazinesLabel(fields?.adminMagazines ?? NAVBAR_DEFAULTS.adminMagazines);
+        setAdminStatsLabel(fields?.adminStats ?? NAVBAR_DEFAULTS.adminStats);
+      } catch {
+        // Ignore load errors
+      }
+    };
+
+    loadNavbarLabels();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   const showSnackbar = (type, message) => {
     setSnackbar({ open: true, type, message });
     setTimeout(() => {
@@ -158,12 +235,12 @@ const Settings = () => {
     }, 3000);
   };
 
-  const updateNavbarLabel = (key, value) => {
+  const updateNavbarLabel = async (field, value) => {
     try {
-      localStorage.setItem(key, value);
+      await updatePageContent("navbar", { [field]: value });
       window.dispatchEvent(new Event("navbar-labels-change"));
     } catch {
-      // Ignore storage errors
+      // Ignore save errors
     }
   };
 
@@ -532,7 +609,7 @@ const Settings = () => {
                 value={menuLabel}
                 onChange={(e) => {
                   setMenuLabel(e.target.value);
-                  updateNavbarLabel("navbar:menu", e.target.value);
+                  updateNavbarLabel("menu", e.target.value);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
@@ -543,7 +620,7 @@ const Settings = () => {
                 value={dashboardLabel}
                 onChange={(e) => {
                   setDashboardLabel(e.target.value);
-                  updateNavbarLabel("navbar:dashboard", e.target.value);
+                  updateNavbarLabel("dashboard", e.target.value);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
@@ -554,7 +631,7 @@ const Settings = () => {
                 value={contactsLabel}
                 onChange={(e) => {
                   setContactsLabel(e.target.value);
-                  updateNavbarLabel("navbar:contacts", e.target.value);
+                  updateNavbarLabel("contacts", e.target.value);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
@@ -565,7 +642,7 @@ const Settings = () => {
                 value={ordersLabel}
                 onChange={(e) => {
                   setOrdersLabel(e.target.value);
-                  updateNavbarLabel("navbar:orders", e.target.value);
+                  updateNavbarLabel("orders", e.target.value);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
@@ -576,7 +653,7 @@ const Settings = () => {
                 value={invoicesLabel}
                 onChange={(e) => {
                   setInvoicesLabel(e.target.value);
-                  updateNavbarLabel("navbar:invoices", e.target.value);
+                  updateNavbarLabel("invoices", e.target.value);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
@@ -587,7 +664,7 @@ const Settings = () => {
                 value={calendarLabel}
                 onChange={(e) => {
                   setCalendarLabel(e.target.value);
-                  updateNavbarLabel("navbar:calendar", e.target.value);
+                  updateNavbarLabel("calendar", e.target.value);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
@@ -603,7 +680,7 @@ const Settings = () => {
                   value={adminSectionLabel}
                   onChange={(e) => {
                     setAdminSectionLabel(e.target.value);
-                    updateNavbarLabel("navbar:admin", e.target.value);
+                    updateNavbarLabel("adminSection", e.target.value);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
@@ -614,7 +691,7 @@ const Settings = () => {
                   value={adminUsersLabel}
                   onChange={(e) => {
                     setAdminUsersLabel(e.target.value);
-                    updateNavbarLabel("navbar:admin:users", e.target.value);
+                    updateNavbarLabel("adminUsers", e.target.value);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
@@ -625,7 +702,7 @@ const Settings = () => {
                   value={adminChargeLabel}
                   onChange={(e) => {
                     setAdminChargeLabel(e.target.value);
-                    updateNavbarLabel("navbar:admin:charge", e.target.value);
+                    updateNavbarLabel("adminCharge", e.target.value);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
@@ -636,7 +713,7 @@ const Settings = () => {
                   value={adminMagazinesLabel}
                   onChange={(e) => {
                     setAdminMagazinesLabel(e.target.value);
-                    updateNavbarLabel("navbar:admin:magazines", e.target.value);
+                    updateNavbarLabel("adminMagazines", e.target.value);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
@@ -647,7 +724,7 @@ const Settings = () => {
                   value={adminStatsLabel}
                   onChange={(e) => {
                     setAdminStatsLabel(e.target.value);
-                    updateNavbarLabel("navbar:admin:stats", e.target.value);
+                    updateNavbarLabel("adminStats", e.target.value);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />

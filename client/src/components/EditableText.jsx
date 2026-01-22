@@ -1,23 +1,5 @@
-import { useEffect, useState } from "react";
-
-const readStoredValue = (key) => {
-  if (!key) return null;
-  try {
-    const raw = localStorage.getItem(key);
-    return raw === null ? null : raw;
-  } catch {
-    return null;
-  }
-};
-
-const writeStoredValue = (key, value) => {
-  if (!key) return;
-  try {
-    localStorage.setItem(key, value ?? "");
-  } catch {
-    // Ignore storage errors
-  }
-};
+import { useEffect, useRef, useState } from "react";
+import { getPageContent, updatePageContent } from "../utils/pageContentApi";
 
 const EditableText = ({
   storageKey,
@@ -33,19 +15,66 @@ const EditableText = ({
   onValueChange,
 }) => {
   const [value, setValue] = useState(defaultValue || "");
+  const saveTimeoutRef = useRef(null);
+  const lastSavedRef = useRef(defaultValue || "");
 
   useEffect(() => {
-    const stored = readStoredValue(storageKey);
-    if (stored !== null) {
-      setValue(stored);
-      return;
-    }
-    setValue(defaultValue || "");
+    let isActive = true;
+
+    const loadValue = async () => {
+      if (!storageKey) {
+        setValue(defaultValue || "");
+        lastSavedRef.current = defaultValue || "";
+        return;
+      }
+
+      try {
+        const fields = await getPageContent(storageKey);
+        if (!isActive) return;
+        const nextValue = fields?.value ?? defaultValue ?? "";
+        setValue(nextValue);
+        lastSavedRef.current = nextValue;
+      } catch {
+        if (!isActive) return;
+        setValue(defaultValue || "");
+        lastSavedRef.current = defaultValue || "";
+      }
+    };
+
+    loadValue();
+
+    return () => {
+      isActive = false;
+    };
   }, [storageKey, defaultValue]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const scheduleSave = (nextValue) => {
+    if (!storageKey) return;
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (nextValue === lastSavedRef.current) return;
+      try {
+        await updatePageContent(storageKey, { value: nextValue ?? "" });
+        lastSavedRef.current = nextValue ?? "";
+      } catch {
+        // Ignore save errors
+      }
+    }, 450);
+  };
 
   const handleChange = (nextValue) => {
     setValue(nextValue);
-    writeStoredValue(storageKey, nextValue);
+    scheduleSave(nextValue);
     if (onValueChange) {
       onValueChange(nextValue);
     }
