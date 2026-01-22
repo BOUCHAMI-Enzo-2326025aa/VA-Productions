@@ -189,7 +189,7 @@ const Stats = () => {
               </span>
             </label>
 
-            {!isStatsLoading && invoicesFiltered.length > 0 && (
+            {!isStatsLoading && invoicesForCharts.length > 0 && (
               <CSVLink
                 data={csvData}
                 headers={csvHeaders}
