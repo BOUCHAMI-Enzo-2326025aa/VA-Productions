@@ -1,15 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-
-const readStoredHeader = (key) => {
-  if (!key) return null;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-};
+import { getPageContent, updatePageContent } from "../utils/pageContentApi";
 
 const PageHeader = ({
   title,
@@ -79,32 +69,48 @@ const PageHeader = ({
       return value;
     };
 
-    const stored = readStoredHeader(headerKey);
-    if (stored) {
-      const nextTitle = normalizeTitle(stored.title ?? title ?? "");
-      const nextDescription = stored.description ?? description ?? "";
-      setCurrentTitle(nextTitle);
-      setCurrentDescription(nextDescription);
-      setDraftTitle(nextTitle);
-      setDraftDescription(nextDescription);
-      return;
-    }
+    let isActive = true;
 
-    setCurrentTitle(normalizeTitle(title || ""));
-    setCurrentDescription(description || "");
-    setDraftTitle(normalizeTitle(title || ""));
-    setDraftDescription(description || "");
+    const loadHeader = async () => {
+      try {
+        const fields = await getPageContent(headerKey);
+        if (!isActive) return;
+        if (fields) {
+          const nextTitle = normalizeTitle(fields.title ?? title ?? "");
+          const nextDescription = fields.description ?? description ?? "";
+          setCurrentTitle(nextTitle);
+          setCurrentDescription(nextDescription);
+          setDraftTitle(nextTitle);
+          setDraftDescription(nextDescription);
+          return;
+        }
+      } catch {
+        // Ignore load errors
+      }
+
+      if (!isActive) return;
+      setCurrentTitle(normalizeTitle(title || ""));
+      setCurrentDescription(description || "");
+      setDraftTitle(normalizeTitle(title || ""));
+      setDraftDescription(description || "");
+    };
+
+    loadHeader();
+
+    return () => {
+      isActive = false;
+    };
   }, [headerKey, title, description, titleSuffix]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const nextTitle = (draftTitle || "").trim() || title || "";
     const nextDescription = (draftDescription || "").trim();
     const payload = { title: nextTitle, description: nextDescription };
 
     try {
-      localStorage.setItem(headerKey, JSON.stringify(payload));
+      await updatePageContent(headerKey, payload);
     } catch {
-      // Ignore storage errors (quota, private mode, etc.)
+      // Ignore save errors
     }
 
     setCurrentTitle(nextTitle);
