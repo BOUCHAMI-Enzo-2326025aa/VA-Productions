@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import FactureCard from "./FactureCard";
 import axios from "axios";
+import EditableText from "../../../components/EditableText";
 
-const FactureList = () => {
+const FactureList = ({ isEditing = false }) => {
   const [factureList, setFactureList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -23,15 +24,35 @@ const FactureList = () => {
   return (
     <div className="bg-white w-[50%] py-5 px-8 h-full rounded-[15px] max-[680px]:w-full">
       <div className="flex justify-between items-center">
-        <p className="text-main-color text-xl font-semibold max-[850px]:text-sm">
-          Dernières Factures
-        </p>
-        <a
-          href="/invoice"
-          className="text-secondary-color text-sm font-semibold max-[850px]:text-xs"
-        >
-          Voir plus
-        </a>
+        <EditableText
+          storageKey="dashboard:invoices:title"
+          defaultValue="Dernières Factures"
+          isEditing={isEditing}
+          className="text-main-color text-xl font-semibold max-[850px]:text-sm"
+          inputClassName="text-xl font-semibold max-[850px]:text-sm"
+        />
+        {isEditing ? (
+          <EditableText
+            storageKey="dashboard:invoices:cta"
+            defaultValue="Voir plus"
+            isEditing={isEditing}
+            className="text-secondary-color text-sm font-semibold max-[850px]:text-xs"
+            inputClassName="text-sm font-semibold max-[850px]:text-xs"
+            as="span"
+          />
+        ) : (
+          <a
+            href="/invoice"
+            className="text-secondary-color text-sm font-semibold max-[850px]:text-xs"
+          >
+            <EditableText
+              storageKey="dashboard:invoices:cta"
+              defaultValue="Voir plus"
+              isEditing={false}
+              as="span"
+            />
+          </a>
+        )}
       </div>
       <div className="flex flex-col gap-2 mt-5">
         {isLoading ? (

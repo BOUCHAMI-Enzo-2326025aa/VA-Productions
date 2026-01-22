@@ -2,8 +2,18 @@ import { useState } from "react";
 import Notification from "./Notification";
 import "../Calendrier.css";
 import plus_icon from "../../../assets/plus-icon.svg";
+import EditableText from "../../../components/EditableText";
 
-const Button = ({ onCreate }) => {
+const readStoredValue = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw;
+  } catch {
+    return fallback;
+  }
+};
+
+const Button = ({ onCreate, isEditing = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -14,9 +24,42 @@ const Button = ({ onCreate }) => {
     description: "",
   });
   const [notification, setNotification] = useState(null);
+  const [newEventLabel, setNewEventLabel] = useState(() =>
+    readStoredValue("calendar:new-event", "Nouveau rendez-vous")
+  );
+  const [createTitle, setCreateTitle] = useState(() =>
+    readStoredValue("calendar:create:title", "Créer un nouvel événement")
+  );
+  const [startLabel, setStartLabel] = useState(() =>
+    readStoredValue("calendar:create:start", "Heure de début")
+  );
+  const [endLabel, setEndLabel] = useState(() =>
+    readStoredValue("calendar:create:end", "Heure de fin")
+  );
+  const [clientLabel, setClientLabel] = useState(() =>
+    readStoredValue("calendar:create:client", "Client")
+  );
+  const [locationLabel, setLocationLabel] = useState(() =>
+    readStoredValue("calendar:create:location", "Lieu")
+  );
+  const [descriptionLabel, setDescriptionLabel] = useState(() =>
+    readStoredValue("calendar:create:description", "Description")
+  );
+  const [saveLabel, setSaveLabel] = useState(() =>
+    readStoredValue("calendar:create:save", "Enregistrer")
+  );
+  const [savingLabel, setSavingLabel] = useState(() =>
+    readStoredValue("calendar:create:saving", "Enregistrement...")
+  );
+  const [cancelLabel, setCancelLabel] = useState(() =>
+    readStoredValue("calendar:create:cancel", "Annuler")
+  );
 
   // Fonction pour ouvrir le formulaire
-  const handleOpen = () => setIsOpen(true);
+  const handleOpen = () => {
+    if (isEditing) return;
+    setIsOpen(true);
+  };
 
   // Fonction pour fermer le formulaire et réinitialiser les champs
   const handleClose = () => {
@@ -114,13 +157,26 @@ const Button = ({ onCreate }) => {
 
   return (
     <div>
-      <button
-        className="bg-[#3F3F3F] text-white font-medium gap-2 px-6 py-3 rounded-sm font-inter flex items-center"
-        onClick={handleOpen}
-      >
-        <img src={plus_icon} alt="plus" />
-        Nouveau rendez-vous
-      </button>
+      {isEditing ? (
+        <div className="border-2 border-dashed border-[#3F3F3F] rounded-sm">
+          <EditableText
+            storageKey="calendar:new-event"
+            defaultValue={newEventLabel}
+            isEditing={isEditing}
+            inputBaseClassName="bg-[#3F3F3F] text-white font-medium gap-2 px-6 py-3 rounded-sm font-inter flex items-center w-full"
+            inputClassName="text-white font-medium text-center"
+            onValueChange={setNewEventLabel}
+          />
+        </div>
+      ) : (
+        <button
+          className="bg-[#3F3F3F] text-white font-medium gap-2 px-6 py-3 rounded-sm font-inter flex items-center"
+          onClick={handleOpen}
+        >
+          <img src={plus_icon} alt="plus" />
+          {newEventLabel}
+        </button>
+      )}
 
       {notification && (
         <Notification
@@ -135,15 +191,26 @@ const Button = ({ onCreate }) => {
           isOpen ? "translate-x-0" : "translate-x-[100%]"
         }`}
       >
-        <h2 className="text-lg font-semibold mb-4 text-[#000000]">
-          Créer un nouvel événement
-        </h2>
+        <EditableText
+          storageKey="calendar:create:title"
+          defaultValue={createTitle}
+          isEditing={isEditing}
+          className="text-lg font-semibold mb-4 text-[#000000]"
+          inputClassName="text-lg font-semibold text-[#000000]"
+          onValueChange={setCreateTitle}
+        />
 
         <form onSubmit={handleSave}>
           <div className="mb-4">
-            <label className="block font-inter text-[#3f3f3F]">
-              Heure de début
-            </label>
+            <EditableText
+              storageKey="calendar:create:start"
+              defaultValue={startLabel}
+              isEditing={isEditing}
+              className="block font-inter text-[#3f3f3F]"
+              inputClassName="text-sm"
+              onValueChange={setStartLabel}
+              as="label"
+            />
             <input
               type="datetime-local"
               name="startTime"
@@ -154,9 +221,15 @@ const Button = ({ onCreate }) => {
           </div>
 
           <div className="mb-4">
-            <label className="block font-inter text-[#3f3f3F]">
-              Heure de fin
-            </label>
+            <EditableText
+              storageKey="calendar:create:end"
+              defaultValue={endLabel}
+              isEditing={isEditing}
+              className="block font-inter text-[#3f3f3F]"
+              inputClassName="text-sm"
+              onValueChange={setEndLabel}
+              as="label"
+            />
             <input
               type="datetime-local"
               name="endTime"
@@ -167,7 +240,15 @@ const Button = ({ onCreate }) => {
           </div>
 
           <div className="mb-4">
-            <label className="block font-inter text-[#3f3f3F]">Client</label>
+            <EditableText
+              storageKey="calendar:create:client"
+              defaultValue={clientLabel}
+              isEditing={isEditing}
+              className="block font-inter text-[#3f3f3F]"
+              inputClassName="text-sm"
+              onValueChange={setClientLabel}
+              as="label"
+            />
             <input
               type="text"
               name="company"
@@ -178,7 +259,15 @@ const Button = ({ onCreate }) => {
           </div>
 
           <div className="mb-4">
-            <label className="block font-inter text-[#3f3f3F]">Lieu</label>
+            <EditableText
+              storageKey="calendar:create:location"
+              defaultValue={locationLabel}
+              isEditing={isEditing}
+              className="block font-inter text-[#3f3f3F]"
+              inputClassName="text-sm"
+              onValueChange={setLocationLabel}
+              as="label"
+            />
             <input
               type="text"
               name="location"
@@ -189,9 +278,15 @@ const Button = ({ onCreate }) => {
           </div>
 
           <div className="mb-4">
-            <label className="block font-inter text-[#3f3f3F]">
-              Description
-            </label>
+            <EditableText
+              storageKey="calendar:create:description"
+              defaultValue={descriptionLabel}
+              isEditing={isEditing}
+              className="block font-inter text-[#3f3f3F]"
+              inputClassName="text-sm"
+              onValueChange={setDescriptionLabel}
+              as="label"
+            />
             <textarea
               name="description"
               value={formData.description}
@@ -201,20 +296,42 @@ const Button = ({ onCreate }) => {
           </div>
 
           <div className="flex justify-between">
-            <button
-              type="submit"
-              className="calendrier-button text-white px-4 py-2 rounded bg-blue-500 hover:bg-blue-700 flex items-center"
-            >
-              {isSaving ? <span>Enregistrement...</span> : "Enregistrer"}
-            </button>
+            {isEditing ? (
+              <EditableText
+                storageKey="calendar:create:save"
+                defaultValue={saveLabel}
+                isEditing={isEditing}
+                inputBaseClassName="calendrier-button text-white px-4 py-2 rounded bg-blue-500 flex items-center"
+                inputClassName="text-white font-medium text-center"
+                onValueChange={setSaveLabel}
+              />
+            ) : (
+              <button
+                type="submit"
+                className="calendrier-button text-white px-4 py-2 rounded bg-blue-500 hover:bg-blue-700 flex items-center"
+              >
+                {isSaving ? <span>{savingLabel}</span> : saveLabel}
+              </button>
+            )}
 
-            <button
-              type="button"
-              onClick={handleClose}
-              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-700"
-            >
-              Annuler
-            </button>
+            {isEditing ? (
+              <EditableText
+                storageKey="calendar:create:cancel"
+                defaultValue={cancelLabel}
+                isEditing={isEditing}
+                inputBaseClassName="bg-gray-500 text-white px-4 py-2 rounded"
+                inputClassName="text-white font-medium text-center"
+                onValueChange={setCancelLabel}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={handleClose}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-700"
+              >
+                {cancelLabel}
+              </button>
+            )}
           </div>
         </form>
       </div>

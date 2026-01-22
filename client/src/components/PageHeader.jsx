@@ -19,21 +19,69 @@ const PageHeader = ({
   className,
   titleClassName,
   descriptionClassName,
+  editMode,
+  onEditModeChange,
+  editToggleLabel,
+  titleSuffix,
+  canEdit = true,
 }) => {
   const headerKey = useMemo(
     () => storageKey || `page-header:${title || "page"}`,
     [storageKey, title]
   );
-  const [isEditing, setIsEditing] = useState(false);
+  const [internalEditing, setInternalEditing] = useState(false);
+  const resolvedEditing = typeof editMode === "boolean" ? editMode : internalEditing;
+  const isEditing = canEdit ? resolvedEditing : false;
+  const setEditing = (nextValue) => {
+    if (!canEdit) return;
+    if (onEditModeChange) {
+      onEditModeChange(nextValue);
+      return;
+    }
+    setInternalEditing(nextValue);
+  };
+
+  useEffect(() => {
+    try {
+      if (!canEdit) {
+        localStorage.setItem("ui:edit-mode", "false");
+        window.dispatchEvent(
+          new CustomEvent("ui-edit-mode-change", {
+            detail: { isEditing: false },
+          })
+        );
+        return;
+      }
+
+      localStorage.setItem("ui:edit-mode", isEditing ? "true" : "false");
+      window.dispatchEvent(
+        new CustomEvent("ui-edit-mode-change", {
+          detail: { isEditing },
+        })
+      );
+    } catch {
+      // Ignore storage errors
+    }
+  }, [isEditing, canEdit]);
   const [currentTitle, setCurrentTitle] = useState(title || "");
   const [currentDescription, setCurrentDescription] = useState(description || "");
   const [draftTitle, setDraftTitle] = useState(title || "");
   const [draftDescription, setDraftDescription] = useState(description || "");
 
   useEffect(() => {
+    const normalizeTitle = (value) => {
+      if (!value) return "";
+      if (!titleSuffix) return value;
+      const suffix = String(titleSuffix);
+      if (suffix && value.endsWith(suffix)) {
+        return value.slice(0, -suffix.length).trimEnd();
+      }
+      return value;
+    };
+
     const stored = readStoredHeader(headerKey);
     if (stored) {
-      const nextTitle = stored.title ?? title ?? "";
+      const nextTitle = normalizeTitle(stored.title ?? title ?? "");
       const nextDescription = stored.description ?? description ?? "";
       setCurrentTitle(nextTitle);
       setCurrentDescription(nextDescription);
@@ -42,11 +90,11 @@ const PageHeader = ({
       return;
     }
 
-    setCurrentTitle(title || "");
+    setCurrentTitle(normalizeTitle(title || ""));
     setCurrentDescription(description || "");
-    setDraftTitle(title || "");
+    setDraftTitle(normalizeTitle(title || ""));
     setDraftDescription(description || "");
-  }, [headerKey, title, description]);
+  }, [headerKey, title, description, titleSuffix]);
 
   const handleSave = () => {
     const nextTitle = (draftTitle || "").trim() || title || "";
@@ -61,13 +109,13 @@ const PageHeader = ({
 
     setCurrentTitle(nextTitle);
     setCurrentDescription(nextDescription);
-    setIsEditing(false);
+    setEditing(false);
   };
 
   const handleCancel = () => {
     setDraftTitle(currentTitle || title || "");
     setDraftDescription(currentDescription || description || "");
-    setIsEditing(false);
+    setEditing(false);
   };
 
   return (
@@ -79,7 +127,8 @@ const PageHeader = ({
       <div className="flex-1 min-w-0">
         {isEditing ? (
           <div className="flex flex-col gap-2">
-            <input
+            <div className="flex items-center gap-2">
+              <input
               value={draftTitle}
               onChange={(event) => setDraftTitle(event.target.value)}
               className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-[#3F3F3F] font-semibold focus:outline-none focus:ring-2 focus:ring-[#3F3F3F] ${
@@ -87,6 +136,12 @@ const PageHeader = ({
               }`}
               placeholder="Titre de la page"
             />
+              {titleSuffix ? (
+                <span className="text-[#3F3F3F] font-semibold">
+                  {titleSuffix}
+                </span>
+              ) : null}
+            </div>
             <textarea
               value={draftDescription}
               onChange={(event) => setDraftDescription(event.target.value)}
@@ -105,6 +160,7 @@ const PageHeader = ({
               }`}
             >
               {currentTitle}
+              {titleSuffix}
             </p>
             {currentDescription ? (
               <p
@@ -121,7 +177,8 @@ const PageHeader = ({
 
       <div className="flex flex-wrap items-start gap-2 justify-start sm:justify-end">
         {actions}
-        {isEditing ? (
+        {canEdit ? (
+          isEditing ? (
           <>
             <button
               type="button"
@@ -138,15 +195,16 @@ const PageHeader = ({
               Annuler
             </button>
           </>
-        ) : (
+          ) : (
           <button
             type="button"
-            onClick={() => setIsEditing(true)}
+            onClick={() => setEditing(true)}
             className="border border-[#3F3F3F] text-[#3F3F3F] px-4 py-2 rounded-lg font-semibold hover:bg-black hover:bg-opacity-5 transition"
           >
-            Mode édition
+            {editToggleLabel || "Mode édition"}
           </button>
-        )}
+          )
+        ) : null}
       </div>
     </div>
   );

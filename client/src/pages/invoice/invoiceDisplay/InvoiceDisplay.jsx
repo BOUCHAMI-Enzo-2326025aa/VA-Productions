@@ -5,14 +5,39 @@ import InvoiceNumbers from "./invoiceNumbers/InvoiceNumbers";
 import axios from "axios";
 import FilterModal from "./FilterModal";
 import PageHeader from "../../../components/PageHeader";
+import EditableText from "../../../components/EditableText";
+import useAuth from "../../../hooks/useAuth";
+
+const readStoredValue = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw;
+  } catch {
+    return fallback;
+  }
+};
 
 const InvoiceDisplay = () => {
+  const [isEditing, setIsEditing] = useState(false);
+  const { isAdmin } = useAuth();
   const [magazineList, setMagazineList] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [invoicesToShow, setInvoicesToShow] = useState([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [clientList, setClientList] = useState([]);
+  const [searchPlaceholder, setSearchPlaceholder] = useState(() =>
+    readStoredValue("invoices:search:placeholder", "Rechercher un client")
+  );
+  const [filterLabel, setFilterLabel] = useState(() =>
+    readStoredValue("invoices:filter:button", "Filtrer")
+  );
+  const [listTitle, setListTitle] = useState(() =>
+    readStoredValue("invoices:list:title", "Liste des factures")
+  );
+  const [listSubtitle, setListSubtitle] = useState(() =>
+    readStoredValue("invoices:list:subtitle", "Voici la liste de toutes les factures créées !")
+  );
   const [filter, setFilter] = useState({
     support: [],
     compagnies: [],
@@ -131,6 +156,12 @@ const InvoiceDisplay = () => {
     fetchAllMagazines();
   }, []);
 
+  useEffect(() => {
+    if (!isAdmin) {
+      setIsEditing(false);
+    }
+  }, [isAdmin]);
+
   return (
     <div>
       {isFilterOpen && (
@@ -144,33 +175,79 @@ const InvoiceDisplay = () => {
         description="Consultez et gérez l'ensemble des factures"
         storageKey="page-header:factures"
         className="mt-10"
+        editMode={isEditing}
+        onEditModeChange={setIsEditing}
+        canEdit={isAdmin}
       />
       <div className="invoice-stats-container">
-        <InvoiceNumbers invoices={invoicesToShow} isLoading={isLoading} />
+        <InvoiceNumbers
+          invoices={invoicesToShow}
+          isLoading={isLoading}
+          isEditing={isEditing && isAdmin}
+        />
       </div>
 
       <div className="text-[#3F3F3F] mt-10 ">
-        <p className="font-semibold">Liste des factures</p>
-        <p className="text-sm">Voici la liste de toutes les factures créées !</p>
+        <EditableText
+          storageKey="invoices:list:title"
+          defaultValue={listTitle}
+          isEditing={isEditing && isAdmin}
+          className="font-semibold"
+          inputClassName="font-semibold"
+          onValueChange={setListTitle}
+        />
+        <EditableText
+          storageKey="invoices:list:subtitle"
+          defaultValue={listSubtitle}
+          isEditing={isEditing && isAdmin}
+          className="text-sm"
+          inputClassName="text-sm"
+          onValueChange={setListSubtitle}
+        />
       </div>
 
       <div className="flex items-center h-auto mt-5 gap-2 justify-between relative invoice-actions-container">
-        <div className="flex items-center rounded-md px-2 h-10 bg-white min-w-full md:min-w-[500px]">
+        <div
+          className={`flex items-center rounded-md px-2 h-10 bg-white min-w-full md:min-w-[500px] ${
+            isEditing && isAdmin ? "border-2 border-dashed border-[#3F3F3F]" : ""
+          }`}
+        >
           <svg className="size-5 fill-[#3F3F3F]" viewBox="0 -960 960 960">
             <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" />
           </svg>
-          <input
-            onChange={(e) => searchInvoice(e.target.value)}
-            placeholder="Rechercher un client"
-            className="bg-transparent h-full w-full py-2 text-[#3F3F3F] text-sm px-2"
-          ></input>
+          {isEditing && isAdmin ? (
+            <EditableText
+              storageKey="invoices:search:placeholder"
+              defaultValue={searchPlaceholder}
+              isEditing={isEditing}
+              inputClassName="text-[#3F3F3F] text-sm px-2"
+              onValueChange={setSearchPlaceholder}
+            />
+          ) : (
+            <input
+              onChange={(e) => searchInvoice(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="bg-transparent h-full w-full py-2 text-[#3F3F3F] text-sm px-2"
+            ></input>
+          )}
         </div>
 
-        <InvoiceButton
-          value={"Filtrer"}
-          className={"!h-10 !py-0 text-sm !w-full md:!w-[170px]"}
-          onClickFunction={() => setIsFilterOpen(!isFilterOpen)}
-        />
+        {isEditing && isAdmin ? (
+          <EditableText
+            storageKey="invoices:filter:button"
+            defaultValue={filterLabel}
+            isEditing={isEditing}
+            inputBaseClassName="bg-[#3F3F3F] text-white px-4 py-3 rounded-sm font-medium font-inter w-full md:w-[170px] h-10"
+            inputClassName="text-white font-medium font-inter text-center text-sm"
+            onValueChange={setFilterLabel}
+          />
+        ) : (
+          <InvoiceButton
+            value={filterLabel}
+            className={"!h-10 !py-0 text-sm !w-full md:!w-[170px]"}
+            onClickFunction={() => setIsFilterOpen(!isFilterOpen)}
+          />
+        )}
 
         {isFilterOpen && (
           <FilterModal
@@ -180,6 +257,7 @@ const InvoiceDisplay = () => {
             magazineList={magazineList}
             filterInvoiceAction={filterInvoices}
             deleteFilter={deleteFilter}
+            isEditing={isEditing && isAdmin}
           />
         )}
       </div>
@@ -187,6 +265,7 @@ const InvoiceDisplay = () => {
         invoices={invoicesToShow}
         setInvoices={setInvoices}
         setInvoicesToShow={setInvoicesToShow}
+        isEditing={isEditing && isAdmin}
       />
     </div>
   );
