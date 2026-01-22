@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import ContactCard from "./ContactCard";
 import axios from "axios";
+import EditableText from "../../../components/EditableText";
 
-const ContactList = () => {
+const ContactList = ({ isEditing = false }) => {
   const [contactList, setContactList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -27,15 +28,35 @@ const ContactList = () => {
   return (
     <div className="bg-white w-[50%] py-5 px-8 h-full rounded-[15px] max-[680px]:w-full">
       <div className="flex justify-between items-center">
-        <p className="text-main-color text-xl font-semibold max-[850px]:text-sm">
-          Prochain rendez-vous
-        </p>
-        <a
-          href="/calendrier"
-          className="text-secondary-color text-sm font-semibold max-[850px]:text-xs"
-        >
-          Voir plus
-        </a>
+        <EditableText
+          storageKey="dashboard:events:title"
+          defaultValue="Prochain rendez-vous"
+          isEditing={isEditing}
+          className="text-main-color text-xl font-semibold max-[850px]:text-sm"
+          inputClassName="text-xl font-semibold max-[850px]:text-sm"
+        />
+        {isEditing ? (
+          <EditableText
+            storageKey="dashboard:events:cta"
+            defaultValue="Voir plus"
+            isEditing={isEditing}
+            className="text-secondary-color text-sm font-semibold max-[850px]:text-xs"
+            inputClassName="text-sm font-semibold max-[850px]:text-xs"
+            as="span"
+          />
+        ) : (
+          <a
+            href="/calendrier"
+            className="text-secondary-color text-sm font-semibold max-[850px]:text-xs"
+          >
+            <EditableText
+              storageKey="dashboard:events:cta"
+              defaultValue="Voir plus"
+              isEditing={false}
+              as="span"
+            />
+          </a>
+        )}
       </div>
       <div className="flex flex-col gap-2 mt-5">
         {isLoading ? (

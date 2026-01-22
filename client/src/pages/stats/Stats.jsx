@@ -9,6 +9,7 @@ import RevenueGoal from "./RevenueGoal";
 
 import { CSVLink } from "react-csv";
 import { buildSupportColorMap } from "./supportColorMap";
+import PageHeader from "../../components/PageHeader";
 
 import GlobalStatsCards from "./GlobalStatsCards";
 import TopClients from "./TopClients";
@@ -161,38 +162,48 @@ const Stats = () => {
 
   if (!isAdmin) return <div>Accès refusé.</div>;
 
-  return (
-    <div className="mb-10 animate-in fade-in duration-500">
-      <div className="flex flex-col items-start gap-4 md:flex-row md:justify-between md:items-center mt-10 mb-8">
-        <div>
-          <p className="font-bold text-lg text-[#3F3F3F] leading-3">Statistiques des supports</p>
-          <p className="text-[#3F3F3F] opacity-80 mt-2">Vue d'ensemble et rentabilité</p>
-        </div>
+    return (
+    <div className="mb-10">
+      <PageHeader
+        title="Statistiques des supports"
+        description="Statistiques des supports"
+        storageKey="page-header:statistiques"
+        className="mt-10"
+        actions={
+          <>
+            <label className="flex items-center justify-between gap-4 w-full md:w-auto px-3 py-2 bg-white border border-[#E1E1E1] rounded-md">
+              <span className="text-[#3F3F3F] opacity-80 font-medium">
+                Payées uniquement
+              </span>
+              <span className="relative inline-flex items-center">
+                <input
+                  type="checkbox"
+                  checked={paidOnly}
+                  onChange={(e) => setPaidOnly(e.target.checked)}
+                  className="peer sr-only"
+                  role="switch"
+                  aria-label="Afficher uniquement les factures payées"
+                />
+                <span className="h-6 w-11 rounded-full border border-[#E1E1E1] bg-[#F7F7F7] transition-colors peer-checked:bg-[#3F3F3F] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#3F3F3F]" />
+                <span className="pointer-events-none absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+              </span>
+            </label>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-           <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="px-3 py-2 bg-white border border-[#E1E1E1] rounded-md text-[#3F3F3F] text-sm focus:outline-none focus:ring-2 focus:ring-[#3F3F3F]">
-            <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
-            <option value={new Date().getFullYear() - 1}>{new Date().getFullYear() - 1}</option>
-            <option value="rolling">12 derniers mois</option>
-          </select>
-          <label className="flex items-center justify-between gap-4 px-3 py-2 bg-white border border-[#E1E1E1] rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
-            <span className="text-[#3F3F3F] opacity-80 font-medium text-sm">Payées</span>
-            <input type="checkbox" checked={paidOnly} onChange={(e) => setPaidOnly(e.target.checked)} className="accent-[#3F3F3F] h-4 w-4"/>
-          </label>
-          {!isStatsLoading && invoicesForCharts.length > 0 && (
-            <CSVLink
-              data={csvData}
-              headers={csvHeaders}
-              filename={"export-statistiques.csv"}
-              className="bg-[#3F3F3F] text-white font-semibold py-2 px-4 rounded hover:bg-opacity-80 transition-all w-full md:w-auto text-center text-sm flex items-center justify-center"
-              target="_blank"
-              separator={";"} 
-            >
-              Export CSV
-            </CSVLink>
-          )}
-        </div>
-      </div>
+            {!isStatsLoading && invoicesFiltered.length > 0 && (
+              <CSVLink
+                data={csvData}
+                headers={csvHeaders}
+                filename={"export-statistiques-va-production.csv"}
+                className="bg-[#3F3F3F] text-white font-semibold py-2 px-4 rounded hover:bg-opacity-80 transition-all w-full md:w-auto text-center"
+                target="_blank"
+                separator={";"} 
+              >
+                Exporter les Données (CSV)
+              </CSVLink>
+            )}
+          </>
+        }
+      />
 
       {isStatsLoading ? (
         <div className="w-full text-center text-[#3F3F3F] opacity-70 py-12">Chargement...</div>

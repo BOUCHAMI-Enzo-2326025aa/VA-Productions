@@ -1,5 +1,17 @@
 
-const ChangeStatusButton = ({ statusToShow, setStatusToShow }) => {
+import EditableText from "../../components/EditableText";
+
+const ChangeStatusButton = ({
+  statusToShow,
+  setStatusToShow,
+  isEditing = false,
+  pendingLabel = "En attentes",
+  approvedLabel = "Validés",
+  cancelLabel = "Annulés",
+  onPendingLabelChange,
+  onApprovedLabelChange,
+  onCancelLabelChange,
+}) => {
   return (
     <div className="bg-black bg-opacity-5  flex justify-around w-[400px] py-2 font-semibold rounded-xl mt-5 relative">
       <span
@@ -16,19 +28,43 @@ const ChangeStatusButton = ({ statusToShow, setStatusToShow }) => {
         className="z-20 cursor-pointer w-24 text-center"
         onClick={() => setStatusToShow("pending")}
       >
-        En attentes
+        <EditableText
+          storageKey="orders:status:pending"
+          defaultValue={pendingLabel}
+          isEditing={isEditing}
+          onValueChange={onPendingLabelChange}
+          className=""
+          inputClassName="text-sm font-semibold text-center"
+          as="span"
+        />
       </a>
       <a
         className="z-20 cursor-pointer w-24 text-center"
         onClick={() => setStatusToShow("approved")}
       >
-        Validés
+        <EditableText
+          storageKey="orders:status:approved"
+          defaultValue={approvedLabel}
+          isEditing={isEditing}
+          onValueChange={onApprovedLabelChange}
+          className=""
+          inputClassName="text-sm font-semibold text-center"
+          as="span"
+        />
       </a>
       <a
         className="z-20 cursor-pointer w-24 text-center"
         onClick={() => setStatusToShow("cancel")}
       >
-        Annulés
+        <EditableText
+          storageKey="orders:status:cancel"
+          defaultValue={cancelLabel}
+          isEditing={isEditing}
+          onValueChange={onCancelLabelChange}
+          className=""
+          inputClassName="text-sm font-semibold text-center"
+          as="span"
+        />
       </a>
     </div>
   );

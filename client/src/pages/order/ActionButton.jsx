@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import ActionModal from "./ActionModal";
+import EditableText from "../../components/EditableText";
 
-const ActionButton = ({selectedOrder, validateOrder, cancelOrder}) => {
+const ActionButton = ({ selectedOrder, validateOrder, cancelOrder, isEditing = false, label = "Action", onLabelChange }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const hasSelection = Array.isArray(selectedOrder) && selectedOrder.length > 0;
 
@@ -12,6 +13,7 @@ const ActionButton = ({selectedOrder, validateOrder, cancelOrder}) => {
   }, [hasSelection]);
 
   const handleToggleModal = () => {
+    if (isEditing) return;
     if (!hasSelection) return;
     setIsModalOpen((prev) => !prev);
   };
@@ -26,7 +28,15 @@ const ActionButton = ({selectedOrder, validateOrder, cancelOrder}) => {
       className={`${baseClasses} ${hasSelection ? "hover:bg-black/5 transition" : disabledClasses}`}
       disabled={!hasSelection}
     >
-      Action
+      <EditableText
+        storageKey="orders:action:label"
+        defaultValue={label}
+        isEditing={isEditing}
+        onValueChange={onLabelChange}
+        className=""
+        inputClassName="text-sm font-semibold text-center"
+        as="span"
+      />
       <svg
         className="size-6 fill-[#3F3F3F] ml-1"
         xmlns="http://www.w3.org/2000/svg"

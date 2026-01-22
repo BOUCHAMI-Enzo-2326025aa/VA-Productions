@@ -14,8 +14,46 @@ import powerIconSvg from "../../assets/power-icon.svg";
 import gearIconSvg from "../../assets/gear-icon.svg";
 import useAuth from "../../hooks/useAuth";
 
+const NAV_LABEL_DEFAULTS = {
+ menu: "MENU",
+ dashboard: "Dashboard",
+ contacts: "Contacts",
+ orders: "Commandes",
+ invoices: "Facturation",
+ calendar: "Calendrier",
+ adminSection: "Administration",
+ adminUsers: "Gestion Utilisateur",
+ adminCharge: "Comptabilité",
+ adminMagazines: "Magazines",
+ adminStats: "Statistiques",
+};
+
+const readLabel = (key) => {
+ try {
+  const raw = localStorage.getItem(key);
+  return raw === null ? null : raw;
+ } catch {
+  return null;
+ }
+};
+
+const loadLabels = () => ({
+ menu: readLabel("navbar:menu") || NAV_LABEL_DEFAULTS.menu,
+ dashboard: readLabel("navbar:dashboard") || NAV_LABEL_DEFAULTS.dashboard,
+ contacts: readLabel("navbar:contacts") || NAV_LABEL_DEFAULTS.contacts,
+ orders: readLabel("navbar:orders") || NAV_LABEL_DEFAULTS.orders,
+ invoices: readLabel("navbar:invoices") || NAV_LABEL_DEFAULTS.invoices,
+ calendar: readLabel("navbar:calendar") || NAV_LABEL_DEFAULTS.calendar,
+ adminSection: readLabel("navbar:admin") || NAV_LABEL_DEFAULTS.adminSection,
+ adminUsers: readLabel("navbar:admin:users") || NAV_LABEL_DEFAULTS.adminUsers,
+ adminCharge: readLabel("navbar:admin:charge") || NAV_LABEL_DEFAULTS.adminCharge,
+ adminMagazines: readLabel("navbar:admin:magazines") || NAV_LABEL_DEFAULTS.adminMagazines,
+ adminStats: readLabel("navbar:admin:stats") || NAV_LABEL_DEFAULTS.adminStats,
+});
+
 const Navbar = ({ isOpen, closeNavbar }) => {
  const { isAdmin } = useAuth();
+ const [labels, setLabels] = useState(loadLabels);
 
  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(() => {
   const saved = localStorage.getItem("adminMenuOpen");
@@ -25,6 +63,17 @@ const Navbar = ({ isOpen, closeNavbar }) => {
  useEffect(() => {
   localStorage.setItem("adminMenuOpen", isAdminMenuOpen);
  }, [isAdminMenuOpen]);
+
+ useEffect(() => {
+  const syncLabels = () => setLabels(loadLabels());
+  syncLabels();
+  window.addEventListener("storage", syncLabels);
+  window.addEventListener("navbar-labels-change", syncLabels);
+  return () => {
+   window.removeEventListener("storage", syncLabels);
+   window.removeEventListener("navbar-labels-change", syncLabels);
+  };
+ }, []);
 
  const toggleAdminMenu = () => {
   setIsAdminMenuOpen((prev) => !prev);
@@ -57,35 +106,35 @@ const Navbar = ({ isOpen, closeNavbar }) => {
       <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
      </svg>
     </div>
-    <p className="mt-6 text-sm text-white font-medium opacity-70">MENU</p>
+        <p className="mt-6 text-sm text-white font-medium opacity-70">{labels.menu}</p>
     <div className="flex gap-0 flex-col mt-4">
      <PageLink
       link={"/dashboard"}
-      text={"Dashboard"}
+            text={labels.dashboard}
       icon={dashboardSvg}
       closeNavbar={closeNavbar}
      />
      <PageLink
       link={"/contacts"}
-      text={"Contacts"}
+            text={labels.contacts}
       icon={contactSvg}
       closeNavbar={closeNavbar}
      />
      <PageLink
       link={"/order"}
-      text={"Commandes"}
+            text={labels.orders}
       icon={oderSvg}
       closeNavbar={closeNavbar}
      />
      <PageLink
       link={"/invoice"}
-      text={"Facturation"}
+            text={labels.invoices}
       icon={facturationSvg}
       closeNavbar={closeNavbar}
      />
      <PageLink
       link={"/calendrier"}
-      text={"Calendrier"}
+            text={labels.calendar}
       icon={calendrierSvg}
       closeNavbar={closeNavbar}
      />
@@ -100,7 +149,7 @@ const Navbar = ({ isOpen, closeNavbar }) => {
         className="flex w-full items-center justify-between rounded-md px-2 py-2 text-white opacity-70 hover:bg-black hover:bg-opacity-5 hover:opacity-100 hover:scale-105 transition-all"
         aria-expanded={isAdminMenuOpen}
        >
-        <span className="text-lg font-normal">Administration</span>
+        <span className="text-lg font-normal">{labels.adminSection}</span>
         <svg
          className={`size-5 transition-transform ${isAdminMenuOpen ? "rotate-180" : ""
           }`}
@@ -115,25 +164,25 @@ const Navbar = ({ isOpen, closeNavbar }) => {
         <div className="ml-4 flex flex-col gap-1">
          <PageLink
           link={"/admin/user"}
-          text={"Gestion Utilisateur"}
+          text={labels.adminUsers}
           icon={manageUserSvg}
           closeNavbar={closeNavbar}
          />
          <PageLink
           link={"/admin/charge"}
-          text={"Comptabilité"}
+          text={labels.adminCharge}
           icon={chargeSvg}
           closeNavbar={closeNavbar}
          />
          <PageLink
           link={"/admin/magazine"}
-          text={"Magazines"}
+          text={labels.adminMagazines}
           icon={contactSvg}
           closeNavbar={closeNavbar}
          />
          <PageLink
           link={"/admin/stats"}
-          text={"Statistiques"}
+          text={labels.adminStats}
           icon={statsSvg}
           closeNavbar={closeNavbar}
          />

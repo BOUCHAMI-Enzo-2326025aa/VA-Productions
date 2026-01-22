@@ -8,8 +8,22 @@ import "./contact.css";
 import Button from "../../components/ui/Button";
 import DetailContactV2 from "./components/DetailContactV2";
 import SnackBar from "./components/SnackBar";
+import PageHeader from "../../components/PageHeader";
+import EditableText from "../../components/EditableText";
+import useAuth from "../../hooks/useAuth";
+
+const readStoredValue = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw;
+  } catch {
+    return fallback;
+  }
+};
 
 const Contact = () => {
+  const [isEditing, setIsEditing] = useState(false);
+  const { isAdmin } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [filteredContacts, setFilteredContacts] = useState([]);
@@ -23,12 +37,27 @@ const Contact = () => {
     type: "",
     message: "",
   });
+  const [searchPlaceholder, setSearchPlaceholder] = useState(() =>
+    readStoredValue("contacts:search:placeholder", "Rechercher un contact")
+  );
+  const [addContactLabel, setAddContactLabel] = useState(() =>
+    readStoredValue("contacts:add:button", "Ajouter un contact")
+  );
+  const [emptyMessage, setEmptyMessage] = useState(() =>
+    readStoredValue("contacts:empty", "Aucun contact trouvé.")
+  );
 
   let hasFetchedContact = false;
 
   useEffect(() => {
     fetchContact();
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setIsEditing(false);
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     if (query) {
@@ -165,46 +194,77 @@ const Contact = () => {
         )}
 
         <div className="flex flex-col space-y-8 md:space-y-12 pt-6">
-          <div className="flex flex-col ">
-            <p className="font-inter text-[#3F3F3F] text-3xl md:text-4xl font-bold">
-              Contacts
-            </p>
-            <p className="font-inter text-[#3F3F3F] text-lg md:text-xl font-medium opacity-70">
-              Retrouvez la liste de tous les contacts enregistrés
-            </p>
-          </div>
+          <PageHeader
+            title="Contacts"
+            description="Retrouvez la liste de tous les contacts enregistrés"
+            storageKey="page-header:contacts"
+            titleClassName="font-inter text-3xl md:text-4xl"
+            descriptionClassName="font-inter text-lg md:text-xl font-medium opacity-70"
+            editMode={isEditing}
+            onEditModeChange={setIsEditing}
+            canEdit={isAdmin}
+          />
           <div className="flex flex-col space-y-5">
             <div className="flex w-full flex-col gap-5 md:flex-row justify-between items-center ">
-              <div className="flex flex-row border-[1px] border-[#3F3F3F] border-opacity-15 rounded-lg p-2.5 space-x-2 items-center w-full md:w-auto">
+              <div
+                className={`flex flex-row border-[1px] border-[#3F3F3F] border-opacity-15 rounded-lg p-2.5 space-x-2 items-center w-full md:w-auto ${
+                  isEditing ? "border-2 border-dashed" : ""
+                }`}
+              >
                 <SearchIcon />
-                <input
-                  type="text"
-                  className="bg-transparent focus:border-transparent focus:ring-0 border-transparent focus:outline-none font-inter text-[#3F3F3F] placeholder-opacity-50 flex-1"
-                  placeholder="Rechercher un contact"
-                  onChange={(e) => setQuery(e.target.value)}
-                  value={query}
-                />
-                {query && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    height="24px"
-                    viewBox="0 -960 960 960"
-                    width="24px"
-                    fill="#5f6368"
-                    onClick={() => {
-                      setQuery("");
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
-                  </svg>
+                {isEditing && isAdmin ? (
+                  <EditableText
+                    storageKey="contacts:search:placeholder"
+                    defaultValue={searchPlaceholder}
+                    isEditing={isEditing}
+                    inputClassName="font-inter text-[#3F3F3F] placeholder-opacity-50 flex-1 focus:ring-0"
+                    onValueChange={setSearchPlaceholder}
+                  />
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      className="bg-transparent focus:border-transparent focus:ring-0 border-transparent focus:outline-none font-inter text-[#3F3F3F] placeholder-opacity-50 flex-1"
+                      placeholder={searchPlaceholder}
+                      onChange={(e) => setQuery(e.target.value)}
+                      value={query}
+                    />
+                    {query && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        height="24px"
+                        viewBox="0 -960 960 960"
+                        width="24px"
+                        fill="#5f6368"
+                        onClick={() => {
+                          setQuery("");
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+                      </svg>
+                    )}
+                  </>
                 )}
               </div>
-              <Button
-                onClickFunction={handleOpenModal}
-                value={"Ajouter un contact"}
-                className="w-full md:w-auto"
-              />
+              {isEditing && isAdmin ? (
+                <div className="w-full md:w-auto min-w-[275px] border-2 border-dashed border-[#3F3F3F] rounded-sm">
+                  <EditableText
+                    storageKey="contacts:add:button"
+                    defaultValue={addContactLabel}
+                    isEditing={isEditing}
+                    inputBaseClassName="bg-[#3F3F3F] text-white px-4 py-3 rounded-sm font-medium font-inter w-full"
+                    inputClassName="text-white font-medium font-inter text-center"
+                    onValueChange={setAddContactLabel}
+                  />
+                </div>
+              ) : (
+                <Button
+                  onClickFunction={handleOpenModal}
+                  value={addContactLabel}
+                  className="w-full md:w-auto"
+                />
+              )}
             </div>
             {isFetching ? (
               <div className="flex flex-row gap-2 w-full items-center justify-center pt-10">
@@ -231,9 +291,14 @@ const Contact = () => {
                   </div>
                 ) : (
                   <div className="flex flex-col w-full justify-center items-center pt-10">
-                    <p className="font-inter text-[#3F3F3F] text-base font-medium opacity-70">
-                      Aucun contact trouvé.
-                    </p>
+                    <EditableText
+                      storageKey="contacts:empty"
+                      defaultValue={emptyMessage}
+                      isEditing={isEditing && isAdmin}
+                      className="font-inter text-[#3F3F3F] text-base font-medium opacity-70"
+                      inputClassName="text-base font-medium"
+                      onValueChange={setEmptyMessage}
+                    />
                   </div>
                 )}
               </>

@@ -3,13 +3,36 @@ import axios from "axios";
 import DateSection from "./components/DateSection";
 import Button from "./components/Button";
 import google_calendar_icon from "../../assets/google-calendar-icon.png";
+import PageHeader from "../../components/PageHeader";
+import EditableText from "../../components/EditableText";
+import useAuth from "../../hooks/useAuth";
+
+const readStoredValue = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw;
+  } catch {
+    return fallback;
+  }
+};
 
 const Calendrier = () => {
+  const [isEditing, setIsEditing] = useState(false);
+  const { isAdmin } = useAuth();
   const [events, setEvents] = useState({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEventsLoading, setIsEventsLoading] = useState(false);
   const [googleTokens, setGoogleTokens] = useState(null);
+  const [connectLabel, setConnectLabel] = useState(() =>
+    readStoredValue("calendar:connect", "Connexion Google Calendar")
+  );
+  const [disconnectLabel, setDisconnectLabel] = useState(() =>
+    readStoredValue("calendar:disconnect", "Déconnexion")
+  );
+  const [importLabel, setImportLabel] = useState(() =>
+    readStoredValue("calendar:import", "Importer tous les événements")
+  );
 
   const extractTime = (dateTimeString) => {
     if (!dateTimeString) return "";
@@ -79,6 +102,12 @@ const Calendrier = () => {
       window.removeEventListener('message', handleMessage);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setIsEditing(false);
+    }
+  }, [isAdmin]);
 
   const handleSignIn = async () => {
     try {
@@ -346,42 +375,76 @@ const Calendrier = () => {
 
   return (
     <div className="bg-[#E8E9EB] w-full py-6">
-      <div>
-        <h1 className="font-inter text-[#3F3F3F] text-3xl md:text-4xl font-bold">
-          Calendrier
-        </h1>
-        <p className="font-inter text-[#3F3F3F] text-lg md:text-xl font-medium opacity-70">
-          Retrouvez les prochains rendez-vous et appels
-        </p>
-      </div>
+      <PageHeader
+        title="Calendrier"
+        description="Retrouvez les prochains rendez-vous et appels"
+        storageKey="page-header:calendrier"
+        titleClassName="font-inter text-3xl md:text-4xl"
+        descriptionClassName="font-inter text-lg md:text-xl font-medium opacity-70"
+        editMode={isEditing}
+        onEditModeChange={setIsEditing}
+        canEdit={isAdmin}
+      />
 
       <div className="w-full flex justify-end mb-6 items-center gap-2 calendar-actions-container">
         {!isAuthenticated ? (
-          <button
-            onClick={handleSignIn}
-            className="border-[3px] bg-[#0072e1] font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md"
-          >
-            Connexion Google Calendar
-          </button>
+          isEditing && isAdmin ? (
+            <EditableText
+              storageKey="calendar:connect"
+              defaultValue={connectLabel}
+              isEditing={isEditing}
+              inputBaseClassName="border-[3px] bg-[#0072e1] font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md text-white"
+              inputClassName="text-white font-medium text-center"
+              onValueChange={setConnectLabel}
+            />
+          ) : (
+            <button
+              onClick={handleSignIn}
+              className="border-[3px] bg-[#0072e1] font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md text-white"
+            >
+              {connectLabel}
+            </button>
+          )
         ) : (
-          <button
-            onClick={handleSignOut}
-            className=" bg-red-500 font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md"
-          >
-            Déconnexion
-          </button>
+          isEditing && isAdmin ? (
+            <EditableText
+              storageKey="calendar:disconnect"
+              defaultValue={disconnectLabel}
+              isEditing={isEditing}
+              inputBaseClassName="bg-red-500 font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md text-white"
+              inputClassName="text-white font-medium text-center"
+              onValueChange={setDisconnectLabel}
+            />
+          ) : (
+            <button
+              onClick={handleSignOut}
+              className=" bg-red-500 font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md text-white"
+            >
+              {disconnectLabel}
+            </button>
+          )
         )}
 
-        {isAuthenticated && (
-          <button
-            onClick={importAllEventsToGoogle}
-            className="bg-green-500 font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md"
-          >
-            Importer tous les événements
-          </button>
-        )}
+        {isAuthenticated &&
+          (isEditing && isAdmin ? (
+            <EditableText
+              storageKey="calendar:import"
+              defaultValue={importLabel}
+              isEditing={isEditing}
+              inputBaseClassName="bg-green-500 font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md text-white"
+              inputClassName="text-white font-medium text-center"
+              onValueChange={setImportLabel}
+            />
+          ) : (
+            <button
+              onClick={importAllEventsToGoogle}
+              className="bg-green-500 font-medium flex items-center gap-2 px-6 md:px-12 py-3 rounded-md text-white"
+            >
+              {importLabel}
+            </button>
+          ))}
 
-        <Button onCreate={handleCreateEvent} />
+        <Button onCreate={handleCreateEvent} isEditing={isEditing && isAdmin} />
       </div>
 
       {isEventsLoading ? (

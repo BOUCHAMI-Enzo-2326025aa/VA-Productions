@@ -9,8 +9,22 @@ import InvoiceButton from "../invoice/component/InvoiceButton";
 import OrderValidationModal from "./OrderValidationModal";
 import OrderDeleteModal from "./OrderDeleteModal";
 import OrderEditModal from "./OrderEditModal";
+import PageHeader from "../../components/PageHeader";
+import EditableText from "../../components/EditableText";
+import useAuth from "../../hooks/useAuth";
+
+const readStoredValue = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw;
+  } catch {
+    return fallback;
+  }
+};
 
 const Order = () => {
+  const [isEditing, setIsEditing] = useState(false);
+  const { isAdmin } = useAuth();
   const [orders, setOrders] = useState([]);
   const [ordersToShow, setOrdersToShow] = useState([]);
   const [statusToShow, setStatusToShow] = useState("pending");
@@ -20,6 +34,21 @@ const Order = () => {
   const [validationError, setValidationError] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
   const [orderBeingEdited, setOrderBeingEdited] = useState(null);
+  const [pendingLabel, setPendingLabel] = useState(() =>
+    readStoredValue("orders:status:pending", "En attentes")
+  );
+  const [approvedLabel, setApprovedLabel] = useState(() =>
+    readStoredValue("orders:status:approved", "Validés")
+  );
+  const [cancelLabel, setCancelLabel] = useState(() =>
+    readStoredValue("orders:status:cancel", "Annulés")
+  );
+  const [actionLabel, setActionLabel] = useState(() =>
+    readStoredValue("orders:action:label", "Action")
+  );
+  const [createLabel, setCreateLabel] = useState(() =>
+    readStoredValue("orders:create:label", "Créer une commande")
+  );
 
   const fetchOrders = async () => {
     await axios
@@ -160,6 +189,12 @@ const Order = () => {
     fetchOrders();
   }, []);
 
+  useEffect(() => {
+    if (!isAdmin) {
+      setIsEditing(false);
+    }
+  }, [isAdmin]);
+
   return (
     <div className="text-[#3F3F3F]">
       {isValidating != false && (
@@ -173,28 +208,53 @@ const Order = () => {
         />
       )}
       {isCancelling != false && <OrderDeleteModal loading={isCancelling} />}
-      <p className="font-semibold text-lg mt-10">Bon de commandes crées</p>
-      <p className=" opacity-80">
-        Voici la liste de tous les bons des commandes crées (en cours et
-        validés)
-      </p>
+      <PageHeader
+        title="Bons de commandes créés"
+        description="Voici la liste de tous les bons des commandes créés (en cours et validés)"
+        storageKey="page-header:commandes"
+        className="mt-10"
+        editMode={isEditing}
+        onEditModeChange={setIsEditing}
+        canEdit={isAdmin}
+      />
 
       <div className="flex justify-between w-full items-center order-actions-container">
         <ChangeStatusButton
           statusToShow={statusToShow}
           setStatusToShow={setStatusToShow}
+          isEditing={isEditing && isAdmin}
+          pendingLabel={pendingLabel}
+          approvedLabel={approvedLabel}
+          cancelLabel={cancelLabel}
+          onPendingLabelChange={setPendingLabel}
+          onApprovedLabelChange={setApprovedLabel}
+          onCancelLabelChange={setCancelLabel}
         />
         <div className="flex gap-2 h-full ">
           <ActionButton
             selectedOrder={selectedOrder}
             validateOrder={validateOrder}
             cancelOrder={cancelOrder}
+            isEditing={isEditing && isAdmin}
+            label={actionLabel}
+            onLabelChange={setActionLabel}
           />
-          <InvoiceButton
-            className={"!h-full text-sm"}
-            value={"Créer une commande"}
-            onClickFunction={() => (location.href = "/invoice/create")}
-          />
+          {isEditing && isAdmin ? (
+            <EditableText
+              storageKey="orders:create:label"
+              defaultValue={createLabel}
+              isEditing={isEditing}
+              inputBaseClassName="bg-[#3F3F3F] text-white px-4 py-3 rounded-sm font-medium font-inter w-full sm:w-[275px]"
+              inputClassName="text-white font-medium font-inter text-center"
+              onValueChange={setCreateLabel}
+            />
+          ) : (
+            <InvoiceButton
+              className={"!h-full text-sm"}
+              value={createLabel}
+              onClickFunction={() => (location.href = "/invoice/create")}
+            />
+          )}
         </div>
       </div>
 
