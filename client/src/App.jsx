@@ -4,8 +4,8 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import Calendrier from "./pages/calendrier/Calendrier";
 import Contact from "./pages/contacts/Contact";
 import Layout from "./layout/Layout";
-import Login from "./pages/login/Login";
 import AdminTwoFactor from "./pages/login/AdminTwoFactor";
+import Login from "./pages/login/Login";
 import ManageUser from "./pages/createUser/ManageUser";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import AdminRoute from "./auth/AdminRoute";
@@ -24,6 +24,7 @@ import Charge from "./pages/charge/Charge";
 import Settings from "./pages/settings/Settings";
 import ForgotPassword from "./pages/password/ForgotPassword";
 import ResetPassword from "./pages/password/ResetPassword";
+import AiAssistant from "./components/AiAssistant/AiAssistant";
 
 
 axios.defaults.withCredentials = true;  
@@ -86,10 +87,28 @@ function App() {
   if (!userLoaded) {
     return <div>Loading...</div>;
   }
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .then((registration) => {
+          console.log(
+            "Service Worker registered with scope:",
+            registration.scope
+          );
+        })
+        .catch((error) => {
+          console.error("Service Worker registration failed:", error);
+        });
+    });
+  }
+
   
     return (
     <MantineProvider>
       <BrowserRouter>
+      <AiAssistant />
         <Routes>
           // Routes publiques (pas de connexion)
           <Route
@@ -100,7 +119,6 @@ function App() {
               </NotLoggedRoute>
             }
           />
-
           <Route
             path="/connexion/admin-2fa"
             element={

@@ -1,11 +1,33 @@
 import Skeleton from "../../../../components/Skeleton.jsx";
 import formatPrice from "../../../../utils/formatPrice.js";
+import EditableText from "../../../../components/EditableText";
 
-const Stat = ({ icon, title, value, subtitle, loading,  bgColor = "bg-[#1B1B14]" }) => {
+const Stat = ({
+  icon,
+  title,
+  value,
+  subtitle,
+  subtitleValue,
+  subtitleLabel,
+  loading,
+  bgColor = "bg-[#1B1B14]",
+  isEditing = false,
+  titleKey,
+  subtitleLabelKey,
+  onTitleChange,
+  onSubtitleLabelChange,
+}) => {
   return (
     <div className={`${bgColor} w-[320px] px-6 py-4 rounded-lg`}>
       <div className="flex items-center gap-2">
-        <p className="text-md text-white opacity-80">{title}</p>
+        <EditableText
+          storageKey={titleKey}
+          defaultValue={title}
+          isEditing={isEditing}
+          className="text-md text-white opacity-80"
+          inputClassName="text-md text-white"
+          onValueChange={onTitleChange}
+        />
       </div>
       <Skeleton
         visible={loading}
@@ -25,7 +47,31 @@ const Stat = ({ icon, title, value, subtitle, loading,  bgColor = "bg-[#1B1B14]"
         color={"white"}
         opacity={"10%"}
       >
-        <p className="text-sm opacity-70 font-light text-white">{subtitle}</p>
+        <p className="text-sm opacity-70 font-light text-white">
+          {subtitleValue !== undefined ? (
+            <>
+              <span>{subtitleValue} </span>
+              <EditableText
+                storageKey={subtitleLabelKey}
+                defaultValue={subtitleLabel || ""}
+                isEditing={isEditing}
+                className="text-sm opacity-70 font-light text-white"
+                inputClassName="text-sm text-white"
+                onValueChange={onSubtitleLabelChange}
+                as="span"
+              />
+            </>
+          ) : (
+            <EditableText
+              storageKey={subtitleLabelKey}
+              defaultValue={subtitle || ""}
+              isEditing={isEditing}
+              className="text-sm opacity-70 font-light text-white"
+              inputClassName="text-sm text-white"
+              onValueChange={onSubtitleLabelChange}
+            />
+          )}
+        </p>
       </Skeleton>
     </div>
   );

@@ -6,9 +6,21 @@ import { formatDateSlash } from "../../utils/formatDate";
 import RoleSelection from "./RoleSelection";
 import DeleteUserButton from "./DeleteUserButton";
 import useAuth from "../../hooks/useAuth";
+import PageHeader from "../../components/PageHeader";
+import EditableText from "../../components/EditableText";
+
+const readStoredValue = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw;
+  } catch {
+    return fallback;
+  }
+};
 
 const ManageUser = () => {
   const { isAdmin } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -17,6 +29,48 @@ const ManageUser = () => {
   const usersPerPage = 10;
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
   const searchNameRef = useRef("search_" + Math.random().toString(36).slice(2));
+  const [addUserLabel, setAddUserLabel] = useState(() =>
+    readStoredValue("users:add:button", "Ajouter un utilisateur")
+  );
+  const [searchTitle, setSearchTitle] = useState(() =>
+    readStoredValue("users:search:title", "Rechercher")
+  );
+  const [searchPlaceholder, setSearchPlaceholder] = useState(() =>
+    readStoredValue("users:search:placeholder", "Rechercher par nom, prénom ou email")
+  );
+  const [foundLabel, setFoundLabel] = useState(() =>
+    readStoredValue("users:found:label", "Utilisateurs trouvés")
+  );
+  const [emptyLabel, setEmptyLabel] = useState(() =>
+    readStoredValue("users:empty", "Aucun utilisateur trouvé.")
+  );
+  const [prevLabel, setPrevLabel] = useState(() =>
+    readStoredValue("users:pagination:prev", "Précédent")
+  );
+  const [nextLabel, setNextLabel] = useState(() =>
+    readStoredValue("users:pagination:next", "Suivant")
+  );
+  const [pageLabel, setPageLabel] = useState(() =>
+    readStoredValue("users:pagination:page", "Page")
+  );
+  const [ofLabel, setOfLabel] = useState(() =>
+    readStoredValue("users:pagination:of", "sur")
+  );
+  const [colName, setColName] = useState(() =>
+    readStoredValue("users:table:name", "Nom / Prenom")
+  );
+  const [colEmail, setColEmail] = useState(() =>
+    readStoredValue("users:table:email", "Email")
+  );
+  const [colRole, setColRole] = useState(() =>
+    readStoredValue("users:table:role", "Role")
+  );
+  const [colDate, setColDate] = useState(() =>
+    readStoredValue("users:table:date", "Date de création")
+  );
+  const [colActions, setColActions] = useState(() =>
+    readStoredValue("users:table:actions", "Actions")
+  );
 
   const fetchUsers = async () => {
     try {
@@ -62,6 +116,12 @@ const ManageUser = () => {
     fetchUsers();
   }, []);
 
+  useEffect(() => {
+    if (!isAdmin) {
+      setIsEditing(false);
+    }
+  }, [isAdmin]);
+
   return (
     <div className="flex flex-col mt-10 md:mt-16 min-h-screen text-[#3F3F3F] w-full ">
       {isCreateUserOpen && (
@@ -71,37 +131,85 @@ const ManageUser = () => {
         />
       )}
 
-      <div className="flex flex-col md:flex-row w-full justify-between md:items-center gap-4">
-        <p className="text-2xl font-bold">Membres</p>
-        {isAdmin && (
-          <button
-            className="text-white bg-[#3F3F3F] px-8 py-3 rounded text-sm w-full md:w-auto"
-            onClick={() => setIsCreateUserOpen(true)}
-          >
-            Ajouter un utilisateur
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Membres"
+        description="Gérez les comptes utilisateurs et leurs rôles"
+        storageKey="page-header:administration-utilisateurs"
+        className="md:items-center"
+        titleClassName="text-2xl"
+        editMode={isEditing}
+        onEditModeChange={setIsEditing}
+        canEdit={isAdmin}
+        actions={
+          isAdmin ? (
+            isEditing ? (
+              <div className="w-full md:w-auto min-w-[220px] border-2 border-dashed border-[#3F3F3F] rounded-sm">
+                <EditableText
+                  storageKey="users:add:button"
+                  defaultValue={addUserLabel}
+                  isEditing={isEditing}
+                  inputBaseClassName="text-white bg-[#3F3F3F] px-8 py-3 rounded text-sm w-full"
+                  inputClassName="text-white font-medium text-center"
+                  onValueChange={setAddUserLabel}
+                />
+              </div>
+            ) : (
+              <button
+                className="text-white bg-[#3F3F3F] px-8 py-3 rounded text-sm w-full md:w-auto"
+                onClick={() => setIsCreateUserOpen(true)}
+              >
+                {addUserLabel}
+              </button>
+            )
+          ) : null
+        }
+      />
 
       <div className="mt-6">
-        <p>Rechercher</p>
+        <EditableText
+          storageKey="users:search:title"
+          defaultValue={searchTitle}
+          isEditing={isEditing && isAdmin}
+          className=""
+          inputClassName="text-sm font-semibold"
+          onValueChange={setSearchTitle}
+        />
         <div>
-          <input
-            type="text"
-            name={searchNameRef.current}
-            autoComplete="off"
-            readOnly
-            onFocus={(e) => e.target.removeAttribute('readonly')}
-            className="w-full py-2 rounded px-2 border border-gray-300"
-            value={searchTerm}
-            onChange={handleSearch}
-            placeholder="Rechercher par nom, prénom ou email"
-          />
+          {isEditing && isAdmin ? (
+            <div className="border-2 border-dashed border-[#3F3F3F] rounded-md p-1">
+              <EditableText
+                storageKey="users:search:placeholder"
+                defaultValue={searchPlaceholder}
+                isEditing={isEditing}
+                inputClassName="w-full py-2 px-2 text-sm"
+                onValueChange={setSearchPlaceholder}
+              />
+            </div>
+          ) : (
+            <input
+              type="text"
+              name={searchNameRef.current}
+              autoComplete="off"
+              readOnly
+              onFocus={(e) => e.target.removeAttribute('readonly')}
+              className="w-full py-2 rounded px-2 border border-gray-300"
+              value={searchTerm}
+              onChange={handleSearch}
+              placeholder={searchPlaceholder}
+            />
+          )}
         </div>
       </div>
 
       <p className="mt-8">
-        <b>{filteredUsers.length}</b> Utilisateurs trouvés
+        <b>{filteredUsers.length}</b>{" "}
+        <EditableText
+          storageKey="users:found:label"
+          defaultValue={foundLabel}
+          isEditing={isEditing && isAdmin}
+          onValueChange={setFoundLabel}
+          as="span"
+        />
       </p>
 
       <table
@@ -110,11 +218,53 @@ const ManageUser = () => {
       >
         <thead>
           <tr className="bg-white rounded">
-            <th>Nom / Prenom</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Date de création</th>
-            {isAdmin && <th>Actions</th>}
+            <th>
+              <EditableText
+                storageKey="users:table:name"
+                defaultValue={colName}
+                isEditing={isEditing && isAdmin}
+                onValueChange={setColName}
+                as="span"
+              />
+            </th>
+            <th>
+              <EditableText
+                storageKey="users:table:email"
+                defaultValue={colEmail}
+                isEditing={isEditing && isAdmin}
+                onValueChange={setColEmail}
+                as="span"
+              />
+            </th>
+            <th>
+              <EditableText
+                storageKey="users:table:role"
+                defaultValue={colRole}
+                isEditing={isEditing && isAdmin}
+                onValueChange={setColRole}
+                as="span"
+              />
+            </th>
+            <th>
+              <EditableText
+                storageKey="users:table:date"
+                defaultValue={colDate}
+                isEditing={isEditing && isAdmin}
+                onValueChange={setColDate}
+                as="span"
+              />
+            </th>
+            {isAdmin && (
+              <th>
+                <EditableText
+                  storageKey="users:table:actions"
+                  defaultValue={colActions}
+                  isEditing={isEditing && isAdmin}
+                  onValueChange={setColActions}
+                  as="span"
+                />
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -148,7 +298,12 @@ const ManageUser = () => {
           ) : (
             <tr>
               <td colSpan={isAdmin ? "5" : "4"} className="text-center py-4">
-                Aucun utilisateur trouvé.
+                <EditableText
+                  storageKey="users:empty"
+                  defaultValue={emptyLabel}
+                  isEditing={isEditing && isAdmin}
+                  onValueChange={setEmptyLabel}
+                />
               </td>
             </tr>
           )}
@@ -163,17 +318,44 @@ const ManageUser = () => {
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
           >
-            Précédent
+            <EditableText
+              storageKey="users:pagination:prev"
+              defaultValue={prevLabel}
+              isEditing={isEditing && isAdmin}
+              onValueChange={setPrevLabel}
+              as="span"
+            />
           </button>
           <span className="px-4 py-2 text text-black">
-            Page {currentPage} sur {totalPages}
+            <EditableText
+              storageKey="users:pagination:page"
+              defaultValue={pageLabel}
+              isEditing={isEditing && isAdmin}
+              onValueChange={setPageLabel}
+              as="span"
+            />{" "}
+            {currentPage} {" "}
+            <EditableText
+              storageKey="users:pagination:of"
+              defaultValue={ofLabel}
+              isEditing={isEditing && isAdmin}
+              onValueChange={setOfLabel}
+              as="span"
+            />{" "}
+            {totalPages}
           </span>
           <button
             className="px-4 py-2 bg-[#3F3F3F] rounded-r text-white text-sm cursor-pointer disabled:opacity-50"
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
           >
-            Suivant
+            <EditableText
+              storageKey="users:pagination:next"
+              defaultValue={nextLabel}
+              isEditing={isEditing && isAdmin}
+              onValueChange={setNextLabel}
+              as="span"
+            />
           </button>
         </div>
       )}

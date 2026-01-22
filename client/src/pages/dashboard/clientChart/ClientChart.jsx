@@ -14,28 +14,51 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import axios from "axios";
+import EditableText from "../../../components/EditableText";
 
 export const description = "An interactive bar chart";
 
-const chartConfig = {
-  views: {
-    label: "Nombre",
-  },
-  event: {
-    label: "Prospects",
-    color: "#5C89E0",
-  },
-  invoice: {
-    label: "Clients",
-    color: "#D79C45",
-  },
+const readStoredValue = (key, fallback) => {
+  if (!key) return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw;
+  } catch {
+    return fallback;
+  }
 };
 
-export function ClientChart() {
+export function ClientChart({ isEditing = false }) {
   const [activeChart, setActiveChart] = React.useState("event");
   const [chartData, setChartData] = React.useState([]);
   const [eventList, setEventList] = React.useState([]);
   const [invoiceList, setInvoiceList] = React.useState([]);
+  const [eventLabel, setEventLabel] = React.useState(() =>
+    readStoredValue("dashboard:chart:event-label", "Prospects")
+  );
+  const [invoiceLabel, setInvoiceLabel] = React.useState(() =>
+    readStoredValue("dashboard:chart:invoice-label", "Clients")
+  );
+  const [metricLabel, setMetricLabel] = React.useState(() =>
+    readStoredValue("dashboard:chart:metric-label", "Nombre")
+  );
+
+  const chartConfig = React.useMemo(
+    () => ({
+      views: {
+        label: metricLabel,
+      },
+      event: {
+        label: eventLabel,
+        color: "#5C89E0",
+      },
+      invoice: {
+        label: invoiceLabel,
+        color: "#D79C45",
+      },
+    }),
+    [metricLabel, eventLabel, invoiceLabel]
+  );
 
   const total = React.useMemo(
     () => ({
@@ -136,8 +159,24 @@ export function ClientChart() {
     <Card>
       <CardHeader className="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-5 sm:py-6">
-          <CardTitle>Statistiques sur la prospection</CardTitle>
-          <CardDescription>Au cours des 30 derniers jours</CardDescription>
+          <CardTitle>
+            <EditableText
+              storageKey="dashboard:chart:title"
+              defaultValue="Statistiques sur la prospection"
+              isEditing={isEditing}
+              inputClassName="text-2xl font-semibold"
+              as="span"
+            />
+          </CardTitle>
+          <CardDescription>
+            <EditableText
+              storageKey="dashboard:chart:subtitle"
+              defaultValue="Au cours des 30 derniers jours"
+              isEditing={isEditing}
+              inputClassName="text-sm"
+              as="span"
+            />
+          </CardDescription>
         </div>
 
         <div className="flex">
@@ -151,7 +190,20 @@ export function ClientChart() {
                 onClick={() => setActiveChart(chart)}
               >
                 <span className="text-xs text-muted-foreground">
-                  {chartConfig[chart].label}
+                  <EditableText
+                    storageKey={
+                      chart === "event"
+                        ? "dashboard:chart:event-label"
+                        : "dashboard:chart:invoice-label"
+                    }
+                    defaultValue={chartConfig[chart].label}
+                    isEditing={isEditing}
+                    inputClassName="text-xs"
+                    onValueChange={
+                      chart === "event" ? setEventLabel : setInvoiceLabel
+                    }
+                    as="span"
+                  />
                 </span>
                 <span className="text-lg font-bold leading-none sm:text-3xl">
                   {total[chart].toLocaleString()}
@@ -196,7 +248,15 @@ export function ClientChart() {
       </CardContent>
       <CardFooter>
         <div className="py-0 w-full flex justify-end">
-          <span className="text-sm font-semibold">Taux de conversion:</span>
+          <span className="text-sm font-semibold">
+            <EditableText
+              storageKey="dashboard:chart:conversion-label"
+              defaultValue="Taux de conversion:"
+              isEditing={isEditing}
+              inputClassName="text-sm font-semibold"
+              as="span"
+            />
+          </span>
           <span className="ml-2 text-sm font-bold">{conversionRate}%</span>
         </div>
       </CardFooter>

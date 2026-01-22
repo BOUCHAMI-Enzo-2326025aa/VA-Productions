@@ -8,6 +8,7 @@ import InvoiceConfirm from "./invoiceConfirm/InvoiceConfirm";
 import axios from "axios";
 import "./invoice.css";
 import LoadingScreen from "./LoadingScreen";
+import PageHeader from "../../../components/PageHeader";
 
 const InvoiceCreation = () => {
   const [step, setStep] = useState(1);
@@ -147,7 +148,13 @@ const InvoiceCreation = () => {
   const decreaseStep = () => setStep(step - 1);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 mt-8">
+    <div className="flex flex-col gap-6 mt-6">
+      <PageHeader
+        title="Création de facture"
+        description="Renseignez les informations pour générer une facture"
+        storageKey="page-header:factures-creation"
+      />
+      <div className="flex flex-col lg:flex-row gap-4">
       {step === 4 && <LoadingScreen loading={loading} />} 
       
       {step < 3 && (
@@ -184,6 +191,7 @@ const InvoiceCreation = () => {
           TVA_PERCENTAGE={TVA_PERCENTAGE}
         />
       )}
+      </div>
     </div>
   );
 };

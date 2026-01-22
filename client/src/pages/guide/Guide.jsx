@@ -2,10 +2,16 @@ import Section from "./Section";
 import Title from "./Title";
 import Paragraph from "./Paragraph";
 import Navigation from "./Navigation";
+import PageHeader from "../../components/PageHeader";
 
 const Guide = () => {
   return (
     <div className="text-[#3F3F3F] mt-10 w-full flex flex-col gap-10">
+      <PageHeader
+        title="Guide d'utilisation"
+        description="Consultez le guide pour découvrir toutes les fonctionnalités"
+        storageKey="page-header:guide"
+      />
       <div className="flex flex-col md:flex-row gap-4 self-center md:self-start">
       <a
         href="/Guide d'utilisation .pdf"

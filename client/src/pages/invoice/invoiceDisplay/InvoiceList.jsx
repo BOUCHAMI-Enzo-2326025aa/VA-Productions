@@ -2,10 +2,53 @@ import "./invoice.css";
 import { useState, useEffect } from "react";
 import { formatDateSlash } from "../../../utils/formatDate";
 import axios from "axios";
+import EditableText from "../../../components/EditableText";
 
-const InvoiceList = ({ invoices, setInvoices, setInvoicesToShow }) => {
+const readStoredValue = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw;
+  } catch {
+    return fallback;
+  }
+};
+
+const InvoiceList = ({ invoices, setInvoices, setInvoicesToShow, isEditing = false }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [downloadingInvoices, setDownloadingInvoices] = useState([]);
+  const [prevLabel, setPrevLabel] = useState(() =>
+    readStoredValue("invoices:pagination:prev", "Précédent")
+  );
+  const [nextLabel, setNextLabel] = useState(() =>
+    readStoredValue("invoices:pagination:next", "Suivant")
+  );
+  const [pageLabel, setPageLabel] = useState(() =>
+    readStoredValue("invoices:pagination:page", "Page")
+  );
+  const [ofLabel, setOfLabel] = useState(() =>
+    readStoredValue("invoices:pagination:of", "sur")
+  );
+  const [sendingLabel, setSendingLabel] = useState(() =>
+    readStoredValue("invoices:einvoice:sending", "Envoi...")
+  );
+  const [einvoicePending, setEinvoicePending] = useState(() =>
+    readStoredValue("invoices:einvoice:pending", "En attente")
+  );
+  const [einvoiceSent, setEinvoiceSent] = useState(() =>
+    readStoredValue("invoices:einvoice:sent", "Envoyée")
+  );
+  const [einvoiceValidated, setEinvoiceValidated] = useState(() =>
+    readStoredValue("invoices:einvoice:validated", "Validée")
+  );
+  const [einvoiceRejected, setEinvoiceRejected] = useState(() =>
+    readStoredValue("invoices:einvoice:rejected", "Rejetée")
+  );
+  const [einvoiceNA, setEinvoiceNA] = useState(() =>
+    readStoredValue("invoices:einvoice:na", "N/A")
+  );
+  const [einvoiceTooltip, setEinvoiceTooltip] = useState(() =>
+    readStoredValue("invoices:einvoice:tooltip", "Envoyer en facture électronique")
+  );
   const invoicesPerPage = 10;
 
   // fonction pour vérifier les factures en cours de traitement
@@ -129,13 +172,69 @@ const InvoiceList = ({ invoices, setInvoices, setInvoicesToShow }) => {
       >
         <thead>
           <tr className="bg-white rounded">
-            <th>Numéro de facture</th>
-            <th>Client</th>
-            <th>Status</th>
-            <th className="table-cell-padding">Date de création</th>
-            <th className="table-cell-padding">Montant</th>
-            <th>E-Facture</th>
-            <th className="table-cell-padding">Action</th>
+            <th>
+              <EditableText
+                storageKey="invoices:table:number"
+                defaultValue={readStoredValue("invoices:table:number", "Numéro de facture")}
+                isEditing={isEditing}
+                inputClassName="text-sm"
+                as="span"
+              />
+            </th>
+            <th>
+              <EditableText
+                storageKey="invoices:table:client"
+                defaultValue={readStoredValue("invoices:table:client", "Client")}
+                isEditing={isEditing}
+                inputClassName="text-sm"
+                as="span"
+              />
+            </th>
+            <th>
+              <EditableText
+                storageKey="invoices:table:status"
+                defaultValue={readStoredValue("invoices:table:status", "Status")}
+                isEditing={isEditing}
+                inputClassName="text-sm"
+                as="span"
+              />
+            </th>
+            <th className="table-cell-padding">
+              <EditableText
+                storageKey="invoices:table:date"
+                defaultValue={readStoredValue("invoices:table:date", "Date de création")}
+                isEditing={isEditing}
+                inputClassName="text-sm"
+                as="span"
+              />
+            </th>
+            <th className="table-cell-padding">
+              <EditableText
+                storageKey="invoices:table:amount"
+                defaultValue={readStoredValue("invoices:table:amount", "Montant")}
+                isEditing={isEditing}
+                inputClassName="text-sm"
+                as="span"
+              />
+            </th>
+            <th>
+              <EditableText
+                storageKey="invoices:table:einvoice"
+                defaultValue={readStoredValue("invoices:table:einvoice", "E-Facture")}
+                isEditing={isEditing}
+                inputClassName="text-sm"
+                as="span"
+              />
+            </th>
+            <th className="table-cell-padding">
+              <EditableText
+                storageKey="invoices:table:action"
+                defaultValue={readStoredValue("invoices:table:action", "Action")}
+                isEditing={isEditing}
+                inputClassName="text-sm"
+                as="span"
+              />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -157,7 +256,11 @@ const InvoiceList = ({ invoices, setInvoices, setInvoicesToShow }) => {
                       invoice.status === 'paid' ? 'bg-green-500' : isOverdue ? 'bg-red-500' : 'bg-yellow-500' 
                     }`}></span>
                     <span>
-                      {invoice.status === "paid" ? "Payé" : isOverdue ? "Impayé" : "Non Payé"}
+                      {invoice.status === "paid"
+                        ? "Payé"
+                        : isOverdue
+                        ? "Impayé"
+                        : "Non Payé"}
                     </span>
                   </div>
                 </td>
@@ -170,7 +273,13 @@ const InvoiceList = ({ invoices, setInvoices, setInvoicesToShow }) => {
                   {invoice.eInvoiceStatus === 'processing' ? (
                     <div className="flex items-center justify-center gap-2 text-blue-600 font-semibold text-xs">
                       <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
-                      <span>Envoi...</span>
+                      <EditableText
+                        storageKey="invoices:einvoice:sending"
+                        defaultValue={sendingLabel}
+                        isEditing={isEditing}
+                        onValueChange={setSendingLabel}
+                        as="span"
+                      />
                     </div>
                   ) : (
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
@@ -181,11 +290,11 @@ const InvoiceList = ({ invoices, setInvoices, setInvoicesToShow }) => {
                           : 'bg-gray-100 text-gray-800'
                     }`}>
                       {{
-                        pending: 'En attente',
-                        sent: 'Envoyée',
-                        validated: 'Validée',
-                        rejected: 'Rejetée'
-                      }[invoice.eInvoiceStatus] || 'N/A'}
+                        pending: einvoicePending,
+                        sent: einvoiceSent,
+                        validated: einvoiceValidated,
+                        rejected: einvoiceRejected
+                      }[invoice.eInvoiceStatus] || einvoiceNA}
                     </span>
                   )}
                 </td>
@@ -231,7 +340,7 @@ const InvoiceList = ({ invoices, setInvoices, setInvoicesToShow }) => {
                 {(invoice.eInvoiceStatus === 'pending' || invoice.eInvoiceStatus === 'rejected') && (
                   <svg 
                     className="size-5 fill-[#3F3F3F] cursor-pointer"
-                    title="Envoyer en facture électronique"
+                    title={einvoiceTooltip}
                     onClick={() => handleSendEInvoice(invoice._id)}
                     xmlns="http://www.w3.org/2000/svg" 
                     viewBox="0 -960 960 960"
@@ -251,17 +360,44 @@ const InvoiceList = ({ invoices, setInvoices, setInvoicesToShow }) => {
           onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1}
         >
-          Précédent
+          <EditableText
+            storageKey="invoices:pagination:prev"
+            defaultValue={prevLabel}
+            isEditing={isEditing}
+            onValueChange={setPrevLabel}
+            as="span"
+          />
         </button>
         <span className="px-4 py-2 text text-black">
-          Page {currentPage} sur {totalPages}
+          <EditableText
+            storageKey="invoices:pagination:page"
+            defaultValue={pageLabel}
+            isEditing={isEditing}
+            onValueChange={setPageLabel}
+            as="span"
+          />{" "}
+          {currentPage} {" "}
+          <EditableText
+            storageKey="invoices:pagination:of"
+            defaultValue={ofLabel}
+            isEditing={isEditing}
+            onValueChange={setOfLabel}
+            as="span"
+          />{" "}
+          {totalPages}
         </span>
         <button
           className="px-4 py-2 bg-[#3F3F3F] rounded-r text-white text-sm cursor-pointer"
           onClick={() => handlePageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
         >
-          Suivant
+          <EditableText
+            storageKey="invoices:pagination:next"
+            defaultValue={nextLabel}
+            isEditing={isEditing}
+            onValueChange={setNextLabel}
+            as="span"
+          />
         </button>
       </div>
     </div>
