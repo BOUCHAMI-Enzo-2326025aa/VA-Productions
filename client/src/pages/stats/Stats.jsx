@@ -1,157 +1,141 @@
 import StatChart from "./StatChart";
 import PieChartStats from "./PieChartStats";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import YearlySupportStats from "./YearlySupportStats";
 import "./stats.css";
 import useAuth from "../../hooks/useAuth"; 
+import RevenueGoal from "./RevenueGoal";
 
 import { CSVLink } from "react-csv";
 import { buildSupportColorMap } from "./supportColorMap";
+
+import GlobalStatsCards from "./GlobalStatsCards";
+import TopClients from "./TopClients";
 
 const Stats = () => {
   const { isAdmin } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [magazines, setMagazines] = useState([]);
+  const [charges, setCharges] = useState([]); // Pour stocker les dépenses
+  
   const [isInvoicesLoading, setIsInvoicesLoading] = useState(true);
   const [isMagazinesLoading, setIsMagazinesLoading] = useState(true);
+  
   const [paidOnly, setPaidOnly] = useState(false);
-  // Palette de base (utilisée en priorité), complétée automatiquement si besoin
+  const [selectedYear, setSelectedYear] = useState("rolling");
+
   const colorList = [
-    "#2563eb", // Bleu
-    "#ef4444", // Rouge
-    "#22c55e", // Vert
-    "#a855f7", // Violet
-    "#06b6d4", // Cyan
-    "#f97316", // Orange
-    "#eab308", // Jaune
-    "#14b8a6", // Teal
-    "#f43f5e", // Rose
-    "#84cc16", // Lime
-    "#0ea5e9", // Sky
-    "#8b5cf6", // Purple
-    "#10b981", // Emerald
-    "#fb7185", // Rose clair
-    "#3b82f6", // Blue clair
-    "#f59e0b", // Amber
-    "#16a34a", // Green foncé
-    "#dc2626", // Red foncé
-    "#7c3aed", // Violet foncé
-    "#0891b2", // Cyan foncé
+    "#2563eb", "#ef4444", "#22c55e", "#a855f7", "#06b6d4", 
+    "#f97316", "#eab308", "#14b8a6", "#f43f5e", "#84cc16", 
+    "#0ea5e9", "#8b5cf6", "#10b981", "#fb7185", "#3b82f6", 
+    "#f59e0b", "#16a34a", "#dc2626", "#7c3aed", "#0891b2", 
   ];
 
-  const fetchInvoices = async () => {
-    setIsInvoicesLoading(true);
-    try {
-      const response = await axios.get(
-        import.meta.env.VITE_API_HOST + "/api/invoice/"
-      );
-      setInvoices(response.data);
-    } catch (error) {
-      console.error("Erreur lors de la récupération des invoices", error);
-    } finally {
-      setIsInvoicesLoading(false);
-    }
-  };
-
-  const fetchMagazines = async () => {
-    setIsMagazinesLoading(true);
-    try {
-      const response = await axios.get(
-        import.meta.env.VITE_API_HOST + "/api/magazine/"
-      );
-      setMagazines(Array.isArray(response.data?.magazines) ? response.data.magazines : []);
-    } catch (error) {
-      console.error("Erreur lors de la récupération des magazines", error);
-      setMagazines([]);
-    } finally {
-      setIsMagazinesLoading(false);
-    }
-  };
-
   useEffect(() => {
-     if (isAdmin) {
-    fetchInvoices();
-    fetchMagazines();
+    if (isAdmin) {
+      const loadData = async () => {
+        setIsInvoicesLoading(true);
+        setIsMagazinesLoading(true);
+        try {
+          // On récupère Factures, Magazines, et charges
+          const [invRes, magRes, chargeRes] = await Promise.all([
+            axios.get(import.meta.env.VITE_API_HOST + "/api/invoice/"),
+            axios.get(import.meta.env.VITE_API_HOST + "/api/magazine/"),
+            axios.get(import.meta.env.VITE_API_HOST + "/api/charge", {
+              params: { type: "result" } // On veut les montants du Compte de Résultat
+            }) 
+          ]);
+          
+          setInvoices(invRes.data);
+          setMagazines(Array.isArray(magRes.data?.magazines) ? magRes.data.magazines : []);
+          setCharges(Array.isArray(chargeRes.data?.charges) ? chargeRes.data.charges : []);
+          
+        } catch (error) {
+          console.error("Erreur chargement données", error);
+        } finally {
+          setIsInvoicesLoading(false);
+          setIsMagazinesLoading(false);
+        }
+      };
+      loadData();
     }
   }, [isAdmin]);
 
   const isStatsLoading = isInvoicesLoading || isMagazinesLoading;
 
-  // Filtrer les factures pour exclure les magazines supprimés
-  const filteredInvoices = useMemo(() => {
-    // Tant que les magazines ne sont pas connus, on ne veut pas afficher de données "non filtrées"
-    if (isMagazinesLoading) return [];
+  // Filtrage des Factures (Par date de facture)
+  const invoicesFilteredByDate = useMemo(() => {
+    let targetInvoices = invoices;
+    if (paidOnly) targetInvoices = targetInvoices.filter((inv) => inv.status === "paid");
 
-    // Aucun magazine actif => rien à afficher dans les stats par support
-    if (!Array.isArray(magazines) || magazines.length === 0) return [];
-    
-    const activeMagazineNames = new Set(
-      magazines.map(mag => mag.nom.toLowerCase().trim())
-    );
-    
-    return invoices.map(invoice => {
-      if (!invoice.supportList || invoice.supportList.length === 0) return invoice;
-      
-      const filteredSupportList = invoice.supportList.filter(support => {
-        const normalizedSupport = support.supportName.toLowerCase().trim();
-        const isActive = activeMagazineNames.has(normalizedSupport);
-        return isActive;
-      });
-      
-      return {
-        ...invoice,
-        supportList: filteredSupportList
-      };
-    }).filter(invoice => invoice.supportList && invoice.supportList.length > 0);
-  }, [invoices, magazines]);
+    if (selectedYear === "rolling") {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setFullYear(endDate.getFullYear() - 1);
+        return targetInvoices.filter((inv) => {
+            const d = new Date(inv?.date);
+            return !Number.isNaN(d.getTime()) && d >= startDate && d <= endDate;
+        });
+    } else {
+        const yearTarget = parseInt(selectedYear);
+        return targetInvoices.filter((inv) => {
+            const d = new Date(inv?.date);
+            return !Number.isNaN(d.getTime()) && d.getFullYear() === yearTarget;
+        });
+    }
+  }, [invoices, selectedYear, paidOnly]);
 
-  const invoicesLast12Months = useMemo(() => {
-    const endDate = new Date();
-    const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 11, 1);
 
-    return filteredInvoices.filter((invoice) => {
-      const invoiceDate = new Date(invoice?.date);
-      if (Number.isNaN(invoiceDate.getTime())) {
-        return false;
-      }
+  //  Filtrage des CHARGES (Par date de modification 'updatedAt')
+  const chargesFilteredByDate = useMemo(() => {
+    if (!charges || charges.length === 0) return [];
 
-      return invoiceDate >= startDate && invoiceDate <= endDate;
-    });
-  }, [filteredInvoices]);
+    if (selectedYear === "rolling") {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setFullYear(endDate.getFullYear() - 1);
+        return charges.filter((charge) => {
+            const d = new Date(charge.updatedAt); 
+            return !Number.isNaN(d.getTime()) && d >= startDate && d <= endDate;
+        });
+    } else {
+        const yearTarget = parseInt(selectedYear);
+        return charges.filter((charge) => {
+            const d = new Date(charge.updatedAt);
+            return !Number.isNaN(d.getTime()) && d.getFullYear() === yearTarget;
+        });
+    }
+  }, [charges, selectedYear]);
+
+
+  // Filtrage pour les graphiques (Uniquement magazines actifs)
+  const invoicesForCharts = useMemo(() => {
+     if (isMagazinesLoading || !Array.isArray(magazines) || magazines.length === 0) return [];
+     
+     const activeMagazineNames = new Set(
+       magazines.map(mag => mag.nom.toLowerCase().trim())
+     );
+     
+     return invoicesFilteredByDate.map(invoice => {
+       if (!invoice.supportList || invoice.supportList.length === 0) return invoice;
+       
+       const filteredSupportList = invoice.supportList.filter(support => {
+         const normalizedSupport = support.supportName.toLowerCase().trim();
+         return activeMagazineNames.has(normalizedSupport);
+       });
+       
+       return { ...invoice, supportList: filteredSupportList };
+     }).filter(invoice => invoice.supportList && invoice.supportList.length > 0);
+  }, [invoicesFilteredByDate, magazines, isMagazinesLoading]);
 
   const supportColorMap = useMemo(() => {
-    const supportNames = invoicesLast12Months.flatMap((invoice) =>
-      invoice.supportList.map((support) => support.supportName)
-    );
+      const supportNames = invoicesForCharts.flatMap((invoice) => invoice.supportList.map((support) => support.supportName));
+      return buildSupportColorMap(supportNames, colorList);
+  }, [invoicesForCharts]);
 
-    return buildSupportColorMap(supportNames, colorList);
-  }, [invoicesLast12Months]);
-
-  const invoicesFiltered = useMemo(() => {
-    if (!paidOnly) return filteredInvoices;
-    return filteredInvoices.filter((invoice) => invoice.status === "paid");
-  }, [filteredInvoices, paidOnly]);
-
-  const invoicesLast12MonthsFiltered = useMemo(() => {
-    if (!paidOnly) return invoicesLast12Months;
-    return invoicesLast12Months.filter((invoice) => invoice.status === "paid");
-  }, [invoicesLast12Months, paidOnly]);
-
-  // On définit les colonnes de notre fichier CSV
-  const csvHeaders = [
-    { label: "Numéro de Facture", key: "numero_facture" },
-    { label: "Client", key: "client" },
-    { label: "Date de Facture", key: "date_facture" },
-    { label: "Statut du Paiement", key: "statut_paiement" },
-    { label: "Nom du Support", key: "support_nom" },
-    { label: "Encart", key: "support_encart" },
-    { label: "Prix du Support (€)", key: "support_prix" },
-    { label: "Montant Total de la Facture (€)", key: "montant_total_facture" },
-  ];
-
-  // On transforme nos données complexes en un tableau simple
-  const csvData = invoicesFiltered.flatMap(invoice => 
+  // Export CSV
+  const csvData = invoicesForCharts.flatMap(invoice => 
     invoice.supportList.map(support => ({
       numero_facture: invoice.number,
       client: invoice.entreprise,
@@ -164,79 +148,78 @@ const Stats = () => {
     }))
   );
 
-  if (!isAdmin) {
-    return <div>Accès refusé. Vous devez être administrateur pour voir cette page.</div>;
-  }
+  const csvHeaders = [
+    { label: "Numéro", key: "numero_facture" },
+    { label: "Client", key: "client" },
+    { label: "Date", key: "date_facture" },
+    { label: "Statut", key: "statut_paiement" },
+    { label: "Support", key: "support_nom" },
+    { label: "Encart", key: "support_encart" },
+    { label: "Prix (€)", key: "support_prix" },
+    { label: "Total Facture (€)", key: "montant_total_facture" },
+  ];
 
-    return (
-    <div className="mb-10">
-      <div className="flex flex-col items-start gap-4 md:flex-row md:justify-between md:items-center mt-10">
+  if (!isAdmin) return <div>Accès refusé.</div>;
+
+  return (
+    <div className="mb-10 animate-in fade-in duration-500">
+      <div className="flex flex-col items-start gap-4 md:flex-row md:justify-between md:items-center mt-10 mb-8">
         <div>
-          <p className="font-bold text-lg text-[#3F3F3F] leading-3">
-            Statistiques des supports
-          </p>
-          <p className="text-[#3F3F3F] opacity-80 mt-2">
-            Statistiques des supports
-          </p>
+          <p className="font-bold text-lg text-[#3F3F3F] leading-3">Statistiques des supports</p>
+          <p className="text-[#3F3F3F] opacity-80 mt-2">Vue d'ensemble et rentabilité</p>
         </div>
 
-        <label className="flex items-center justify-between gap-4 w-full md:w-auto px-3 py-2 bg-white border border-[#E1E1E1] rounded-md">
-          <span className="text-[#3F3F3F] opacity-80 font-medium">
-            Payées uniquement
-          </span>
-          <span className="relative inline-flex items-center">
-            <input
-              type="checkbox"
-              checked={paidOnly}
-              onChange={(e) => setPaidOnly(e.target.checked)}
-              className="peer sr-only"
-              role="switch"
-              aria-label="Afficher uniquement les factures payées"
-            />
-            <span className="h-6 w-11 rounded-full border border-[#E1E1E1] bg-[#F7F7F7] transition-colors peer-checked:bg-[#3F3F3F] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#3F3F3F]" />
-            <span className="pointer-events-none absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
-          </span>
-        </label>
-
-        {!isStatsLoading && invoicesFiltered.length > 0 && (
-          <CSVLink
-            data={csvData}
-            headers={csvHeaders}
-            filename={"export-statistiques-va-production.csv"}
-            className="bg-[#3F3F3F] text-white font-semibold py-2 px-4 rounded hover:bg-opacity-80 transition-all w-full md:w-auto text-center"
-            target="_blank"
-            separator={";"} 
-          >
-            Exporter les Données (CSV)
-          </CSVLink>
-        )}
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+           <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="px-3 py-2 bg-white border border-[#E1E1E1] rounded-md text-[#3F3F3F] text-sm focus:outline-none focus:ring-2 focus:ring-[#3F3F3F]">
+            <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
+            <option value={new Date().getFullYear() - 1}>{new Date().getFullYear() - 1}</option>
+            <option value="rolling">12 derniers mois</option>
+          </select>
+          <label className="flex items-center justify-between gap-4 px-3 py-2 bg-white border border-[#E1E1E1] rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+            <span className="text-[#3F3F3F] opacity-80 font-medium text-sm">Payées</span>
+            <input type="checkbox" checked={paidOnly} onChange={(e) => setPaidOnly(e.target.checked)} className="accent-[#3F3F3F] h-4 w-4"/>
+          </label>
+          {!isStatsLoading && invoicesForCharts.length > 0 && (
+            <CSVLink
+              data={csvData}
+              headers={csvHeaders}
+              filename={"export-statistiques.csv"}
+              className="bg-[#3F3F3F] text-white font-semibold py-2 px-4 rounded hover:bg-opacity-80 transition-all w-full md:w-auto text-center text-sm flex items-center justify-center"
+              target="_blank"
+              separator={";"} 
+            >
+              Export CSV
+            </CSVLink>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row mt-4 gap-3">
-        {isStatsLoading ? (
-          <div className="w-full text-center text-[#3F3F3F] opacity-70 py-12">
-            Chargement des statistiques...
+      {isStatsLoading ? (
+        <div className="w-full text-center text-[#3F3F3F] opacity-70 py-12">Chargement...</div>
+      ) : (
+        <div className="flex flex-col gap-6">
+          <div className="w-full">
+            <RevenueGoal allInvoices={invoices} />
           </div>
-        ) : (
-          <>
-            <StatChart
-              invoices={invoicesLast12MonthsFiltered}
-              supportColorMap={supportColorMap}
+
+          <div className="w-full">
+            <GlobalStatsCards 
+                invoices={invoicesFilteredByDate} 
+                charges={chargesFilteredByDate} 
             />
-            <PieChartStats
-              invoices={invoicesLast12MonthsFiltered}
-              supportColorMap={supportColorMap}
-            />
-          </>
-        )}
+          </div>
+          <div className="w-full"><StatChart invoices={invoicesForCharts} supportColorMap={supportColorMap} /></div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+            <PieChartStats invoices={invoicesForCharts} supportColorMap={supportColorMap} />
+            <TopClients invoices={invoicesFilteredByDate} />
+          </div>
+        </div>
+      )}
+      
+      <div className="mt-16 mb-6">
+         <p className="font-bold text-lg text-[#3F3F3F] leading-3">Statistiques par support</p>
       </div>
-      <p className="font-bold text-lg text-[#3F3F3F] leading-3 mt-16">
-        Statistiques par support
-      </p>
-      <p className="text-[#3F3F3F] opacity-80 ">
-        Statistiques pour chacun des supports
-      </p>
-      <YearlySupportStats invoices={invoicesFiltered} />
+      <YearlySupportStats invoices={invoicesFilteredByDate} />
     </div>
   );
 };

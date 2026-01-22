@@ -24,6 +24,8 @@ import Charge from "./pages/charge/Charge";
 import Settings from "./pages/settings/Settings";
 import ForgotPassword from "./pages/password/ForgotPassword";
 import ResetPassword from "./pages/password/ResetPassword";
+import CRMAIAssistant from './components/CRMAIAssistant';
+import AiAssistant from "./components/AiAssistant/AiAssistant";
 
 
 axios.defaults.withCredentials = true;  
@@ -90,6 +92,7 @@ function App() {
     return (
     <MantineProvider>
       <BrowserRouter>
+      <AiAssistant />
         <Routes>
           // Routes publiques (pas de connexion)
           <Route

@@ -49,7 +49,7 @@ label: "Revenues",
 },
 };
 return (
-<Card className="flex flex-col w-full lg:w-[35%]">
+<Card className="flex flex-col w-full">
 <CardHeader className="items-center pb-0 ">
 <CardTitle>Répartition des revenus</CardTitle>
 <CardDescription>12 Derniers mois</CardDescription>
