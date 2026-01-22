@@ -5,6 +5,16 @@ import useAuth from "../../hooks/useAuth";
 import refreshIcon from "../../assets/SaveIcon.svg";
 import "./Charge.css";
 import PageHeader from "../../components/PageHeader";
+import EditableText from "../../components/EditableText";
+
+const readStoredValue = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw;
+  } catch {
+    return fallback;
+  }
+};
 
 const VIEW_OPTIONS = {
   CHARGES: "charges",
@@ -55,12 +65,112 @@ const mapCharge = (charge) => ({
 
 const Charge = () => {
   const { isAdmin } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
   const [view, setView] = useState(VIEW_OPTIONS.CHARGES);
   const [charges, setCharges] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [savingRowId, setSavingRowId] = useState(null);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
   const [resultTotal, setResultTotal] = useState(0);
+  const [chargesLabel, setChargesLabel] = useState(() =>
+    readStoredValue("charge:label:charges", "Saisie des charges")
+  );
+  const [resultLabel, setResultLabel] = useState(() =>
+    readStoredValue("charge:label:result", "Compte de résultat")
+  );
+  const [chargesDescription, setChargesDescription] = useState(() =>
+    readStoredValue(
+      "charge:description:charges",
+      "Renseignez et ajustez les montants prévus pour chaque compte."
+    )
+  );
+  const [resultDescription, setResultDescription] = useState(() =>
+    readStoredValue(
+      "charge:description:result",
+      "Renseignez les montants du compte de résultat pour chaque compte."
+    )
+  );
+  const [addRowLabel, setAddRowLabel] = useState(() =>
+    readStoredValue("charge:button:add", "Ajouter une ligne")
+  );
+  const [headerAccount, setHeaderAccount] = useState(() =>
+    readStoredValue("charge:header:account", "Compte (6 chiffres)")
+  );
+  const [headerName, setHeaderName] = useState(() =>
+    readStoredValue("charge:header:name", "Nom du compte")
+  );
+  const [headerAmount, setHeaderAmount] = useState(() =>
+    readStoredValue("charge:header:amount", "Montant (€)")
+  );
+  const [headerPrev, setHeaderPrev] = useState(() =>
+    readStoredValue("charge:header:prev", "Montant précédent (€)")
+  );
+  const [headerPlanned, setHeaderPlanned] = useState(() =>
+    readStoredValue("charge:header:planned", "Montant prévu (€)")
+  );
+  const [headerActions, setHeaderActions] = useState(() =>
+    readStoredValue("charge:header:actions", "Actions")
+  );
+  const [loadingLabel, setLoadingLabel] = useState(() =>
+    readStoredValue("charge:loading", "Chargement des données...")
+  );
+  const [emptyLabel, setEmptyLabel] = useState(() =>
+    readStoredValue(
+      "charge:empty",
+      "Aucune ligne pour le moment. Ajoutez une entrée pour commencer."
+    )
+  );
+  const [totalLabel, setTotalLabel] = useState(() =>
+    readStoredValue("charge:footer:total", "Total")
+  );
+  const [totalEntriesLabel, setTotalEntriesLabel] = useState(() =>
+    readStoredValue("charge:footer:entries", "Total des saisies")
+  );
+  const [totalPrevLabel, setTotalPrevLabel] = useState(() =>
+    readStoredValue("charge:footer:prev", "Total précédent")
+  );
+  const [totalPlannedLabel, setTotalPlannedLabel] = useState(() =>
+    readStoredValue("charge:footer:planned", "Total prévu")
+  );
+  const [resultFromAccountLabel, setResultFromAccountLabel] = useState(() =>
+    readStoredValue(
+      "charge:footer:result",
+      "Montant issu du compte de résultat"
+    )
+  );
+  const [controleLabel, setControleLabel] = useState(() =>
+    readStoredValue(
+      "charge:footer:controle",
+      "Contrôle reste à saisir / trop saisi"
+    )
+  );
+  const [ecartLabel, setEcartLabel] = useState(() =>
+    readStoredValue(
+      "charge:footer:ecart",
+      "Ecart exercice en cours et précédent"
+    )
+  );
+  const [confirmTitle, setConfirmTitle] = useState(() =>
+    readStoredValue("charge:confirm:title", "Confirmer la suppression")
+  );
+  const [confirmPrefix, setConfirmPrefix] = useState(() =>
+    readStoredValue(
+      "charge:confirm:prefix",
+      "Êtes-vous sûr de vouloir supprimer la ligne"
+    )
+  );
+  const [confirmSuffix, setConfirmSuffix] = useState(() =>
+    readStoredValue(
+      "charge:confirm:suffix",
+      "? Cette action est irréversible."
+    )
+  );
+  const [cancelLabel, setCancelLabel] = useState(() =>
+    readStoredValue("charge:confirm:cancel", "Annuler")
+  );
+  const [deleteLabel, setDeleteLabel] = useState(() =>
+    readStoredValue("charge:confirm:delete", "Supprimer")
+  );
   
   // État pour la modal de confirmation de suppression
   const [deleteConfirm, setDeleteConfirm] = useState({
@@ -142,6 +252,12 @@ const Charge = () => {
       setIsLoading(false);
     }
   }, [isAdmin, view]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setIsEditing(false);
+    }
+  }, [isAdmin]);
 
   const updateRowAtIndex = (index, updates) => {
     setCharges((prev) =>
@@ -380,8 +496,8 @@ const Charge = () => {
 
   const columnCount = isResultView ? 4 : 5;
   const viewDescription = isResultView
-    ? "Renseignez les montants du compte de résultat pour chaque compte."
-    : "Renseignez et ajustez les montants prévus pour chaque compte.";
+    ? resultDescription
+    : chargesDescription;
 
   if (!isAdmin) {
     return (
@@ -404,10 +520,13 @@ const Charge = () => {
       )}
 
       <PageHeader
-        title={view === VIEW_OPTIONS.RESULT ? "Compte de résultat" : "Saisie des charges"}
+        title={view === VIEW_OPTIONS.RESULT ? resultLabel : chargesLabel}
         description={viewDescription}
         storageKey={`page-header:charge:${view}`}
         className="mt-10 charge-header-container"
+        editMode={isEditing}
+        onEditModeChange={setIsEditing}
+        canEdit={isAdmin}
         actions={
           <>
             <select
@@ -415,46 +534,136 @@ const Charge = () => {
               onChange={(event) => setView(event.target.value)}
               className="font-bold text-lg leading-3 text-[#3F3F3F] bg-transparent border border-transparent focus:outline-none cursor-pointer"
             >
-              <option value={VIEW_OPTIONS.CHARGES}>Saisie des charges</option>
-              <option value={VIEW_OPTIONS.RESULT}>Compte de résultat</option>
+              <option value={VIEW_OPTIONS.CHARGES}>{chargesLabel}</option>
+              <option value={VIEW_OPTIONS.RESULT}>{resultLabel}</option>
             </select>
             <button
               type="button"
               onClick={handleAddRow}
               className="bg-[#3F3F3F] text-white px-4 py-2 rounded-lg font-semibold hover:bg-opacity-80 transition"
             >
-              Ajouter une ligne
+              {addRowLabel}
             </button>
           </>
         }
       />
+
+      {isEditing && isAdmin && (
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <EditableText
+            storageKey="charge:label:charges"
+            defaultValue={chargesLabel}
+            isEditing={isEditing}
+            inputClassName="text-sm"
+            onValueChange={setChargesLabel}
+          />
+          <EditableText
+            storageKey="charge:label:result"
+            defaultValue={resultLabel}
+            isEditing={isEditing}
+            inputClassName="text-sm"
+            onValueChange={setResultLabel}
+          />
+          <EditableText
+            storageKey="charge:description:charges"
+            defaultValue={chargesDescription}
+            isEditing={isEditing}
+            inputClassName="text-sm"
+            onValueChange={setChargesDescription}
+          />
+          <EditableText
+            storageKey="charge:description:result"
+            defaultValue={resultDescription}
+            isEditing={isEditing}
+            inputClassName="text-sm"
+            onValueChange={setResultDescription}
+          />
+          <EditableText
+            storageKey="charge:button:add"
+            defaultValue={addRowLabel}
+            isEditing={isEditing}
+            inputClassName="text-sm"
+            onValueChange={setAddRowLabel}
+          />
+          <EditableText
+            storageKey="charge:footer:prev"
+            defaultValue={totalPrevLabel}
+            isEditing={isEditing}
+            inputClassName="text-sm"
+            onValueChange={setTotalPrevLabel}
+          />
+          <EditableText
+            storageKey="charge:footer:planned"
+            defaultValue={totalPlannedLabel}
+            isEditing={isEditing}
+            inputClassName="text-sm"
+            onValueChange={setTotalPlannedLabel}
+          />
+        </div>
+      )}
 
       <div className="mt-8 overflow-x-auto">
         <table className="min-w-full border-separate border-spacing-y-2 charge-table">
           <thead>
             <tr className="bg-white shadow-sm">
               <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Compte (6 chiffres)
+                <EditableText
+                  storageKey="charge:header:account"
+                  defaultValue={headerAccount}
+                  isEditing={isEditing && isAdmin}
+                  onValueChange={setHeaderAccount}
+                  as="span"
+                />
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Nom du compte
+                <EditableText
+                  storageKey="charge:header:name"
+                  defaultValue={headerName}
+                  isEditing={isEditing && isAdmin}
+                  onValueChange={setHeaderName}
+                  as="span"
+                />
               </th>
               {isResultView ? (
                 <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-gray-500">
-                  Montant (€)
+                  <EditableText
+                    storageKey="charge:header:amount"
+                    defaultValue={headerAmount}
+                    isEditing={isEditing && isAdmin}
+                    onValueChange={setHeaderAmount}
+                    as="span"
+                  />
                 </th>
               ) : (
                 <>
                   <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    Montant précédent (€)
+                    <EditableText
+                      storageKey="charge:header:prev"
+                      defaultValue={headerPrev}
+                      isEditing={isEditing && isAdmin}
+                      onValueChange={setHeaderPrev}
+                      as="span"
+                    />
                   </th>
                   <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    Montant prévu (€)
+                    <EditableText
+                      storageKey="charge:header:planned"
+                      defaultValue={headerPlanned}
+                      isEditing={isEditing && isAdmin}
+                      onValueChange={setHeaderPlanned}
+                      as="span"
+                    />
                   </th>
                 </>
               )}
               <th className="px-4 py-3 text-center text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Actions
+                <EditableText
+                  storageKey="charge:header:actions"
+                  defaultValue={headerActions}
+                  isEditing={isEditing && isAdmin}
+                  onValueChange={setHeaderActions}
+                  as="span"
+                />
               </th>
             </tr>
           </thead>
@@ -465,7 +674,12 @@ const Charge = () => {
                   colSpan={columnCount}
                   className="px-4 py-6 text-center text-sm text-gray-500 bg-white shadow-sm"
                 >
-                  Chargement des données...
+                  <EditableText
+                    storageKey="charge:loading"
+                    defaultValue={loadingLabel}
+                    isEditing={isEditing && isAdmin}
+                    onValueChange={setLoadingLabel}
+                  />
                 </td>
               </tr>
             ) : charges.length === 0 ? (
@@ -474,7 +688,12 @@ const Charge = () => {
                   colSpan={columnCount}
                   className="px-4 py-6 text-center text-sm text-gray-500 bg-white shadow-sm"
                 >
-                  Aucune ligne pour le moment. Ajoutez une entrée pour commencer.
+                  <EditableText
+                    storageKey="charge:empty"
+                    defaultValue={emptyLabel}
+                    isEditing={isEditing && isAdmin}
+                    onValueChange={setEmptyLabel}
+                  />
                 </td>
               </tr>
             ) : (
@@ -577,7 +796,13 @@ const Charge = () => {
               {isResultView ? (
                 <tr className="bg-gray-50">
                   <td data-label="Total" className="px-4 py-3 text-sm font-semibold text-gray-600">
-                    Total
+                    <EditableText
+                      storageKey="charge:footer:total"
+                      defaultValue={totalLabel}
+                      isEditing={isEditing && isAdmin}
+                      onValueChange={setTotalLabel}
+                      as="span"
+                    />
                   </td>
                   <td></td>
                   <td data-label="Total Montant" className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
@@ -592,16 +817,22 @@ const Charge = () => {
                 <>
                   <tr className="bg-gray-50">
                     <td data-label="Total des saisies" className="px-4 py-3 text-sm font-semibold text-gray-600">
-                      Total des saisies
+                      <EditableText
+                        storageKey="charge:footer:entries"
+                        defaultValue={totalEntriesLabel}
+                        isEditing={isEditing && isAdmin}
+                        onValueChange={setTotalEntriesLabel}
+                        as="span"
+                      />
                     </td>
                     <td></td>
-                    <td data-label="Total Précédent" className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
+                    <td data-label={totalPrevLabel} className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                       {totalPrecedent.toLocaleString("fr-FR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })} €
                     </td>
-                    <td data-label="Total Prévu" className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
+                    <td data-label={totalPlannedLabel} className="px-4 py-3 text-right text-sm font-semibold text-gray-600">
                       {totalPrevu.toLocaleString("fr-FR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -611,7 +842,13 @@ const Charge = () => {
                   </tr>
                   <tr className="bg-white">
                     <td data-label="Montant compte de résultat" className="px-4 py-3 text-sm font-semibold text-gray-600">
-                      Montant issu du compte de résultat
+                      <EditableText
+                        storageKey="charge:footer:result"
+                        defaultValue={resultFromAccountLabel}
+                        isEditing={isEditing && isAdmin}
+                        onValueChange={setResultFromAccountLabel}
+                        as="span"
+                      />
                     </td>
                     <td></td>
                     <td></td>
@@ -625,7 +862,13 @@ const Charge = () => {
                   </tr>
                   <tr className="bg-white">
                     <td data-label="Contrôle" className="px-4 py-3 text-sm font-semibold text-gray-600">
-                      Contrôle reste à saisir / trop saisi
+                      <EditableText
+                        storageKey="charge:footer:controle"
+                        defaultValue={controleLabel}
+                        isEditing={isEditing && isAdmin}
+                        onValueChange={setControleLabel}
+                        as="span"
+                      />
                     </td>
                     <td></td>
                     <td></td>
@@ -639,7 +882,13 @@ const Charge = () => {
                   </tr>
                   <tr className="bg-white">
                     <td data-label="Écart N/N-1" className="px-4 py-3 text-sm font-semibold text-gray-600">
-                      Ecart exercice en cours et précédent
+                      <EditableText
+                        storageKey="charge:footer:ecart"
+                        defaultValue={ecartLabel}
+                        isEditing={isEditing && isAdmin}
+                        onValueChange={setEcartLabel}
+                        as="span"
+                      />
                     </td>
                     <td></td>
                     <td></td>
@@ -669,11 +918,30 @@ const Charge = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Confirmer la suppression
+              <EditableText
+                storageKey="charge:confirm:title"
+                defaultValue={confirmTitle}
+                isEditing={isEditing && isAdmin}
+                onValueChange={setConfirmTitle}
+                as="span"
+              />
             </h3>
             <p className="text-gray-600 mb-6">
-              Êtes-vous sûr de vouloir supprimer la ligne "{deleteConfirm.rowName}" ?
-              Cette action est irréversible.
+              <EditableText
+                storageKey="charge:confirm:prefix"
+                defaultValue={confirmPrefix}
+                isEditing={isEditing && isAdmin}
+                onValueChange={setConfirmPrefix}
+                as="span"
+              />{" "}
+              "{deleteConfirm.rowName}"
+              <EditableText
+                storageKey="charge:confirm:suffix"
+                defaultValue={confirmSuffix}
+                isEditing={isEditing && isAdmin}
+                onValueChange={setConfirmSuffix}
+                as="span"
+              />
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -681,14 +949,26 @@ const Charge = () => {
                 onClick={closeDeleteConfirm}
                 className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition"
               >
-                Annuler
+                <EditableText
+                  storageKey="charge:confirm:cancel"
+                  defaultValue={cancelLabel}
+                  isEditing={isEditing && isAdmin}
+                  onValueChange={setCancelLabel}
+                  as="span"
+                />
               </button>
               <button
                 type="button"
                 onClick={() => handleRemoveRow(deleteConfirm.rowIndex)}
                 className="px-4 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition"
               >
-                Supprimer
+                <EditableText
+                  storageKey="charge:confirm:delete"
+                  defaultValue={deleteLabel}
+                  isEditing={isEditing && isAdmin}
+                  onValueChange={setDeleteLabel}
+                  as="span"
+                />
               </button>
             </div>
           </div>

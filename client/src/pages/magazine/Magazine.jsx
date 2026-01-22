@@ -6,12 +6,23 @@ import ConfirmModal from "../../components/ConfirmModal";
 import ImageCropper from "../../components/ImageCropper";
 import "./Magazine.css";
 import PageHeader from "../../components/PageHeader";
+import EditableText from "../../components/EditableText";
+
+const readStoredValue = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw;
+  } catch {
+    return fallback;
+  }
+};
 
 // Définit les types standards pour le menu déroulant
 const STANDARD_TYPES = ["Magazine"];
 
 const Magazine = () => {
   const { isAdmin } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
   const [magazines, setMagazines] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,6 +41,84 @@ const Magazine = () => {
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [imageForCropper, setImageForCropper] = useState(null);
   const [originalImage, setOriginalImage] = useState(null);
+  const [newMagazineLabel, setNewMagazineLabel] = useState(() =>
+    readStoredValue("magazines:button:new", "Nouveau Magazine")
+  );
+  const [loadingLabel, setLoadingLabel] = useState(() =>
+    readStoredValue("magazines:loading", "Chargement...")
+  );
+  const [emptyLabel, setEmptyLabel] = useState(() =>
+    readStoredValue("magazines:empty", "Aucun magazine créé pour le moment")
+  );
+  const [editLabel, setEditLabel] = useState(() =>
+    readStoredValue("magazines:action:edit", "Modifier")
+  );
+  const [deleteLabel, setDeleteLabel] = useState(() =>
+    readStoredValue("magazines:action:delete", "Supprimer")
+  );
+  const [modalEditTitle, setModalEditTitle] = useState(() =>
+    readStoredValue("magazines:modal:edit-title", "Modifier le magazine")
+  );
+  const [modalCreateTitle, setModalCreateTitle] = useState(() =>
+    readStoredValue("magazines:modal:create-title", "Nouveau magazine")
+  );
+  const [labelName, setLabelName] = useState(() =>
+    readStoredValue("magazines:label:name", "Nom du magazine *")
+  );
+  const [labelType, setLabelType] = useState(() =>
+    readStoredValue("magazines:label:type", "Type de magazine *")
+  );
+  const [labelCustomType, setLabelCustomType] = useState(() =>
+    readStoredValue("magazines:label:custom-type", "Précisez le type *")
+  );
+  const [labelCover, setLabelCover] = useState(() =>
+    readStoredValue("magazines:label:cover", "Image de couverture *")
+  );
+  const [labelChooseImage, setLabelChooseImage] = useState(() =>
+    readStoredValue("magazines:label:choose", "Choisir une image depuis le PC")
+  );
+  const [labelOr, setLabelOr] = useState(() =>
+    readStoredValue("magazines:label:or", "OU")
+  );
+  const [placeholderUrl, setPlaceholderUrl] = useState(() =>
+    readStoredValue("magazines:placeholder:url", "Ou entrez l'URL de l'image")
+  );
+  const [previewLabel, setPreviewLabel] = useState(() =>
+    readStoredValue("magazines:label:preview", "Aperçu (carré 224x224) :")
+  );
+  const [cropLabel, setCropLabel] = useState(() =>
+    readStoredValue("magazines:button:crop", "Recadrer l'image")
+  );
+  const [cancelLabel, setCancelLabel] = useState(() =>
+    readStoredValue("magazines:button:cancel", "Annuler")
+  );
+  const [submitCreateLabel, setSubmitCreateLabel] = useState(() =>
+    readStoredValue("magazines:button:create", "Créer")
+  );
+  const [submitEditLabel, setSubmitEditLabel] = useState(() =>
+    readStoredValue("magazines:button:edit", "Modifier")
+  );
+  const [confirmTitle, setConfirmTitle] = useState(() =>
+    readStoredValue("magazines:confirm:title", "Supprimer le magazine")
+  );
+  const [confirmMessagePrefix, setConfirmMessagePrefix] = useState(() =>
+    readStoredValue(
+      "magazines:confirm:prefix",
+      "Êtes-vous sûr de vouloir supprimer le magazine"
+    )
+  );
+  const [confirmMessageSuffix, setConfirmMessageSuffix] = useState(() =>
+    readStoredValue(
+      "magazines:confirm:suffix",
+      "? Cette action est irréversible."
+    )
+  );
+  const [confirmDeleteLabel, setConfirmDeleteLabel] = useState(() =>
+    readStoredValue("magazines:confirm:delete", "Supprimer")
+  );
+  const [confirmCancelLabel, setConfirmCancelLabel] = useState(() =>
+    readStoredValue("magazines:confirm:cancel", "Annuler")
+  );
 
   const fetchMagazines = async () => {
     setIsLoading(true);
@@ -47,6 +136,12 @@ const Magazine = () => {
   useEffect(() => {
     if (isAdmin) {
       fetchMagazines();
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setIsEditing(false);
     }
   }, [isAdmin]);
 
@@ -198,20 +293,48 @@ const Magazine = () => {
         description="Créez et gérez les magazines disponibles"
         storageKey="page-header:magazines"
         className="mt-10 magazine-header-container"
+        editMode={isEditing}
+        onEditModeChange={setIsEditing}
+        canEdit={isAdmin}
         actions={
-          <button
-            onClick={handleOpenCreateModal}
-            className="bg-[#3F3F3F] text-white px-4 py-2 rounded-lg font-semibold hover:bg-opacity-80 transition flex items-center gap-2"
-          >
-          <Plus size={20} />
-          Nouveau Magazine
-          </button>
+          isEditing ? (
+            <EditableText
+              storageKey="magazines:button:new"
+              defaultValue={newMagazineLabel}
+              isEditing={isEditing}
+              inputBaseClassName="bg-[#3F3F3F] text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2"
+              inputClassName="text-white font-semibold text-center"
+              onValueChange={setNewMagazineLabel}
+            />
+          ) : (
+            <button
+              onClick={handleOpenCreateModal}
+              className="bg-[#3F3F3F] text-white px-4 py-2 rounded-lg font-semibold hover:bg-opacity-80 transition flex items-center gap-2"
+            >
+            <Plus size={20} />
+            {newMagazineLabel}
+            </button>
+          )
         }
       />
       {isLoading ? (
-        <div className="mt-10 text-center">Chargement...</div>
+        <div className="mt-10 text-center">
+          <EditableText
+            storageKey="magazines:loading"
+            defaultValue={loadingLabel}
+            isEditing={isEditing && isAdmin}
+            onValueChange={setLoadingLabel}
+          />
+        </div>
       ) : magazines.length === 0 ? (
-        <div className="mt-10 text-center opacity-70">Aucun magazine créé pour le moment</div>
+        <div className="mt-10 text-center opacity-70">
+          <EditableText
+            storageKey="magazines:empty"
+            defaultValue={emptyLabel}
+            isEditing={isEditing && isAdmin}
+            onValueChange={setEmptyLabel}
+          />
+        </div>
       ) : (
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pr-4 md:pr-0">
           {magazines.map((magazine) => (
@@ -229,18 +352,34 @@ const Magazine = () => {
                 <p className="text-sm text-gray-500 mb-3">{magazine.type}</p>
                 <div className="mag-action-row">
                   <button
-                    onClick={() => handleOpenEditModal(magazine)}
+                    onClick={() => !isEditing && handleOpenEditModal(magazine)}
                     className="flex-1 mag-action-btn mag-action-btn--edit"
                   >
                     <Edit2 size={20} />
-                    <span className="mag-action-btn__label">Modifier</span>
+                    <EditableText
+                      storageKey="magazines:action:edit"
+                      defaultValue={editLabel}
+                      isEditing={isEditing && isAdmin}
+                      onValueChange={setEditLabel}
+                      className="mag-action-btn__label"
+                      inputClassName="text-xs font-semibold"
+                      as="span"
+                    />
                   </button>
                   <button
-                    onClick={() => handleOpenDeleteModal(magazine._id, magazine.nom)}
+                    onClick={() => !isEditing && handleOpenDeleteModal(magazine._id, magazine.nom)}
                     className="flex-1 mag-action-btn mag-action-btn--danger"
                   >
                     <Trash2 size={16} />
-                    <span className="mag-action-btn__label">Supprimer</span>
+                    <EditableText
+                      storageKey="magazines:action:delete"
+                      defaultValue={deleteLabel}
+                      isEditing={isEditing && isAdmin}
+                      onValueChange={setDeleteLabel}
+                      className="mag-action-btn__label"
+                      inputClassName="text-xs font-semibold"
+                      as="span"
+                    />
                   </button>
                 </div>
               </div>
@@ -252,12 +391,32 @@ const Magazine = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">{editingMagazine ? "Modifier le magazine" : "Nouveau magazine"}</h2>
+              <EditableText
+                storageKey={
+                  editingMagazine
+                    ? "magazines:modal:edit-title"
+                    : "magazines:modal:create-title"
+                }
+                defaultValue={editingMagazine ? modalEditTitle : modalCreateTitle}
+                isEditing={isEditing && isAdmin}
+                onValueChange={editingMagazine ? setModalEditTitle : setModalCreateTitle}
+                className="text-xl font-bold"
+                inputClassName="text-xl font-bold"
+                as="h2"
+              />
               <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block font-semibold mb-2">Nom du magazine *</label>
+                <EditableText
+                  storageKey="magazines:label:name"
+                  defaultValue={labelName}
+                  isEditing={isEditing && isAdmin}
+                  onValueChange={setLabelName}
+                  className="block font-semibold mb-2"
+                  inputClassName="text-sm"
+                  as="label"
+                />
                 <input
                   type="text" value={formData.nom} onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3F3F3F] focus:border-[#3F3F3F]"
@@ -265,7 +424,15 @@ const Magazine = () => {
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-2">Type de magazine *</label>
+                <EditableText
+                  storageKey="magazines:label:type"
+                  defaultValue={labelType}
+                  isEditing={isEditing && isAdmin}
+                  onValueChange={setLabelType}
+                  className="block font-semibold mb-2"
+                  inputClassName="text-sm"
+                  as="label"
+                />
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value, customType: "" })}
@@ -279,7 +446,15 @@ const Magazine = () => {
               </div>
               {formData.type === "Autre" && (
                 <div className="appear-animation">
-                  <label className="block font-semibold mb-2 text-sm">Précisez le type *</label>
+                  <EditableText
+                    storageKey="magazines:label:custom-type"
+                    defaultValue={labelCustomType}
+                    isEditing={isEditing && isAdmin}
+                    onValueChange={setLabelCustomType}
+                    className="block font-semibold mb-2 text-sm"
+                    inputClassName="text-sm"
+                    as="label"
+                  />
                   <input
                     type="text" value={formData.customType} onChange={(e) => setFormData({ ...formData, customType: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3F3F3F] focus:border-[#3F3F3F]"
@@ -288,19 +463,43 @@ const Magazine = () => {
                 </div>
               )}
               <div>
-                <label className="block font-semibold mb-2">Image de couverture *</label>
+                <EditableText
+                  storageKey="magazines:label:cover"
+                  defaultValue={labelCover}
+                  isEditing={isEditing && isAdmin}
+                  onValueChange={setLabelCover}
+                  className="block font-semibold mb-2"
+                  inputClassName="text-sm"
+                  as="label"
+                />
                 <div className="mb-3">
                   <label className="w-full cursor-pointer">
                     <div className="mag-upload-drop">
                       <Upload size={20} className="text-gray-600" />
-                      <span className="text-sm font-medium text-gray-700">Choisir une image depuis le PC</span>
+                      <EditableText
+                        storageKey="magazines:label:choose"
+                        defaultValue={labelChooseImage}
+                        isEditing={isEditing && isAdmin}
+                        onValueChange={setLabelChooseImage}
+                        className="text-sm font-medium text-gray-700"
+                        inputClassName="text-sm"
+                        as="span"
+                      />
                     </div>
                     <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
                   </label>
                 </div>
                 <div className="flex items-center gap-3 my-3">
                   <div className="flex-1 h-px bg-gray-300"></div>
-                  <span className="text-sm text-gray-500 font-medium">OU</span>
+                  <EditableText
+                    storageKey="magazines:label:or"
+                    defaultValue={labelOr}
+                    isEditing={isEditing && isAdmin}
+                    onValueChange={setLabelOr}
+                    className="text-sm text-gray-500 font-medium"
+                    inputClassName="text-sm"
+                    as="span"
+                  />
                   <div className="flex-1 h-px bg-gray-300"></div>
                 </div>
                 <input
@@ -308,11 +507,18 @@ const Magazine = () => {
                   value={formData.image}
                   onChange={(e) => setFormData({ ...formData, image: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3F3F3F] focus:border-[#3F3F3F]"
-                  placeholder="Ou entrez l'URL de l'image"
+                  placeholder={placeholderUrl}
                 />
                 {(formData.image) && (
                   <div className="mt-3">
-                    <p className="text-sm opacity-70 mb-2">Aperçu (carré 224x224) :</p>
+                    <EditableText
+                      storageKey="magazines:label:preview"
+                      defaultValue={previewLabel}
+                      isEditing={isEditing && isAdmin}
+                      onValueChange={setPreviewLabel}
+                      className="text-sm opacity-70 mb-2"
+                      inputClassName="text-sm"
+                    />
                     <div className="flex justify-center">
                       <div style={{ width: '100%', maxWidth: '14rem', aspectRatio: '1 / 1', overflow: 'hidden', flex: 'none' }}>
                         <img
@@ -333,15 +539,43 @@ const Magazine = () => {
                         }}
                         className="mt-2 w-full bg-blue-500 text-white py-2 rounded font-medium hover:bg-blue-600 transition"
                       >
-                        Recadrer l'image
+                        <EditableText
+                          storageKey="magazines:button:crop"
+                          defaultValue={cropLabel}
+                          isEditing={isEditing && isAdmin}
+                          onValueChange={setCropLabel}
+                          className="text-white"
+                          inputClassName="text-sm"
+                          as="span"
+                        />
                       </button>
                     )}
                   </div>
                 )}
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400 transition">Annuler</button>
-                <button type="submit" className="flex-1 bg-[#3F3F3F] text-white py-2 rounded-lg font-semibold hover:bg-opacity-80 transition">{editingMagazine ? "Modifier" : "Créer"}</button>
+                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400 transition">
+                  <EditableText
+                    storageKey="magazines:button:cancel"
+                    defaultValue={cancelLabel}
+                    isEditing={isEditing && isAdmin}
+                    onValueChange={setCancelLabel}
+                    className="text-gray-700"
+                    inputClassName="text-sm"
+                    as="span"
+                  />
+                </button>
+                <button type="submit" className="flex-1 bg-[#3F3F3F] text-white py-2 rounded-lg font-semibold hover:bg-opacity-80 transition">
+                  <EditableText
+                    storageKey={editingMagazine ? "magazines:button:edit" : "magazines:button:create"}
+                    defaultValue={editingMagazine ? submitEditLabel : submitCreateLabel}
+                    isEditing={isEditing && isAdmin}
+                    onValueChange={editingMagazine ? setSubmitEditLabel : setSubmitCreateLabel}
+                    className="text-white"
+                    inputClassName="text-sm"
+                    as="span"
+                  />
+                </button>
               </div>
             </form>
           </div>
@@ -349,13 +583,13 @@ const Magazine = () => {
       )}
       <ConfirmModal
         open={deleteModal.open}
-        title="Supprimer le magazine"
-        message={`Êtes-vous sûr de vouloir supprimer le magazine "${deleteModal.magazineName}" ? Cette action est irréversible.`}
+        title={confirmTitle}
+        message={`${confirmMessagePrefix} "${deleteModal.magazineName}" ${confirmMessageSuffix}`}
         requirePassword={true}
         onClose={handleCloseDeleteModal}
         onConfirm={handleConfirmDelete}
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
+        confirmLabel={confirmDeleteLabel}
+        cancelLabel={confirmCancelLabel}
         loading={deleteModal.loading}
         error={deleteModal.error}
       />
